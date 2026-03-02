@@ -23,6 +23,7 @@ import {
     LayoutGrid,
     Pencil,
     ChevronLeft,
+    ChevronDown,
     ChevronRight,
     Wallet,
     NotebookPen,
@@ -639,8 +640,8 @@ export default function OtherServicesPage() {
                             <Plus className="mr-2 h-5 w-5" /> Registrar Otro Servicio
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:hidden">
-                            <DialogHeader className="border-b border-slate-100 pb-4 mb-4">
+                    <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:hidden" onOpenAutoFocus={(e) => e.preventDefault()}>
+                            <DialogHeader>
                                 <div className="flex items-center gap-2 mb-1">
                                     <div className="p-2 bg-chimipink/10 rounded-lg">
                                         <ClipboardList size={20} className="text-chimipink" />
@@ -653,6 +654,37 @@ export default function OtherServicesPage() {
                             </DialogHeader>
 
                         <form onSubmit={handleSubmit} className="space-y-6 py-4">
+                            {/* --- ESTADO AL INICIO --- */}
+                            <div className="grid gap-2 mb-6">
+                                <Label className="font-black text-slate-700 uppercase tracking-tighter flex items-center gap-2 text-xs">
+                                    <div className="w-2 h-2 rounded-full bg-chimipink animate-pulse" />
+                                    Estado del Servicio
+                                </Label>
+                                <div className="relative group">
+                                    <select 
+                                        name="status"
+                                        className={cn(
+                                            "w-full h-10 appearance-none px-4 rounded-xl text-xs font-black border-0 transition-all cursor-pointer shadow-sm focus:ring-4 focus:ring-offset-2 pr-10",
+                                            formData.status === 'pending' ? "bg-amber-500 text-white focus:ring-amber-200" :
+                                            formData.status === 'completed' ? "bg-emerald-500 text-white focus:ring-emerald-200" :
+                                            formData.status === 'delivered' ? "bg-blue-600 text-white focus:ring-blue-200" :
+                                            formData.status === 'cancelled' ? "bg-rose-500 text-white focus:ring-rose-200" :
+                                            "bg-sky-500 text-white focus:ring-sky-200"
+                                        )}
+                                        value={formData.status}
+                                        onChange={handleInputChange}
+                                    >
+                                        <option value="pending" className="bg-white text-slate-700 font-bold">Pendiente</option>
+                                        <option value="in_progress" className="bg-white text-slate-700 font-bold">En Proceso</option>
+                                        <option value="completed" className="bg-white text-slate-700 font-bold">Listo / Completado</option>
+                                        <option value="delivered" className="bg-white text-slate-700 font-bold">Entregado</option>
+                                        <option value="cancelled" className="bg-white text-slate-700 font-bold">Cancelado</option>
+                                    </select>
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white/80">
+                                        <ChevronDown size={18} strokeWidth={3} />
+                                    </div>
+                                </div>
+                            </div>
                             {/* Section: Client */}
                             <div className="space-y-4 border p-4 rounded-md bg-slate-50">
                                 <Label className="font-bold text-slate-700 text-sm flex items-center gap-2">
@@ -1430,11 +1462,12 @@ export default function OtherServicesPage() {
                                                 value={s.status}
                                                 onChange={(e) => handleStatusChange(s.id, e.target.value)}
                                                 className={cn(
-                                                    "appearance-none px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border-none focus:ring-0 cursor-pointer text-center",
-                                                    s.status === 'pending' ? "bg-amber-100 text-amber-700" :
-                                                    s.status === 'completed' ? "bg-emerald-100 text-emerald-700" :
-                                                    s.status === 'cancelled' ? "bg-red-100 text-red-700" :
-                                                    "bg-blue-100 text-blue-700"
+                                                    "appearance-none px-3 py-1 pr-8 rounded-full text-[10px] font-black uppercase border-0 cursor-pointer focus:ring-2 focus:ring-offset-1 transition-all shadow-sm",
+                                                    s.status === 'pending' ? "bg-amber-500 text-white hover:bg-amber-600 focus:ring-amber-300" :
+                                                    s.status === 'completed' ? "bg-emerald-500 text-white hover:bg-emerald-600 focus:ring-emerald-300" :
+                                                    s.status === 'delivered' ? "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-300" :
+                                                    s.status === 'cancelled' ? "bg-rose-500 text-white hover:bg-rose-600 focus:ring-rose-300" :
+                                                    "bg-sky-500 text-white hover:bg-sky-600 focus:ring-sky-300"
                                                 )}
                                             >
                                                 <option value="pending">Pendiente</option>

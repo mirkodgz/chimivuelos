@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react"
 import Image from "next/image"
 import { 
-    Search, Plus, Trash2, Pencil, Copy, Check, FileText, Building2, Download, X, ChevronLeft, ChevronRight, FileSpreadsheet, NotebookPen, Calendar, FolderOpen
+    Search, Plus, Trash2, Pencil, Copy, Check, FileText, Building2, Download, X, ChevronLeft, ChevronDown, ChevronRight, FileSpreadsheet, NotebookPen, Calendar, FolderOpen
 } from "lucide-react"
 import * as XLSX from "xlsx"
 import { createClient } from '@/lib/supabase/client'
@@ -778,7 +778,7 @@ export default function MoneyTransfersPage() {
                         </Button>
                     </DialogTrigger>
                     
-                    <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:hidden">
+                    <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:hidden" onOpenAutoFocus={(e) => e.preventDefault()}>
                         <DialogHeader>
                             <DialogTitle>{selectedTransferId ? 'Editar Giro' : 'Registrar Nuevo Giro'}</DialogTitle>
                             <DialogDescription>
@@ -787,6 +787,34 @@ export default function MoneyTransfersPage() {
                         </DialogHeader>
 
                         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+                            {/* --- ESTADO AL INICIO --- */}
+                            <div className="grid gap-2 mb-2">
+                                <Label className="font-black text-slate-700 uppercase tracking-tighter flex items-center gap-2 text-[10px]">
+                                    <div className="w-2 h-2 rounded-full bg-chimipink animate-pulse" />
+                                    Estado de Giro
+                                </Label>
+                                <div className="relative group">
+                                    <select 
+                                        name="status"
+                                        className={cn(
+                                            "w-full h-10 appearance-none px-4 rounded-xl text-xs font-black border-0 transition-all cursor-pointer shadow-sm focus:ring-4 focus:ring-offset-2 pr-10",
+                                            formData.status === 'scheduled' ? "bg-amber-500 text-white focus:ring-amber-200" :
+                                            formData.status === 'delivered' ? "bg-emerald-500 text-white focus:ring-emerald-200" :
+                                            formData.status === 'cancelled' ? "bg-rose-500 text-white focus:ring-rose-200" :
+                                            "bg-slate-500 text-white focus:ring-slate-300"
+                                        )}
+                                        value={formData.status}
+                                        onChange={handleInputChange}
+                                    >
+                                        <option value="scheduled" className="bg-white text-slate-700 font-bold">Programado</option>
+                                        <option value="delivered" className="bg-white text-slate-700 font-bold">Entregado</option>
+                                        <option value="cancelled" className="bg-white text-slate-700 font-bold">Cancelado</option>
+                                    </select>
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white/80">
+                                        <ChevronDown size={14} strokeWidth={3} />
+                                    </div>
+                                </div>
+                            </div>
                             {/* Client Selection (Searchable) */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
                                 <div className="space-y-2 relative">
@@ -2056,12 +2084,13 @@ export default function MoneyTransfersPage() {
                                                 <select
                                                     value={transfer.status}
                                                     onChange={(e) => handleStatusChange(transfer.id, e.target.value)}
-                                                    className={`
-                                                        px-2 py-1 rounded-full text-xs font-medium border-none focus:ring-0 cursor-pointer w-36 text-center
-                                                        ${transfer.status === 'delivered' ? 'bg-emerald-100 text-emerald-700' : 
-                                                          transfer.status === 'cancelled' ? 'bg-red-100 text-red-700' : 
-                                                          'bg-yellow-100 text-yellow-700'}
-                                                    `}
+                                                    className={cn(
+                                                        "appearance-none px-3 py-1 pr-8 rounded-full text-[10px] font-black uppercase border-0 cursor-pointer focus:ring-2 focus:ring-offset-1 transition-all shadow-sm text-center",
+                                                        transfer.status === 'scheduled' ? "bg-amber-500 text-white hover:bg-amber-600 focus:ring-amber-300" :
+                                                        transfer.status === 'delivered' ? "bg-emerald-500 text-white hover:bg-emerald-600 focus:ring-emerald-300" :
+                                                        transfer.status === 'cancelled' ? "bg-rose-500 text-white hover:bg-rose-600 focus:ring-rose-300" :
+                                                        "bg-slate-500 text-white hover:bg-slate-600 focus:ring-slate-300"
+                                                    )}
                                                 >
                                                     <option value="scheduled">Programado</option>
                                                     <option value="delivered">Entregado</option>

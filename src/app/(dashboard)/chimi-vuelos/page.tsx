@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Plus, Search, Trash2, Edit, FileText, Download, FileSpreadsheet, ChevronLeft, ChevronRight, ListChecks, Wallet, Check, X, Calendar, Building2, User, Copy, Pencil, RefreshCw } from 'lucide-react'
+import { Plus, Search, Trash2, Edit, FileText, Download, FileSpreadsheet, ChevronLeft, ChevronRight, ChevronDown, ListChecks, Wallet, Check, X, Calendar, Building2, User, Copy, Pencil, RefreshCw, AlertTriangle } from 'lucide-react'
 import Image from 'next/image'
 import * as XLSX from 'xlsx'
 import { createClient } from '@/lib/supabase/client'
@@ -79,6 +79,8 @@ interface Flight {
     pax_inf?: number
     pax_total?: number
     iata_gds?: string
+    minor_travel_with?: string
+    required_documents?: Record<string, { required: boolean, status: string, extra?: string }>
 }
 
 interface ClientOption {
@@ -184,6 +186,25 @@ const TICKET_TYPE_OPTIONS = [
     "Exprés con documento",
     "Pasaje low cost (económico, servicios básicos)"
 ]
+
+const MINOR_TRAVEL_OPTIONS = [
+    "Solo con el padre",
+    "Solo con la madre",
+    "Con ambos padres",
+    "Con un familiar (tío, abuelo, hermano, etc.)",
+    "Solo con servicio de acompañamiento de la aerolínea (UMNR) — menor de 14 años",
+    "Solo con servicio de acompañamiento de la aerolínea (UMNR) — 14 a 17 años",
+    "Solo, sin acompañante y sin servicio UMNR (permitido según normativa de la aerolínea)"
+]
+
+const INITIAL_REQUIRED_DOCUMENTS: Record<string, { required: boolean, status: string, extra?: string }> = {
+    "Carta poder consular": { required: false, status: 'no' },
+    "Pasaporte vigente": { required: false, status: 'no' },
+    "Autorización de viaje consular": { required: false, status: 'no' },
+    "Autorización notarial": { required: false, status: 'no' },
+    "Certificado o acta de defunción (si aplica)": { required: false, status: 'no' },
+    "Otros": { required: false, status: 'no', extra: '' }
+}
 
 const IATA_OPTIONS = [
     "sabre suema",
@@ -340,7 +361,11 @@ export default function FlightsPage() {
         pax_inf: '0',
         pax_total: '1',
         iata_gds: 'sabre suema',
+        minor_travel_with: '',
+        required_documents: { ...INITIAL_REQUIRED_DOCUMENTS }
     })
+
+    const [showAdditionalFields, setShowAdditionalFields] = useState(false)
 
     const [showPaymentFields, setShowPaymentFields] = useState(false)
     const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null)
@@ -514,6 +539,45 @@ export default function FlightsPage() {
         })
     }
 
+    const handleDocRequiredChange = (docName: string, required: boolean) => {
+        setFormData(prev => ({
+            ...prev,
+            required_documents: {
+                ...prev.required_documents,
+                [docName]: { 
+                    ...(prev.required_documents?.[docName] || { status: 'no' }), 
+                    required 
+                }
+            }
+        }))
+    }
+
+    const handleDocStatusChange = (docName: string, status: 'si' | 'no' | 'na') => {
+        setFormData(prev => ({
+            ...prev,
+            required_documents: {
+                ...prev.required_documents,
+                [docName]: { 
+                    ...(prev.required_documents?.[docName] || { required: false }), 
+                    status 
+                }
+            }
+        }))
+    }
+
+    const handleDocExtraChange = (docName: string, extra: string) => {
+        setFormData(prev => ({
+            ...prev,
+            required_documents: {
+                ...prev.required_documents,
+                [docName]: { 
+                    ...(prev.required_documents?.[docName] || { required: false, status: 'no' }), 
+                    extra 
+                }
+            }
+        }))
+    }
+
     const resetForm = () => {
         setFormData({
             client_id: '',
@@ -543,6 +607,8 @@ export default function FlightsPage() {
             pax_inf: '0',
             pax_total: '1',
             iata_gds: 'sabre suema',
+            minor_travel_with: '',
+            required_documents: { ...INITIAL_REQUIRED_DOCUMENTS }
         })
         const initialDocs = DOCUMENT_TYPES.map(type => ({ 
             title: type, 
@@ -640,6 +706,8 @@ export default function FlightsPage() {
             pax_inf: (flight.pax_inf || 0).toString(),
             pax_total: (flight.pax_total || 1).toString(),
             iata_gds: flight.iata_gds || 'sabre suema',
+            minor_travel_with: flight.minor_travel_with || '',
+            required_documents: flight.required_documents || { ...INITIAL_REQUIRED_DOCUMENTS }
         })
         setBaseOnAccount(flight.on_account || 0)
         setClientSearch(`${flight.profiles.first_name} ${flight.profiles.last_name}`)
@@ -870,8 +938,10 @@ export default function FlightsPage() {
                     data.append(key, financials.balance)
                 } else if (key === 'fee_agv') {
                     data.append(key, financials.fee_agv)
+                } else if (key === 'required_documents') {
+                    data.append(key, JSON.stringify(val))
                 } else {
-                    data.append(key, val)
+                    data.append(key, val as unknown as string)
                 }
             })
 
@@ -1315,6 +1385,45 @@ export default function FlightsPage() {
                         </DialogHeader>
                         
                         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+                            {/* --- ESTADO AL INICIO --- */}
+                            <div className="grid gap-2 mb-2">
+                                <Label className="font-black text-slate-700 uppercase tracking-tighter flex items-center gap-2 text-[10px]">
+                                    <div className="w-2 h-2 rounded-full bg-chimipink animate-pulse" />
+                                    Estado de Viaje
+                                </Label>
+                                <div className="relative group">
+                                    <select 
+                                        name="status"
+                                        className={cn(
+                                            "w-full h-10 appearance-none px-4 rounded-xl text-xs font-black border-0 transition-all cursor-pointer shadow-sm focus:ring-4 focus:ring-offset-2 pr-10",
+                                            formData.status === 'Finalizado' 
+                                                ? 'bg-emerald-500 text-white focus:ring-emerald-200' 
+                                                : formData.status === 'Cancelado' || formData.status === 'Deportado'
+                                                ? 'bg-rose-500 text-white focus:ring-rose-200'
+                                                : formData.status === 'En tránsito' || formData.status === 'En migración'
+                                                ? 'bg-blue-500 text-white focus:ring-blue-200'
+                                                : formData.status === 'No-show (no se presentó)'
+                                                ? 'bg-slate-600 text-white focus:ring-slate-300'
+                                                : formData.status === 'Programado'
+                                                ? 'bg-sky-500 text-white focus:ring-sky-200'
+                                                : formData.status === 'Reprogramado'
+                                                ? 'bg-orange-500 text-white focus:ring-orange-200'
+                                                : formData.status === 'Cambio de horario'
+                                                ? 'bg-yellow-500 text-white focus:ring-yellow-200'
+                                                : 'bg-amber-500 text-white focus:ring-amber-200'
+                                        )}
+                                        value={formData.status}
+                                        onChange={handleInputChange}
+                                    >
+                                        {FLIGHT_STATUSES.map(s => (
+                                            <option key={s} value={s} className="bg-white text-slate-700 font-bold">{s}</option>
+                                        ))}
+                                    </select>
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white/80">
+                                        <ChevronDown size={14} strokeWidth={3} />
+                                    </div>
+                                </div>
+                            </div>
                             {/* Client Search and Details */}
                             <div className="space-y-4 border p-4 rounded-md bg-slate-50">
                                 <Label className="font-bold text-slate-700 text-sm flex items-center gap-2">
@@ -1579,6 +1688,106 @@ export default function FlightsPage() {
                                 </div>
                             </div>
                             
+                            <div className="space-y-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAdditionalFields(!showAdditionalFields)}
+                                    className="text-[10px] font-bold text-chimipink hover:text-chimipink/80 flex items-center gap-1 transition-colors uppercase tracking-tight"
+                                >
+                                    {showAdditionalFields ? <ChevronDown className="h-3 w-3 rotate-180" /> : <Plus className="h-3 w-3" />}
+                                    Campos adicionales si corresponde
+                                </button>
+
+                                {showAdditionalFields && (
+                                    <div className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm space-y-4 animate-in fade-in slide-in-from-top-2">
+                                        {/* Sector: Minor Travel */}
+                                        <div className="grid gap-2">
+                                            <Label className="text-xs font-bold text-slate-700">¿Con quién viaja el menor?</Label>
+                                            <select
+                                                name="minor_travel_with"
+                                                value={formData.minor_travel_with}
+                                                onChange={handleInputChange}
+                                                className="w-full h-10 appearance-none px-4 rounded-xl text-xs font-bold border border-slate-200 bg-slate-50/50 focus:ring-4 focus:ring-chimipink/10 transition-all cursor-pointer"
+                                            >
+                                                <option value="">Seleccione opción...</option>
+                                                {MINOR_TRAVEL_OPTIONS.map(opt => (
+                                                    <option key={opt} value={opt}>{opt}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        {/* Sector: Documents Reminder */}
+                                        <div className="space-y-3 pt-2">
+                                            <div className="flex items-center gap-2 text-amber-600">
+                                                <AlertTriangle size={16} />
+                                                <span className="text-[11px] font-black uppercase tracking-tight">Recuerde tener los documentos consigo</span>
+                                            </div>
+                                            
+                                            <div className="space-y-2">
+                                                {Object.entries(formData.required_documents || {}).map(([doc, info]) => (
+                                                    <div key={doc} className="flex flex-col gap-2 p-2 rounded-lg border border-slate-50 bg-slate-50/30">
+                                                        <div className="flex items-center gap-3">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={info.required}
+                                                                onChange={(e) => handleDocRequiredChange(doc, e.target.checked)}
+                                                                className="rounded border-slate-300 text-chimipink focus:ring-chimipink h-4 w-4"
+                                                            />
+                                                            <span className="text-xs font-bold text-slate-700">{doc === 'Otros' && info.extra ? `Otros: ${info.extra}` : doc}</span>
+                                                        </div>
+                                                        
+                                                        {info.required && (
+                                                            <div className="ml-7 flex items-center gap-4">
+                                                                <div className="flex items-center gap-1.5 cursor-pointer group" onClick={() => handleDocStatusChange(doc, 'si')}>
+                                                                    <div className={cn(
+                                                                        "w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all",
+                                                                        info.status === 'si' ? "bg-emerald-500 border-emerald-500" : "border-slate-300 group-hover:border-emerald-400"
+                                                                    )}>
+                                                                        {info.status === 'si' && <Check size={10} className="text-white" strokeWidth={4} />}
+                                                                    </div>
+                                                                    <span className={cn("text-[10px] font-bold", info.status === 'si' ? "text-emerald-600" : "text-slate-400")}>SÍ</span>
+                                                                </div>
+
+                                                                <div className="flex items-center gap-1.5 cursor-pointer group" onClick={() => handleDocStatusChange(doc, 'no')}>
+                                                                    <div className={cn(
+                                                                        "w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all",
+                                                                        info.status === 'no' ? "bg-rose-500 border-rose-500" : "border-slate-300 group-hover:border-rose-400"
+                                                                    )}>
+                                                                        {info.status === 'no' && <X size={10} className="text-white" strokeWidth={4} />}
+                                                                    </div>
+                                                                    <span className={cn("text-[10px] font-bold", info.status === 'no' ? "text-rose-600" : "text-slate-400")}>NO</span>
+                                                                </div>
+
+                                                                {doc === 'Certificado o acta de defunción (si aplica)' && (
+                                                                    <div className="flex items-center gap-1.5 cursor-pointer group" onClick={() => handleDocStatusChange(doc, 'na')}>
+                                                                        <div className={cn(
+                                                                            "w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all",
+                                                                            info.status === 'na' ? "bg-slate-500 border-slate-500" : "border-slate-300 group-hover:border-slate-400"
+                                                                        )}>
+                                                                            {info.status === 'na' && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                                                                        </div>
+                                                                        <span className={cn("text-[10px] font-bold", info.status === 'na' ? "text-slate-600" : "text-slate-400")}>N/A</span>
+                                                                    </div>
+                                                                )}
+                                                                
+                                                                {doc === 'Otros' && (
+                                                                    <input 
+                                                                        placeholder="Especifique..."
+                                                                        value={info.extra || ''}
+                                                                        onChange={(e) => handleDocExtraChange(doc, e.target.value)}
+                                                                        className="ml-auto text-[10px] border-b border-slate-200 focus:border-chimipink outline-none bg-transparent w-24 font-bold text-slate-600"
+                                                                    />
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="grid gap-2">
                                      <Label>PNR</Label>
@@ -2576,19 +2785,6 @@ export default function FlightsPage() {
                                     )}
                                 </div>
 
-                            <div className="grid gap-2">
-                                <Label>Estado de Viaje</Label>
-                                <select 
-                                    name="status"
-                                    className="w-full border rounded-md p-2 text-sm bg-white"
-                                    value={formData.status}
-                                    onChange={handleInputChange}
-                                >
-                                    {FLIGHT_STATUSES.map(s => (
-                                        <option key={s} value={s}>{s}</option>
-                                    ))}
-                                </select>
-                            </div>
                             
                             {/* Documents Section */}
                             <div className="border-t border-slate-100 my-2 pt-4">
@@ -2912,17 +3108,24 @@ export default function FlightsPage() {
                                                             <select
                                                                 value={flight.status}
                                                                 onChange={(e) => handleStatusChange(flight.id, e.target.value)}
-                                                                className={`appearance-none px-3 py-1 pr-8 rounded-full text-xs font-semibold border-0 cursor-pointer focus:ring-2 focus:ring-offset-1 transition-colors ${
-                                                                flight.status === 'Finalizado' 
-                                                                    ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 focus:ring-emerald-500' 
-                                                                    : flight.status === 'Cancelado' || flight.status === 'Deportado'
-                                                                    ? 'bg-red-100 text-red-700 hover:bg-red-200 focus:ring-red-500'
-                                                                    : flight.status === 'En tránsito' || flight.status === 'En migración'
-                                                                    ? 'bg-blue-100 text-blue-700 hover:bg-blue-200 focus:ring-blue-500'
-                                                                    : flight.status === 'No-show (no se presentó)'
-                                                                    ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 focus:ring-slate-500'
-                                                                    : 'bg-amber-100 text-amber-700 hover:bg-amber-200 focus:ring-amber-500'
-                                                                }`}
+                                                                className={cn(
+                                                                    "appearance-none px-3 py-1 pr-8 rounded-full text-[10px] font-black uppercase border-0 cursor-pointer focus:ring-2 focus:ring-offset-1 transition-all shadow-sm",
+                                                                    flight.status === 'Finalizado' 
+                                                                        ? 'bg-emerald-500 text-white hover:bg-emerald-600 focus:ring-emerald-300' 
+                                                                        : flight.status === 'Cancelado' || flight.status === 'Deportado'
+                                                                        ? 'bg-rose-500 text-white hover:bg-rose-600 focus:ring-rose-300'
+                                                                        : flight.status === 'En tránsito' || flight.status === 'En migración'
+                                                                        ? 'bg-blue-500 text-white hover:bg-blue-600 focus:ring-blue-300'
+                                                                        : flight.status === 'No-show (no se presentó)'
+                                                                        ? 'bg-slate-600 text-white hover:bg-slate-700 focus:ring-slate-300'
+                                                                        : flight.status === 'Programado'
+                                                                        ? 'bg-sky-500 text-white hover:bg-sky-600 focus:ring-sky-300'
+                                                                        : flight.status === 'Reprogramado'
+                                                                        ? 'bg-orange-500 text-white hover:bg-orange-600 focus:ring-orange-300'
+                                                                        : flight.status === 'Cambio de horario'
+                                                                        ? 'bg-yellow-500 text-white hover:bg-yellow-600 focus:ring-yellow-300'
+                                                                        : 'bg-amber-500 text-white hover:bg-amber-600 focus:ring-amber-300'
+                                                                )}
                                                             >
                                                                 {FLIGHT_STATUSES.map(s => (
                                                                     <option key={s} value={s}>{s}</option>

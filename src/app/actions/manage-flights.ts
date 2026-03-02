@@ -65,6 +65,15 @@ export async function createFlight(formData: FormData) {
             console.error('Error parsing details:', e)
         }
 
+        const minor_travel_with = formData.get('minor_travel_with') as string || null
+        let required_documents: Record<string, unknown> = {}
+        try {
+            const reqDocsStr = formData.get('required_documents') as string
+            if (reqDocsStr) required_documents = JSON.parse(reqDocsStr)
+        } catch (e) {
+            console.error('Error parsing required_documents:', e)
+        }
+
         // Handle Payment Details
         const payment_quantity_str = formData.get('payment_quantity') as string
         const payment_quantity = parseFloat(payment_quantity_str) || 0
@@ -177,7 +186,9 @@ export async function createFlight(formData: FormData) {
             pax_chd: parseInt(formData.get('pax_chd') as string) || 0,
             pax_inf: parseInt(formData.get('pax_inf') as string) || 0,
             pax_total: parseInt(formData.get('pax_total') as string) || 0,
-            iata_gds: formData.get('iata_gds') as string
+            iata_gds: formData.get('iata_gds') as string,
+            minor_travel_with,
+            required_documents
         }
 
         const { error } = await adminSupabase.from('flights').insert(insertData)
@@ -273,6 +284,15 @@ export async function updateFlight(formData: FormData, isDraft: boolean = false)
             if (detailsStr) details = JSON.parse(detailsStr)
         } catch (e) {
             console.error('Error parsing details:', e)
+        }
+
+        const minor_travel_with = formData.get('minor_travel_with') as string || null
+        let required_documents: Record<string, unknown> = {}
+        try {
+            const reqDocsStr = formData.get('required_documents') as string
+            if (reqDocsStr) required_documents = JSON.parse(reqDocsStr)
+        } catch (e) {
+            console.error('Error parsing required_documents:', e)
         }
 
         // Handle Payment Details
@@ -390,6 +410,8 @@ export async function updateFlight(formData: FormData, isDraft: boolean = false)
             pax_inf: parseInt(formData.get('pax_inf') as string) || 0,
             pax_total: parseInt(formData.get('pax_total') as string) || 0,
             iata_gds: formData.get('iata_gds') as string,
+            minor_travel_with,
+            required_documents,
             updated_at: new Date().toISOString()
         }
 

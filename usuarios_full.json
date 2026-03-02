@@ -1,0 +1,194 @@
+[
+  {
+    "NOMBRE":"Contabilidad",
+    "APELLIDO ":"Admin",
+    "Usuario":"contabilidad@chimivuelos.pe",
+    "Contrase\u00f1a ":"ContaChimi84!",
+    "ROL":"Admin",
+    "CELULAR":null
+  },
+  {
+    "NOMBRE":"Administracion",
+    "APELLIDO ":"Admin",
+    "Usuario":"administracion@chimivuelos.pe",
+    "Contrase\u00f1a ":"AdminVuelos27!",
+    "ROL":"Admin",
+    "CELULAR":null
+  },
+  {
+    "NOMBRE":"Gabriela",
+    "APELLIDO ":"Agente",
+    "Usuario":"operaciones@chimivuelos.pe",
+    "Contrase\u00f1a ":"OperaChimi9!",
+    "ROL":"Agente",
+    "CELULAR":null
+  },
+  {
+    "NOMBRE":"Ventas",
+    "APELLIDO ":"Agente",
+    "Usuario":"ventas@chimivuelos.pe",
+    "Contrase\u00f1a ":"VentasChimi45!",
+    "ROL":"Agente",
+    "CELULAR":null
+  },
+  {
+    "NOMBRE":"Shaylla",
+    "APELLIDO ":"Agente",
+    "Usuario":"shaylla.cadillo@chimivuelos.pe",
+    "Contrase\u00f1a ":"ShayllaVu82!",
+    "ROL":"Agente",
+    "CELULAR":null
+  },
+  {
+    "NOMBRE":"Estefani",
+    "APELLIDO ":"Agente",
+    "Usuario":"estefani@chimivuelos.pe",
+    "Contrase\u00f1a ":"EstefaChimi19!",
+    "ROL":"Agente",
+    "CELULAR":null
+  },
+  {
+    "NOMBRE":"Jenni",
+    "APELLIDO ":"Agente",
+    "Usuario":"jenni@chimivuelos.pe",
+    "Contrase\u00f1a ":"JenniVu73!",
+    "ROL":"Agente",
+    "CELULAR":null
+  },
+  {
+    "NOMBRE":"Lorena",
+    "APELLIDO ":"Agente",
+    "Usuario":"lorena@chimivuelos.pe",
+    "Contrase\u00f1a ":"LoreChimi63!",
+    "ROL":"Agente",
+    "CELULAR":null
+  },
+  {
+    "NOMBRE":"Karla",
+    "APELLIDO ":"Agente",
+    "Usuario":"karla@chimivuelos.pe",
+    "Contrase\u00f1a ":"KarlaVu24!",
+    "ROL":"Agente",
+    "CELULAR":null
+  },
+  {
+    "NOMBRE":"Valeri",
+    "APELLIDO ":"Agente",
+    "Usuario":"valeri@chimivuelos.pe",
+    "Contrase\u00f1a ":"ValeChimi58!",
+    "ROL":"Agente",
+    "CELULAR":null
+  },
+  {
+    "NOMBRE":"Jhom",
+    "APELLIDO ":"Agente",
+    "Usuario":"jhon@chimivuelos.pe",
+    "Contrase\u00f1a ":"JhonVu33!",
+    "ROL":"Agente",
+    "CELULAR":null
+  },
+  {
+    "NOMBRE":"Elvio",
+    "APELLIDO ":"Agente",
+    "Usuario":"elvio@chimivuelos.pe",
+    "Contrase\u00f1a ":"ElvioChimi71!",
+    "ROL":"Agente",
+    "CELULAR":null
+  },
+  {
+    "NOMBRE":"Antoni",
+    "APELLIDO ":"Agente",
+    "Usuario":"antoni@chimivuelos.pe",
+    "Contrase\u00f1a ":"AntoniVu90!",
+    "ROL":"Agente",
+    "CELULAR":null
+  },
+  {
+    "NOMBRE":"Olenka",
+    "APELLIDO ":"Agente",
+    "Usuario":"olenka@chimivuelos.pe",
+    "Contrase\u00f1a ":"OlenkaChimi8!",
+    "ROL":"Agente",
+    "CELULAR":null
+  },
+  {
+    "NOMBRE":"Pamela",
+    "APELLIDO ":"Agente",
+    "Usuario":"pamela@chimivuelos.pe",
+    "Contrase\u00f1a ":"PameVu46!",
+    "ROL":"Agente",
+    "CELULAR":null
+  },
+  {
+    "NOMBRE":"Yeimi",
+    "APELLIDO ":"Agente",
+    "Usuario":"yeimi@chimivuelos.pe",
+    "Contrase\u00f1a ":"yei@@2026Mi",
+    "ROL":"Agente",
+    "CELULAR":null
+  },
+  {
+    "NOMBRE":"Miguel",
+    "APELLIDO ":"Agente",
+    "Usuario":"miguel.consulente@chimivuelos.pe",
+    "Contrase\u00f1a ":"miguel20Cte",
+    "ROL":"Agente",
+    "CELULAR":null
+  },
+  {
+    "NOMBRE":"Angel",
+    "APELLIDO ":"Agente",
+    "Usuario":"angel@chimivuelos.pe",
+    "Contrase\u00f1a ":"angEl20Cte",
+    "ROL":"Agente",
+    "CELULAR":null
+  },
+  {
+    "NOMBRE":"Isabel",
+    "APELLIDO ":"Agente",
+    "Usuario":"isabel@chimivuelos.pe",
+    "Contrase\u00f1a ":"Isa20Cte26",
+    "ROL":"Agente",
+    "CELULAR":null
+  },
+  {
+    "NOMBRE":"Enna",
+    "APELLIDO ":"Agente",
+    "Usuario":"enna@chimivuelos.pe",
+    "Contrase\u00f1a ":"enna26ADa@",
+    "ROL":"Agente",
+    "CELULAR":null
+  },
+  {
+    "NOMBRE":"Rocio",
+    "APELLIDO ":"Agente",
+    "Usuario":"rocio@chimivuelos.pe",
+    "Contrase\u00f1a ":"RocioChimi12!",
+    "ROL":"Agente",
+    "CELULAR":null
+  },
+  {
+    "NOMBRE":"Ventas 1",
+    "APELLIDO ":"Agente",
+    "Usuario":"ventas01@chimivuelos.pe",
+    "Contrase\u00f1a ":"Ventas01Chimi73!",
+    "ROL":"Agente",
+    "CELULAR":null
+  },
+  {
+    "NOMBRE":"Ventas 2",
+    "APELLIDO ":"Agente",
+    "Usuario":"ventas02@chimivuelos.pe",
+    "Contrase\u00f1a ":"Ventas02Vu68!",
+    "ROL":"Agente",
+    "CELULAR":null
+  },
+  {
+    "NOMBRE":"Ventas 3",
+    "APELLIDO ":"Agente",
+    "Usuario":"ventas03@chimivuelos.pe",
+    "Contrase\u00f1a ":"Ventas03Chimi94!",
+    "ROL":"Agente",
+    "CELULAR":null
+  }
+]

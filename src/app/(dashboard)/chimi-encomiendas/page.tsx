@@ -25,6 +25,7 @@ import {
     User,
     Pencil, 
     ChevronLeft, 
+    ChevronDown,
     ChevronRight,
     MapPin,
     X,
@@ -719,7 +720,7 @@ export default function ParcelsPage() {
                         </Button>
                     </DialogTrigger>
                     
-                    <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:hidden">
+                    <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:hidden" onOpenAutoFocus={(e) => e.preventDefault()}>
                         <DialogHeader>
                             <DialogTitle>{selectedParcelId ? 'Editar Encomienda' : 'Registrar Encomienda'}</DialogTitle>
                             <DialogDescription>
@@ -728,6 +729,38 @@ export default function ParcelsPage() {
                         </DialogHeader>
 
                         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+                            {/* --- ESTADO AL INICIO --- */}
+                            <div className="grid gap-2 mb-2">
+                                <Label className="font-black text-slate-700 uppercase tracking-tighter flex items-center gap-2 text-[10px]">
+                                    <div className="w-2 h-2 rounded-full bg-chimipink animate-pulse" />
+                                    Estado de Encomienda
+                                </Label>
+                                <div className="relative group">
+                                    <select 
+                                        name="status"
+                                        className={cn(
+                                            "w-full h-10 appearance-none px-4 rounded-xl text-xs font-black border-0 transition-all cursor-pointer shadow-sm focus:ring-4 focus:ring-offset-2 pr-10",
+                                            formData.status === 'pending' ? "bg-amber-500 text-white focus:ring-amber-200" :
+                                            formData.status === 'warehouse' ? "bg-sky-500 text-white focus:ring-sky-200" :
+                                            formData.status === 'transit' ? "bg-blue-600 text-white focus:ring-blue-200" :
+                                            formData.status === 'delivered' ? "bg-emerald-500 text-white focus:ring-emerald-200" :
+                                            formData.status === 'cancelled' ? "bg-rose-500 text-white focus:ring-rose-200" :
+                                            "bg-slate-500 text-white focus:ring-slate-300"
+                                        )}
+                                        value={formData.status}
+                                        onChange={handleInputChange}
+                                    >
+                                        <option value="pending" className="bg-white text-slate-700 font-bold">Pendiente</option>
+                                        <option value="warehouse" className="bg-white text-slate-700 font-bold">En Almacén</option>
+                                        <option value="transit" className="bg-white text-slate-700 font-bold">En Tránsito</option>
+                                        <option value="delivered" className="bg-white text-slate-700 font-bold">Entregado</option>
+                                        <option value="cancelled" className="bg-white text-slate-700 font-bold">Cancelado</option>
+                                    </select>
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white/80">
+                                        <ChevronDown size={14} strokeWidth={3} />
+                                    </div>
+                                </div>
+                            </div>
                             {/* Client (Sender) Selection */}
                             <div className="space-y-4 border p-4 rounded-md bg-slate-50">
                                 <Label className="font-bold text-slate-700 text-sm flex items-center gap-2">
@@ -1746,14 +1779,15 @@ export default function ParcelsPage() {
                                                 <select
                                                     value={parcel.status}
                                                     onChange={(e) => handleStatusChange(parcel.id, e.target.value)}
-                                                    className={`
-                                                        px-2 py-1 rounded-full text-xs font-medium border-none focus:ring-0 cursor-pointer w-32 text-center
-                                                        ${parcel.status === 'delivered' ? 'bg-emerald-100 text-emerald-700' : 
-                                                          parcel.status === 'cancelled' ? 'bg-red-100 text-red-700' : 
-                                                          parcel.status === 'warehouse' ? 'bg-blue-100 text-blue-700' : 
-                                                          parcel.status === 'transit' ? 'bg-purple-100 text-purple-700' :
-                                                          'bg-amber-100 text-amber-700'}
-                                                    `}
+                                                    className={cn(
+                                                        "appearance-none px-3 py-1 pr-8 rounded-full text-[10px] font-black uppercase border-0 cursor-pointer focus:ring-2 focus:ring-offset-1 transition-all shadow-sm text-center",
+                                                        parcel.status === 'pending' ? "bg-amber-500 text-white hover:bg-amber-600 focus:ring-amber-300" :
+                                                        parcel.status === 'warehouse' ? "bg-sky-500 text-white hover:bg-sky-600 focus:ring-sky-300" :
+                                                        parcel.status === 'transit' ? "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-300" :
+                                                        parcel.status === 'delivered' ? "bg-emerald-500 text-white hover:bg-emerald-600 focus:ring-emerald-300" :
+                                                        parcel.status === 'cancelled' ? "bg-rose-500 text-white hover:bg-rose-600 focus:ring-rose-300" :
+                                                        "bg-slate-500 text-white hover:bg-slate-600 focus:ring-slate-300"
+                                                    )}
                                                 >
                                                     <option value="pending">Pendiente</option>
                                                     <option value="warehouse">En Almacén</option>
