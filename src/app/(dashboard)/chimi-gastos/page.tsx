@@ -35,12 +35,13 @@ import {
 } from "@/components/ui/dialog"
 import { getExpenses, createExpense, updateExpense, deleteExpense, getExpenseDocumentUrl, CorporateExpense } from '@/app/actions/manage-expenses'
 import { getPaymentMethodsIT, getPaymentMethodsPE, PaymentMethod } from '@/app/actions/manage-payment-methods'
+import { searchServiceRecords, SearchResult } from '@/app/actions/search-services'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from "sonner"
 
 // Categories Mapping
 const EXPENSE_CATEGORIES = [
-    { label: "1. Operación viajes", value: "operacion_viajes", motifs: ["Billetes", "Penalidades", "Proveedores", "Seguros"] },
+    { label: "1. Operación viajes", value: "operacion_viajes", motifs: ["Billetes", "Penalidades", "Proveedores", "Seguros", "Vuelo cancelado por operador"] },
     { label: "2. Oficina / sede", value: "oficina_sede", motifs: ["Alquiler", "Luz", "Agua", "Internet", "Limpieza"] },
     { label: "3. Pago a personal", value: "pago_personal", motifs: ["Sueldos", "Comisiones", "Bonos", "Aportes"] },
     { label: "4. Tecnología", value: "tecnologia", motifs: ["Software", "Sabre", "Equipos", "Hosting"] },
@@ -99,7 +100,9 @@ export default function GastosPage() {
         currency: 'EUR',
         exchange_rate: '1.00',
         amount_eur: '',
-        provider_name: ''
+        provider_name: '',
+        linked_client_name: '',
+        reference_number: ''
     })
 
     const [proofFile, setProofFile] = useState<File | null>(null)
@@ -112,6 +115,10 @@ export default function GastosPage() {
     const [showSedeList, setShowSedeList] = useState(false)
     const [showMetodoITList, setShowMetodoITList] = useState(false)
     const [showMetodoPEList, setShowMetodoPEList] = useState(false)
+    const [showRecordList, setShowRecordList] = useState(false)
+    const [searchResults, setSearchResults] = useState<SearchResult[]>([])
+    const [isSearching, setIsSearching] = useState(false)
+    const [recordSearch, setRecordSearch] = useState('')
 
     const fetchUserData = useCallback(async () => {
         const supabase = createClient()
@@ -164,6 +171,27 @@ export default function GastosPage() {
         }
     }, [formData.original_amount, formData.exchange_rate, formData.currency])
 
+    // Search Records Logic
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(async () => {
+            if (recordSearch.length >= 2 && formData.connected_service !== 'Ninguno') {
+                setIsSearching(true)
+                try {
+                    const results = await searchServiceRecords(formData.connected_service, recordSearch)
+                    setSearchResults(results)
+                } catch (error) {
+                    console.error('Search error:', error)
+                } finally {
+                    setIsSearching(false)
+                }
+            } else {
+                setSearchResults([])
+            }
+        }, 500)
+
+        return () => clearTimeout(delayDebounceFn)
+    }, [recordSearch, formData.connected_service])
+
     const handleResetForm = () => {
         setFormData({
             expense_date: new Date().toISOString().split('T')[0],
@@ -182,8 +210,11 @@ export default function GastosPage() {
             currency: 'EUR',
             exchange_rate: '1.00',
             amount_eur: '',
-            provider_name: ''
+            provider_name: '',
+            linked_client_name: '',
+            reference_number: ''
         })
+        setRecordSearch('')
         setProofFile(null)
         setExistingProof(null)
         setNumDocs(0)
@@ -212,8 +243,11 @@ export default function GastosPage() {
             currency: item.currency || 'EUR',
             exchange_rate: item.exchange_rate.toString(),
             amount_eur: item.amount_eur.toString(),
-            provider_name: item.provider_name || ''
+            provider_name: item.provider_name || '',
+            linked_client_name: item.linked_client_name || '',
+            reference_number: item.reference_number || ''
         })
+        setRecordSearch(item.reference_number || '')
         setExistingProof(item.proof_path || null)
         setExistingAttachments(item.additional_files || [])
         setIsDialogOpen(true)
@@ -261,6 +295,8 @@ export default function GastosPage() {
             sd.append('exchange_rate', formData.exchange_rate)
             sd.append('amount_eur', formData.amount_eur)
             sd.append('provider_name', formData.provider_name)
+            sd.append('linked_client_name', formData.linked_client_name)
+            sd.append('reference_number', formData.reference_number)
 
             if (proofFile) sd.append('proof_file', proofFile)
             
@@ -417,14 +453,21 @@ export default function GastosPage() {
                                         <td className="p-4 py-3">
                                             <span className="font-bold text-slate-700 line-clamp-1 max-w-[200px]">{item.description}</span>
                                         </td>
-                                        <td className="p-4 py-3 text-nowrap">
-                                            {item.connected_record_id ? (
-                                                <div className="flex items-center gap-1.5 px-2 py-1 bg-cyan-50 border border-cyan-100 rounded-md w-fit">
-                                                    <span className="text-[9px] font-bold text-chimicyan uppercase tracking-widest">
-                                                        {item.connected_service}: {item.connected_record_id}
-                                                    </span>
+                                        <td className="p-4 py-3">
+                                            {item.connected_record_id || item.reference_number ? (
+                                                <div className="flex flex-col gap-1">
+                                                    <div className="flex items-center gap-1.5 px-2 py-1 bg-cyan-50 border border-cyan-100 rounded-md w-fit">
+                                                        <span className="text-[9px] font-bold text-chimicyan uppercase tracking-widest">
+                                                            {item.connected_service}: {item.reference_number || (item.connected_record_id && item.connected_record_id.length > 8 ? item.connected_record_id.slice(0, 8) : item.connected_record_id)}
+                                                        </span>
+                                                    </div>
+                                                    {item.linked_client_name && (
+                                                        <span className="text-[10px] text-slate-400 font-medium italic truncate max-w-[150px]">
+                                                            {item.linked_client_name}
+                                                        </span>
+                                                    )}
                                                 </div>
-                                            ) : <span className="text-[10px] text-slate-300 italic uppercase">Libre</span>}
+                                            ) : <span className="text-[10px] text-slate-300 italic uppercase tracking-tighter">Libre</span>}
                                         </td>
                                         <td className="p-4 py-3 text-nowrap">
                                             <span className="font-bold text-slate-800">€ {item.amount_eur.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</span>
@@ -529,6 +572,8 @@ export default function GastosPage() {
                             </div>
                         </div>
 
+
+
                         {/* SECTION: VINCULACIÓN */}
                         <div className="space-y-4 border p-4 rounded-md bg-slate-50">
                             <Label className="font-bold text-slate-700 text-sm flex items-center gap-2">
@@ -540,25 +585,108 @@ export default function GastosPage() {
                                     <select 
                                         className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:ring-1 focus:ring-chimicyan"
                                         value={formData.connected_service} 
-                                        onChange={e => setFormData(p => ({ ...p, connected_service: e.target.value }))}
+                                        onChange={e => {
+                                            setFormData(p => ({ 
+                                                ...p, 
+                                                connected_service: e.target.value,
+                                                connected_record_id: '',
+                                                reference_number: '',
+                                                linked_client_name: ''
+                                            }));
+                                            setRecordSearch('');
+                                        }}
                                     >
                                         {CONNECTED_SERVICES.map(s => (
                                             <option key={s} value={s}>{s}</option>
                                         ))}
                                     </select>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-tight">PNR / Identificador</Label>
-                                    <Input 
-                                        placeholder="Ej. ABC123..."
-                                        value={formData.connected_record_id}
-                                        onChange={e => setFormData(p => ({ ...p, connected_record_id: e.target.value.toUpperCase() }))}
-                                        disabled={formData.connected_service === 'Ninguno'}
-                                        className="h-10 text-sm border-slate-200 focus:ring-chimicyan bg-white"
-                                    />
-                                </div>
+
+                                {formData.connected_service !== 'Ninguno' && (
+                                    <>
+                                        <div className="space-y-2 relative">
+                                            <Label className="text-xs font-bold text-slate-500 uppercase tracking-tight">PNR / Identificador</Label>
+                                            <div className="relative">
+                                                <Input 
+                                                    placeholder="Buscar pnr o código..."
+                                                    value={recordSearch}
+                                                    onChange={e => {
+                                                        const val = e.target.value.toUpperCase();
+                                                        setRecordSearch(val);
+                                                        setShowRecordList(true);
+                                                        if (!val) {
+                                                            setFormData(p => ({ 
+                                                                ...p, 
+                                                                connected_record_id: '',
+                                                                reference_number: '',
+                                                                linked_client_name: ''
+                                                            }));
+                                                        }
+                                                    }}
+                                                    onFocus={() => setShowRecordList(true)}
+                                                    onBlur={() => setTimeout(() => setShowRecordList(false), 200)}
+                                                    className="h-10 text-sm border-slate-200 focus:ring-chimicyan bg-white pr-8"
+                                                />
+                                                {recordSearch ? (
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => {
+                                                            setRecordSearch('');
+                                                            setFormData(p => ({ 
+                                                                ...p, 
+                                                                connected_record_id: '',
+                                                                reference_number: '',
+                                                                linked_client_name: ''
+                                                            }));
+                                                        }} 
+                                                        className="absolute right-2 top-1/2 -translate-y-1/2 text-red-500 hover:text-red-700 p-1 transition-colors"
+                                                    >
+                                                        <X size={14} strokeWidth={3} />
+                                                    </button>
+                                                ) : isSearching ? (
+                                                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-slate-400" />
+                                                ) : (
+                                                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                                )}
+                                            </div>
+                                            {showRecordList && searchResults.length > 0 && (
+                                                <div className="absolute top-full z-10 w-full bg-white border border-slate-200 shadow-xl rounded-md mt-1 max-h-40 overflow-y-auto font-medium">
+                                                    {searchResults.map((res) => (
+                                                        <div 
+                                                            key={res.id} 
+                                                            className="p-2.5 hover:bg-slate-50 cursor-pointer text-sm border-b last:border-0 flex justify-between"
+                                                            onClick={() => {
+                                                                setFormData(p => ({ 
+                                                                    ...p, 
+                                                                    connected_record_id: res.id,
+                                                                    reference_number: res.display_code,
+                                                                    linked_client_name: res.client_name
+                                                                }));
+                                                                setRecordSearch(res.display_code);
+                                                                setShowRecordList(false);
+                                                            }}
+                                                        >
+                                                            <span className="font-bold text-chimicyan">{res.display_code}</span>
+                                                            <span className="text-xs text-slate-400 italic">{res.client_name}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label className="text-xs font-bold text-slate-500 uppercase tracking-tight">Nombre del Cliente</Label>
+                                            <Input 
+                                                value={formData.linked_client_name}
+                                                readOnly
+                                                className="h-10 text-sm border-slate-200 bg-slate-100 font-bold text-slate-700"
+                                            />
+                                        </div>
+                                    </>
+                                )}
+
                                 <div className="space-y-2 md:col-span-2">
-                                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-tight">Proveedor / Cliente</Label>
+                                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-tight">Proveedor / Beneficiario (Facturación)</Label>
                                     <Input 
                                         placeholder="Nombre de la empresa o persona..."
                                         value={formData.provider_name}

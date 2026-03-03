@@ -60,6 +60,7 @@ export async function createOtherService(formData: FormData) {
     const service_type = formData.get('service_type') as string
     const service_type_other = formData.get('service_type_other') as string
     const note = formData.get('note') as string
+    const internal_note = formData.get('internal_note') as string
     
     // 2.5 Logistics & Recipient
     const recipient_name = formData.get('recipient_name') as string
@@ -120,6 +121,7 @@ export async function createOtherService(formData: FormData) {
         service_type,
         service_type_other,
         note,
+        internal_note,
         recipient_name,
         recipient_phone,
         origin_address,
@@ -210,6 +212,7 @@ export async function updateOtherService(formData: FormData) {
         const service_type = formData.get('service_type') as string
         const service_type_other = formData.get('service_type_other') as string
         const note = formData.get('note') as string
+        const internal_note = formData.get('internal_note') as string
         
         const recipient_name = formData.get('recipient_name') as string
         const recipient_phone = formData.get('recipient_phone') as string
@@ -263,6 +266,7 @@ export async function updateOtherService(formData: FormData) {
             service_type,
             service_type_other,
             note,
+            internal_note,
             recipient_name,
             recipient_phone,
             origin_address,

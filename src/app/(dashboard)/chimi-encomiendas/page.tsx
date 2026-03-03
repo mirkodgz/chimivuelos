@@ -34,7 +34,8 @@ import {
     Wallet,
     Check,
     Copy,
-    ArrowRight
+    ArrowRight,
+    ClipboardList
 } from 'lucide-react'
 import { getParcels, createParcel, updateParcel, deleteParcel, updateParcelStatus, deleteParcelDocument, getParcelDocumentUrl } from '@/app/actions/manage-parcels'
 import { getClientsForDropdown } from '@/app/actions/manage-transfers'
@@ -93,6 +94,8 @@ interface Parcel {
     origin_address_client?: string
     destination_address?: string
     destination_address_client?: string
+    client_note?: string
+    internal_note?: string
     profiles?: {
         first_name: string | null
         last_name: string | null
@@ -210,6 +213,8 @@ export default function ParcelsPage() {
         // Meta
         tracking_code: "",
         status: "pending",
+        client_note: "",
+        internal_note: "",
 
         // Origins and Destinations
         origin_address: "",
@@ -363,6 +368,8 @@ export default function ParcelsPage() {
             balance: "0.00",
             tracking_code: "",
             status: "pending",
+            client_note: "",
+            internal_note: "",
             sede_it: "",
             sede_pe: "",
             payment_method_it: "",
@@ -408,6 +415,8 @@ export default function ParcelsPage() {
             balance: parcel.balance.toString(),
             tracking_code: parcel.tracking_code || "",
             status: parcel.status,
+            client_note: parcel.client_note || "",
+            internal_note: parcel.internal_note || "",
             sede_it: "",
             sede_pe: "",
             payment_method_it: "",
@@ -1074,6 +1083,33 @@ export default function ParcelsPage() {
                                         )}
                                     </div>
                                 </div>
+
+                                {/* Notas Cliente e Interna */}
+                                <div className="space-y-4 border p-4 rounded-md bg-white shadow-sm md:col-span-2">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-3">
+                                            <Label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5"><NotebookPen className="h-4 w-4 text-chimiteal" /> Nota Cliente</Label>
+                                            <textarea 
+                                                name="client_note"
+                                                value={formData.client_note}
+                                                onChange={handleInputChange}
+                                                className="min-h-[80px] w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:ring-chimiteal focus:border-chimiteal outline-none shadow-sm"
+                                                placeholder="Instrucciones del cliente..."
+                                            />
+                                        </div>
+                                        <div className="space-y-3">
+                                            <Label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5"><ClipboardList className="h-4 w-4 text-chimipink" /> Nota Interna (Privada)</Label>
+                                            <textarea 
+                                                name="internal_note"
+                                                value={formData.internal_note}
+                                                onChange={handleInputChange}
+                                                className="min-h-[80px] w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:ring-chimipink focus:border-chimipink outline-none shadow-sm"
+                                                placeholder="Solo visible para el personal..."
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
                             </div>
 
                             {/* REGISTRO DE PAGO (Exactly like Vuelos) */}

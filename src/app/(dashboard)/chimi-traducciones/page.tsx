@@ -37,7 +37,8 @@ import {
     ChevronDown,
     NotebookPen,
     User,
-    Image as ImageIcon
+    Image as ImageIcon,
+    ClipboardList
 } from 'lucide-react'
 import { 
     getTranslations, 
@@ -103,6 +104,7 @@ interface Translation {
     on_account: number
     balance: number
     notes?: string
+    internal_notes?: string
     recipient_name?: string
     recipient_phone?: string
     status: 'pending' | 'in_progress' | 'completed' | 'delivered' | 'cancelled'
@@ -238,6 +240,7 @@ export default function TranslationsPage() {
         balance: "0.00",
         tracking_code: "",
         notes: "",
+        internal_notes: "",
         recipient_name: "",
         recipient_phone: "",
         status: "pending",
@@ -421,6 +424,7 @@ export default function TranslationsPage() {
             balance: "0.00",
             tracking_code: "",
             notes: "",
+            internal_notes: "",
             recipient_name: "",
             recipient_phone: "",
             status: "pending",
@@ -468,6 +472,7 @@ export default function TranslationsPage() {
             balance: trans.balance.toString(),
             tracking_code: trans.tracking_code || "",
             notes: trans.notes || "",
+            internal_notes: trans.internal_notes || "",
             recipient_name: trans.recipient_name || "",
             recipient_phone: trans.recipient_phone || "",
             status: trans.status,
@@ -1159,15 +1164,27 @@ export default function TranslationsPage() {
                                             </div>
                                         </div>
 
-                                        <div className="space-y-3 pt-4 border-t border-slate-100">
-                                            <Label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5"><NotebookPen className="h-4 w-4 text-chimiteal" /> Notas Adicionales</Label>
-                                            <textarea 
-                                                name="notes"
-                                                value={formData.notes}
-                                                onChange={handleInputChange}
-                                                className="min-h-[80px] w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:ring-chimiteal focus:border-chimiteal outline-none shadow-sm"
-                                                placeholder="Cualquier aclaración requerida..."
-                                            />
+                                         <div className="space-y-4 pt-4 border-t border-slate-100">
+                                            <div className="space-y-3">
+                                                <Label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5"><NotebookPen className="h-4 w-4 text-chimiteal" /> Nota Cliente</Label>
+                                                <textarea 
+                                                    name="notes"
+                                                    value={formData.notes}
+                                                    onChange={handleInputChange}
+                                                    className="min-h-[80px] w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:ring-chimiteal focus:border-chimiteal outline-none shadow-sm"
+                                                    placeholder="Instrucciones del cliente..."
+                                                />
+                                            </div>
+                                            <div className="space-y-3">
+                                                <Label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5"><ClipboardList className="h-4 w-4 text-chimipink" /> Nota Interna (Privada)</Label>
+                                                <textarea 
+                                                    name="internal_notes"
+                                                    value={formData.internal_notes}
+                                                    onChange={handleInputChange}
+                                                    className="min-h-[80px] w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:ring-chimipink focus:border-chimipink outline-none shadow-sm"
+                                                    placeholder="Solo visible para el equipo..."
+                                                />
+                                            </div>
                                         </div>
 
                                     </div>

@@ -1,6 +1,6 @@
 import { getTranslationById, getServiceHistory } from '@/app/actions/client-portal'
 import { redirect } from 'next/navigation'
-import { Languages, FileText, Banknote, Clock, MapPin, User, ArrowLeft, CheckCircle2 } from 'lucide-react'
+import { Languages, FileText, Banknote, Clock, MapPin, User, ArrowLeft, CheckCircle2, NotebookPen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { ServiceDocumentRow } from '../../components/ServiceDocumentRow'
@@ -134,11 +134,12 @@ export default async function TranslationDetailPage({ params }: { params: { id: 
                                             )}
                                         </div>
                                     </div>
-
                                     {translation.notes && (
                                         <div className="pt-2">
-                                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 italic">Notas del pedido</h3>
-                                            <div className="bg-white/40 p-3 rounded-xl border border-white/40">
+                                            <h3 className="text-xs font-bold text-chimiteal uppercase tracking-wider mb-2 flex items-center gap-2">
+                                                <NotebookPen size={14} /> Nota de tu Agente
+                                            </h3>
+                                            <div className="bg-white/40 p-3 rounded-xl border border-white/40 shadow-sm">
                                                 <p className="text-sm text-slate-600 leading-relaxed italic">
                                                     &ldquo;{translation.notes}&rdquo;
                                                 </p>

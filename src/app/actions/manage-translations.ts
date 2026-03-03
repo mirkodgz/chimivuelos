@@ -75,6 +75,7 @@ export async function createTranslation(formData: FormData) {
     const source_language = formData.get('source_language') as string
     const target_language = formData.get('target_language') as string
     const notes = formData.get('notes') as string
+    const internal_notes = formData.get('internal_notes') as string
     const recipient_name = formData.get('recipient_name') as string
     const recipient_phone = formData.get('recipient_phone') as string
     
@@ -144,6 +145,7 @@ export async function createTranslation(formData: FormData) {
         source_language,
         target_language,
         notes,
+        internal_notes,
         recipient_name,
         recipient_phone,
         origin_address,
@@ -238,6 +240,7 @@ export async function updateTranslation(formData: FormData) {
         const source_language = formData.get('source_language') as string
         const target_language = formData.get('target_language') as string
         const notes = formData.get('notes') as string
+        const internal_notes = formData.get('internal_notes') as string
         const recipient_name = formData.get('recipient_name') as string
         const recipient_phone = formData.get('recipient_phone') as string
         const quantity = parseInt(formData.get('quantity') as string) || 1
@@ -310,6 +313,7 @@ export async function updateTranslation(formData: FormData) {
             on_account,
             balance: total_amount - on_account,
             payment_details,
+            internal_notes,
             status
         }
 

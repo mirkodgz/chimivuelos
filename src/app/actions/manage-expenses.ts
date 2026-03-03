@@ -29,6 +29,7 @@ export interface CorporateExpense {
     currency: string
     exchange_rate: number
     amount_eur: number
+    linked_client_name?: string
     proof_path?: string
     additional_files?: {
         name: string
@@ -131,6 +132,7 @@ export async function createExpense(formData: FormData) {
         amount_eur: parseFloat(formData.get('amount_eur') as string) || amount_eur,
         proof_path: uploadResult?.path || null,
         additional_files: additional_files_data,
+        linked_client_name: formData.get('linked_client_name') as string,
         status: 'confirmed'
     }
 
@@ -259,7 +261,8 @@ export async function updateExpense(formData: FormData) {
         exchange_rate,
         amount_eur,
         proof_path: uploadResult?.path || formData.get('proof_path_existing') as string || null,
-        additional_files: additional_files_data
+        additional_files: additional_files_data,
+        linked_client_name: formData.get('linked_client_name') as string
     }
 
     const { error } = await supabaseAdmin

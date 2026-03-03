@@ -56,6 +56,8 @@ export async function createFlight(formData: FormData) {
         const sold_price = parseFloat(formData.get('sold_price') as string) || 0
         const payment_method_it = formData.get('payment_method_it') as string
         const payment_method_pe = formData.get('payment_method_pe') as string
+        const client_note = formData.get('client_note') as string || ''
+        const internal_note = formData.get('internal_note') as string || ''
         
         let details = {}
         try {
@@ -188,7 +190,9 @@ export async function createFlight(formData: FormData) {
             pax_total: parseInt(formData.get('pax_total') as string) || 0,
             iata_gds: formData.get('iata_gds') as string,
             minor_travel_with,
-            required_documents
+            required_documents,
+            client_note,
+            internal_note
         }
 
         const { error } = await adminSupabase.from('flights').insert(insertData)
@@ -277,6 +281,8 @@ export async function updateFlight(formData: FormData, isDraft: boolean = false)
         const sold_price = parseFloat(formData.get('sold_price') as string) || 0
         const payment_method_it = formData.get('payment_method_it') as string
         const payment_method_pe = formData.get('payment_method_pe') as string
+        const client_note = formData.get('client_note') as string || ''
+        const internal_note = formData.get('internal_note') as string || ''
 
         let details = {}
         try {
@@ -412,6 +418,8 @@ export async function updateFlight(formData: FormData, isDraft: boolean = false)
             iata_gds: formData.get('iata_gds') as string,
             minor_travel_with,
             required_documents,
+            client_note,
+            internal_note,
             updated_at: new Date().toISOString()
         }
 

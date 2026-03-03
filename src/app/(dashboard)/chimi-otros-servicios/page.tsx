@@ -88,6 +88,7 @@ interface OtherService {
     service_type: string
     service_type_other?: string
     note?: string
+    internal_note?: string
     recipient_name?: string
     recipient_phone?: string
     origin_address?: string
@@ -192,6 +193,7 @@ export default function OtherServicesPage() {
         service_type: "",
         service_type_other: "",
         note: "",
+        internal_note: "",
         recipient_name: "",
         recipient_phone: "",
         origin_address: "",
@@ -355,6 +357,7 @@ export default function OtherServicesPage() {
             service_type: "",
             service_type_other: "",
             note: "",
+            internal_note: "",
             recipient_name: "",
             recipient_phone: "",
             origin_address: "",
@@ -396,6 +399,7 @@ export default function OtherServicesPage() {
             service_type: serv.service_type || "",
             service_type_other: serv.service_type_other || "",
             note: serv.note || "",
+            internal_note: serv.internal_note || "",
             recipient_name: serv.recipient_name || "",
             recipient_phone: serv.recipient_phone || "",
             origin_address: serv.origin_address || "",
@@ -1015,15 +1019,27 @@ export default function OtherServicesPage() {
                                             </div>
                                         )}
 
-                                            <div className="space-y-3 pt-4 border-t border-slate-100">
-                                                <Label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5"><NotebookPen className="h-4 w-4 text-chimiteal" /> Notas Adicionales</Label>
-                                                <textarea 
-                                                    name="note"
-                                                    value={formData.note}
-                                                    onChange={handleInputChange}
-                                                    className="min-h-[80px] w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:ring-chimiteal focus:border-chimiteal outline-none shadow-sm"
-                                                    placeholder="Cualquier aclaración requerida..."
-                                                />
+                                            <div className="space-y-4 pt-4 border-t border-slate-100">
+                                                <div className="space-y-3">
+                                                    <Label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5"><NotebookPen className="h-4 w-4 text-chimiteal" /> Nota Cliente</Label>
+                                                    <textarea 
+                                                        name="note"
+                                                        value={formData.note}
+                                                        onChange={handleInputChange}
+                                                        className="min-h-[80px] w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:ring-chimiteal focus:border-chimiteal outline-none shadow-sm"
+                                                        placeholder="Instrucciones del cliente..."
+                                                    />
+                                                </div>
+                                                <div className="space-y-3">
+                                                    <Label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5"><ClipboardList className="h-4 w-4 text-chimipink" /> Nota Interna (Privada)</Label>
+                                                    <textarea 
+                                                        name="internal_note"
+                                                        value={formData.internal_note}
+                                                        onChange={handleInputChange}
+                                                        className="min-h-[80px] w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:ring-chimipink focus:border-chimipink outline-none shadow-sm"
+                                                        placeholder="Solo visible para el personal..."
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

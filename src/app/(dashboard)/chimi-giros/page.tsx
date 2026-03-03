@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react"
 import Image from "next/image"
 import { 
-    Search, Plus, Trash2, Pencil, Copy, Check, FileText, Building2, Download, X, ChevronLeft, ChevronDown, ChevronRight, FileSpreadsheet, NotebookPen, Calendar, FolderOpen
+    Search, Plus, Trash2, Pencil, Copy, Check, FileText, Building2, Download, X, ChevronLeft, ChevronDown, ChevronRight, FileSpreadsheet, NotebookPen, Calendar, FolderOpen, ClipboardList
 } from "lucide-react"
 import * as XLSX from "xlsx"
 import { createClient } from '@/lib/supabase/client'
@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
+import { Textarea } from "@/components/ui/textarea"
 import {
     Dialog, DialogContent, DialogDescription, DialogFooter,
     DialogHeader, DialogTitle, DialogTrigger
@@ -189,6 +190,8 @@ export default function MoneyTransfersPage() {
         beneficiary_account: "",
         transfer_code: "",
         status: "scheduled",
+        client_note: "",
+        internal_note: "",
         payment_total: "",
         // Multi-payment temp fields
         sede_it: "",
@@ -290,7 +293,7 @@ export default function MoneyTransfersPage() {
 
 
     // Handlers
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target
         
         // Restriction for numeric fields (Decimals allowed)
@@ -503,6 +506,8 @@ export default function MoneyTransfersPage() {
             beneficiary_account: "",
             transfer_code: "",
             status: "scheduled",
+            client_note: "",
+            internal_note: "",
             sede_it: "",
             sede_pe: "",
             payment_method_it: "",
@@ -559,6 +564,8 @@ export default function MoneyTransfersPage() {
             beneficiary_account: transfer.beneficiary_account,
             transfer_code: transfer.transfer_code || "",
             status: transfer.status,
+            client_note: transfer.client_note || "",
+            internal_note: transfer.internal_note || "",
             sede_it: "", sede_pe: "", payment_method_it: "", payment_method_pe: "", payment_quantity: "", payment_exchange_rate: "1.0", payment_currency: "EUR", payment_total: "",
             expense_sede_it: "", expense_sede_pe: "", expense_method_it: "", expense_method_pe: "", expense_quantity: "", expense_exchange_rate: "1.0", expense_currency: "EUR", expense_total: "", expense_category: "Comisión Bancaria", expense_description: ""
         })
@@ -1024,12 +1031,12 @@ export default function MoneyTransfersPage() {
 
                                     <div className="grid grid-cols-2 gap-2">
                                          <div className="grid gap-2">
-                                            <Label>Notas</Label>
+                                            <Label>DNI / Documento</Label>
                                             <Input 
                                                 name="beneficiary_document" 
                                                 value={formData.beneficiary_document} 
                                                 onChange={handleInputChange} 
-                                                placeholder="Ej. Entregar solo con DNI"
+                                                placeholder="Documento de identidad"
                                             />
                                         </div>
                                         <div className="grid gap-2">
@@ -1081,6 +1088,34 @@ export default function MoneyTransfersPage() {
                                         <Label>Nº Cuenta / CCI o número de billetera digital</Label>
                                         <Input name="beneficiary_account" value={formData.beneficiary_account} onChange={handleInputChange} />
                                     </div>
+                                </div>
+                            </div>
+
+                            {/* --- NOTES SECTION --- */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                <div className="space-y-2">
+                                    <Label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
+                                        <NotebookPen className="h-3.5 w-3.5 text-chimipink" /> Nota Cliente
+                                    </Label>
+                                    <Textarea 
+                                        name="client_note"
+                                        value={formData.client_note}
+                                        onChange={handleInputChange}
+                                        placeholder="Información para el cliente..."
+                                        className="min-h-[80px] bg-white border-slate-200 focus:ring-chimipink text-sm"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
+                                        <ClipboardList className="h-3.5 w-3.5 text-chimipink" /> Nota Interna
+                                    </Label>
+                                    <Textarea 
+                                        name="internal_note"
+                                        value={formData.internal_note}
+                                        onChange={handleInputChange}
+                                        placeholder="Solo visible para el equipo..."
+                                        className="min-h-[80px] bg-white border-slate-200 focus:ring-chimipink text-sm"
+                                    />
                                 </div>
                             </div>
 
@@ -1729,9 +1764,6 @@ export default function MoneyTransfersPage() {
                                      </div>
                                 </div>
                             </div>
-
-
-
 
                             {/* DOCUMENT UPLOAD (Simplified like flights) */}
                             <div className="border border-slate-200 rounded-md p-4 bg-slate-50 space-y-4">

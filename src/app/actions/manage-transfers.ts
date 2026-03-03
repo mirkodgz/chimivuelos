@@ -71,6 +71,8 @@ export interface MoneyTransfer {
     beneficiary_bank: string
     beneficiary_account: string
     transfer_code: string
+    client_note?: string
+    internal_note?: string
     status: 'scheduled' | 'delivered' | 'cancelled'
     payment_details?: PaymentDetail[]
     expense_details?: ExpenseDetail[]
@@ -124,6 +126,8 @@ export async function createTransfer(formData: FormData) {
         
         const transfer_code = formData.get('transfer_code') as string || `GIR-${Date.now().toString().slice(-4)}`
         const status = formData.get('status') as string || 'scheduled'
+        const client_note = formData.get('client_note') as string || ''
+        const internal_note = formData.get('internal_note') as string || ''
 
         // Handle Payment Details (Multi-payment logic)
         const payment_details: PaymentDetail[] = []
@@ -217,6 +221,8 @@ export async function createTransfer(formData: FormData) {
             beneficiary_account,
             transfer_code,
             status,
+            client_note,
+            internal_note,
             payment_details: payment_details as unknown,
             expense_details: expense_details as unknown,
             documents: documents as unknown,
@@ -319,6 +325,8 @@ export async function updateTransfer(formData: FormData) {
         
         const transfer_code = formData.get('transfer_code') as string
         const status = formData.get('status') as string
+        const client_note = formData.get('client_note') as string
+        const internal_note = formData.get('internal_note') as string
         const agent_id = formData.get('agent_id') as string || null
 
         // Handle Payment Details
@@ -417,6 +425,8 @@ export async function updateTransfer(formData: FormData) {
             beneficiary_account,
             transfer_code,
             status,
+            client_note,
+            internal_note,
             payment_details: payment_details as unknown,
             expense_details: expense_details as unknown,
             documents: currentDocuments as unknown,

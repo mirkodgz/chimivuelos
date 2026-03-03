@@ -1,6 +1,6 @@
 import { getTransferById, getServiceHistory } from '@/app/actions/client-portal'
 import { redirect } from 'next/navigation'
-import { Banknote, User, Download, FileText, CheckCircle2, Clock } from 'lucide-react'
+import { Banknote, User, Download, FileText, CheckCircle2, Clock, NotebookPen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { cn } from "@/lib/utils"
@@ -273,7 +273,21 @@ export default async function TransferDetailPage({ params }: { params: { id: str
                             Esta información es confidencial y solo para uso del cliente. Si detectas algún error en los datos del beneficiario, por favor comunícate de inmediato con soporte antes de que la transferencia sea cobrada.
                         </p>
                     </div>
-                    <div className="flex-1">
+
+                    {transfer.client_note && (
+                        <div className="flex-1 border-t md:border-t-0 md:border-l border-white/30 pt-4 md:pt-0 md:pl-8">
+                            <h4 className="font-bold text-chimipink mb-2 flex items-center gap-2">
+                                <NotebookPen size={16} /> Nota de tu Agente
+                            </h4>
+                            <div className="bg-white/40 p-3 rounded-xl border border-white/40 shadow-sm">
+                                <p className="text-sm text-slate-600 leading-relaxed italic">
+                                    &ldquo;{transfer.client_note}&rdquo;
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="flex-1 md:border-l border-white/30 md:pl-8 pt-4 md:pt-0">
                         <h4 className="font-semibold text-slate-800 mb-2">Tiempos de Cobro</h4>
                         <p className="text-sm text-slate-500 leading-relaxed">
                             Los giros bancarios pueden tardar entre 24 a 48 horas hábiles en reflejarse. Los cobros en ventanilla son inmediatamentes una vez el estado cambie a &quot;Disponible&quot;.

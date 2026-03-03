@@ -1,6 +1,6 @@
 import { getParcelById, getServiceHistory } from '@/app/actions/client-portal'
 import { redirect } from 'next/navigation'
-import { Package, User, Download, FileText, History, Truck, Clock, CheckCircle2 } from 'lucide-react'
+import { Package, User, Download, FileText, History, Truck, Clock, CheckCircle2, NotebookPen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { cn } from "@/lib/utils"
@@ -256,7 +256,21 @@ export default async function ParcelDetailPage({ params }: { params: { id: strin
                             Chimivuelos no se hace responsable por artículos prohibidos o inflamables. El tiempo de entrega es una estimación y puede variar por factores climáticos o aduanas.
                         </p>
                     </div>
-                    <div className="flex-1">
+
+                    {parcel.client_note && (
+                        <div className="flex-1 border-t md:border-t-0 md:border-l border-white/30 pt-4 md:pt-0 md:pl-8">
+                            <h4 className="font-bold text-chimipink mb-2 flex items-center gap-2">
+                                <NotebookPen size={16} /> Nota de tu Agente
+                            </h4>
+                            <div className="bg-white/40 p-3 rounded-xl border border-white/40 shadow-sm">
+                                <p className="text-sm text-slate-600 leading-relaxed italic">
+                                    &ldquo;{parcel.client_note}&rdquo;
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="flex-1 md:border-l border-white/30 md:pl-8 pt-4 md:pt-0">
                         <h4 className="font-semibold text-slate-800 mb-2 whitespace-nowrap">Reclamos</h4>
                         <p className="text-sm text-slate-500 leading-relaxed">
                             Cualquier reclamo debe presentarse dentro de las 48 horas posteriores a la entrega programada, adjuntando fotografías del estado del paquete y la guía correspondiente.

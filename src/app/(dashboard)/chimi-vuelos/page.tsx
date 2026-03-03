@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Plus, Search, Trash2, Edit, FileText, Download, FileSpreadsheet, ChevronLeft, ChevronRight, ChevronDown, ListChecks, Wallet, Check, X, Calendar, Building2, User, Copy, Pencil, RefreshCw, AlertTriangle } from 'lucide-react'
+import { Plus, Search, Trash2, Edit, FileText, Download, FileSpreadsheet, ChevronLeft, ChevronRight, ChevronDown, ListChecks, Wallet, Check, X, Calendar, Building2, User, Copy, Pencil, RefreshCw, AlertTriangle, NotebookPen, ClipboardList } from 'lucide-react'
 import Image from 'next/image'
 import * as XLSX from 'xlsx'
 import { createClient } from '@/lib/supabase/client'
@@ -12,6 +12,7 @@ import { getActivePermissions, createEditRequest, getPendingResourceDetails } fr
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { getFlights, getClientsForDropdown, createFlight, updateFlight, deleteFlight, deleteFlightDocument, updateFlightStatus, getFlightDocumentUrl, deleteFlightPayment, updateFlightPayment, getItineraries } from '@/app/actions/manage-flights'
@@ -81,6 +82,8 @@ interface Flight {
     iata_gds?: string
     minor_travel_with?: string
     required_documents?: Record<string, { required: boolean, status: string, extra?: string }>
+    client_note?: string
+    internal_note?: string
 }
 
 interface ClientOption {
@@ -362,6 +365,8 @@ export default function FlightsPage() {
         pax_total: '1',
         iata_gds: 'sabre suema',
         minor_travel_with: '',
+        client_note: '',
+        internal_note: '',
         required_documents: { ...INITIAL_REQUIRED_DOCUMENTS }
     })
 
@@ -608,6 +613,8 @@ export default function FlightsPage() {
             pax_total: '1',
             iata_gds: 'sabre suema',
             minor_travel_with: '',
+            client_note: '',
+            internal_note: '',
             required_documents: { ...INITIAL_REQUIRED_DOCUMENTS }
         })
         const initialDocs = DOCUMENT_TYPES.map(type => ({ 
@@ -707,6 +714,8 @@ export default function FlightsPage() {
             pax_total: (flight.pax_total || 1).toString(),
             iata_gds: flight.iata_gds || 'sabre suema',
             minor_travel_with: flight.minor_travel_with || '',
+            client_note: flight.client_note || '',
+            internal_note: flight.internal_note || '',
             required_documents: flight.required_documents || { ...INITIAL_REQUIRED_DOCUMENTS }
         })
         setBaseOnAccount(flight.on_account || 0)
@@ -2088,6 +2097,34 @@ export default function FlightsPage() {
 
                             </div>
 
+                            {/* --- NOTES SECTION --- */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 px-1">
+                                <div className="space-y-2">
+                                    <Label className="text-[11px] font-bold text-slate-500 uppercase flex items-center gap-2">
+                                        <NotebookPen className="h-3.5 w-3.5 text-chimipink" /> Nota Cliente
+                                    </Label>
+                                    <Textarea 
+                                        name="client_note"
+                                        value={formData.client_note}
+                                        onChange={handleInputChange}
+                                        placeholder="Información para el cliente..."
+                                        className="min-h-[80px] bg-white border-slate-200 focus:ring-chimipink text-sm"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-[11px] font-bold text-slate-500 uppercase flex items-center gap-2">
+                                        <ClipboardList className="h-3.5 w-3.5 text-chimipink" /> Nota Interna
+                                    </Label>
+                                    <Textarea 
+                                        name="internal_note"
+                                        value={formData.internal_note}
+                                        onChange={handleInputChange}
+                                        placeholder="Solo visible para el equipo..."
+                                        className="min-h-[80px] bg-white border-slate-200 focus:ring-chimipink text-sm"
+                                    />
+                                </div>
+                            </div>
+
                             {/* Financials */}
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <div className="grid gap-2">
@@ -3002,10 +3039,12 @@ export default function FlightsPage() {
                                             <td className="px-6 py-4 text-xs text-slate-500">
                                                 {new Date(flight.created_at).toLocaleDateString('es-PE', { timeZone: 'UTC' })}
                                             </td>
-                                            <td className="px-6 py-4 font-medium text-slate-700">{new Date(flight.travel_date).toLocaleDateString('es-PE', { timeZone: 'UTC' })}</td>
+                                            <td className={cn("px-6 py-4 font-medium text-slate-700", flight.status === 'Cancelado' && "line-through opacity-50")}>
+                                                {new Date(flight.travel_date).toLocaleDateString('es-PE', { timeZone: 'UTC' })}
+                                            </td>
                                             <td className="px-6 py-4 font-mono text-slate-600">
                                                 <div className="flex flex-col gap-1">
-                                                    <span>{flight.pnr || '-'}</span>
+                                                    <span className={cn(flight.status === 'Cancelado' && "line-through opacity-50")}>{flight.pnr || '-'}</span>
                                                     {pendingRequests[flight.id] && (
                                                         <span className="text-[8px] font-black text-amber-600 bg-amber-50 border border-amber-100 px-1.5 py-0.5 rounded flex items-center gap-1 w-fit animate-pulse" title={`Bloqueado por: ${pendingRequests[flight.id]}`}>
                                                             <RefreshCw className="h-2 w-2" /> REVISIÓN PENDIENTE
@@ -3045,7 +3084,7 @@ export default function FlightsPage() {
                                             </td>
                                             {!showDeudaOnly && (
                                                 <>
-                                                    <td className="px-6 py-4 max-w-[150px] truncate" title={flight.itinerary}>
+                                                    <td className={cn("px-6 py-4 max-w-[150px] truncate", flight.status === 'Cancelado' && "line-through opacity-50")} title={flight.itinerary}>
                                                         {flight.itinerary || '-'}
                                                     </td>
                                                     <td className="px-6 py-4">

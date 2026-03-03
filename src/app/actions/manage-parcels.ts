@@ -68,6 +68,8 @@ export async function createParcel(formData: FormData) {
     const package_type = formData.get('package_type') as string
     const package_weight = formData.get('package_weight') as string
     const package_description = formData.get('package_description') as string
+    const client_note = formData.get('client_note') as string
+    const internal_note = formData.get('internal_note') as string
     
     // 3. Economics (Simplified)
     const shipping_cost = parseFloat(formData.get('shipping_cost') as string) || 0
@@ -139,6 +141,8 @@ export async function createParcel(formData: FormData) {
         on_account,
         status,
         tracking_code,
+        client_note,
+        internal_note,
         documents,
         payment_details
     }
@@ -233,6 +237,8 @@ export async function updateParcel(formData: FormData) {
     const package_type = formData.get('package_type') as string
     const package_weight = formData.get('package_weight') as string
     const package_description = formData.get('package_description') as string
+    const client_note = formData.get('client_note') as string
+    const internal_note = formData.get('internal_note') as string
     
     const shipping_cost = parseFloat(formData.get('shipping_cost') as string) || 0
     const on_account = parseFloat(formData.get('on_account') as string) || 0
@@ -290,6 +296,8 @@ export async function updateParcel(formData: FormData) {
         shipping_cost,
         on_account,
         status,
+        client_note,
+        internal_note,
         documents: currentDocs,
         payment_details,
         updated_at: new Date().toISOString()

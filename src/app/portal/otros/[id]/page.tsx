@@ -1,6 +1,6 @@
 import { getOtherServiceById, getServiceHistory } from '@/app/actions/client-portal'
 import { redirect } from 'next/navigation'
-import { Briefcase, FileText, Banknote, Clock, MapPin, User, ArrowLeft, Info } from 'lucide-react'
+import { Briefcase, FileText, Banknote, Clock, MapPin, User, ArrowLeft, Info, NotebookPen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { ServiceDocumentRow } from '../../components/ServiceDocumentRow'
@@ -108,9 +108,16 @@ export default async function OtherServiceDetailPage({ params }: { params: { id:
                                         <div className="bg-white/40 p-4 rounded-xl border border-white/40">
                                             <p className="font-bold text-slate-800 text-sm mb-2">{displayType}</p>
                                             {service.note && (
-                                                <p className="text-sm text-slate-600 leading-relaxed italic border-t border-white/30 pt-2 mt-2">
-                                                    &ldquo;{service.note}&rdquo;
-                                                </p>
+                                                <div className="pt-2 border-t border-white/30 mt-2">
+                                                    <h3 className="text-xs font-bold text-chimipink uppercase tracking-wider mb-2 flex items-center gap-2">
+                                                        <NotebookPen size={14} /> Nota de tu Agente
+                                                    </h3>
+                                                    <div className="bg-white/40 p-3 rounded-xl border border-white/40 shadow-sm">
+                                                        <p className="text-sm text-slate-600 leading-relaxed italic">
+                                                            &ldquo;{service.note}&rdquo;
+                                                        </p>
+                                                    </div>
+                                                </div>
                                             )}
                                         </div>
                                     </div>

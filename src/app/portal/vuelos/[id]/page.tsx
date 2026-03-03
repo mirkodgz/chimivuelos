@@ -1,6 +1,6 @@
 import { getFlightById, getServiceHistory } from '@/app/actions/client-portal'
 import { redirect } from 'next/navigation'
-import { Plane, Calendar, FileText, Banknote, Clock } from 'lucide-react'
+import { Plane, Calendar, FileText, Banknote, Clock, NotebookPen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -337,12 +337,27 @@ export default async function FlightDetailPage({ params }: { params: { id: strin
                 </div>
 
                 {/* Generic Info (Full Width) */}
-                <div className="bg-white/40 border-t border-white/30 p-6">
-                    <h4 className="font-semibold text-slate-800 mb-2">Información Importante</h4>
-                    <p className="text-sm text-slate-500">
-                        Recuerda revisar que tu pasaporte tenga una vigencia mínima de 6 meses. 
-                        Llega al aeropuerto con 3 horas de anticipación para vuelos internacionales.
-                    </p>
+                <div className="bg-white/40 border-t border-white/30 p-6 flex flex-col md:flex-row gap-8">
+                    <div className="flex-1">
+                        <h4 className="font-semibold text-slate-800 mb-2">Información Importante</h4>
+                        <p className="text-sm text-slate-500 leading-relaxed">
+                            Recuerda revisar que tu pasaporte tenga una vigencia mínima de 6 meses. 
+                            Llega al aeropuerto con 3 horas de anticipación para vuelos internacionales.
+                        </p>
+                    </div>
+
+                    {flight.client_note && (
+                        <div className="flex-1 border-t md:border-t-0 md:border-l border-white/30 pt-4 md:pt-0 md:pl-8">
+                            <h4 className="font-bold text-chimipink mb-2 flex items-center gap-2">
+                                <NotebookPen size={16} /> Nota de tu Agente
+                            </h4>
+                            <div className="bg-white/40 p-3 rounded-xl border border-white/40 shadow-sm">
+                                <p className="text-sm text-slate-600 leading-relaxed italic">
+                                    &ldquo;{flight.client_note}&rdquo;
+                                </p>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Recommendations Section - Integrated */}
