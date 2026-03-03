@@ -684,13 +684,6 @@ export default function MoneyTransfersPage() {
         }
     }
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("¿Eliminar este giro? Se borrarán los archivos adjuntos.")) return
-
-        const result = await deleteTransfer(id)
-        if (!result.error) loadData()
-    }
-
     const handleCopyCode = (id: string, code: string) => {
         const url = `https://chimivuelos.pe/giros?code=${code}`
         const message = `El registro de tu envío de dinero fue realizado, tu código de seguimiento es ${code}, puedes rastrear ingresando a ${url}`
@@ -793,26 +786,46 @@ export default function MoneyTransfersPage() {
                                     <div className="w-2 h-2 rounded-full bg-chimipink animate-pulse" />
                                     Estado de Giro
                                 </Label>
-                                <div className="relative group">
-                                    <select 
-                                        name="status"
-                                        className={cn(
-                                            "w-full h-10 appearance-none px-4 rounded-xl text-xs font-black border-0 transition-all cursor-pointer shadow-sm focus:ring-4 focus:ring-offset-2 pr-10",
-                                            formData.status === 'scheduled' ? "bg-amber-500 text-white focus:ring-amber-200" :
-                                            formData.status === 'delivered' ? "bg-emerald-500 text-white focus:ring-emerald-200" :
-                                            formData.status === 'cancelled' ? "bg-rose-500 text-white focus:ring-rose-200" :
-                                            "bg-slate-500 text-white focus:ring-slate-300"
-                                        )}
-                                        value={formData.status}
-                                        onChange={handleInputChange}
-                                    >
-                                        <option value="scheduled" className="bg-white text-slate-700 font-bold">Programado</option>
-                                        <option value="delivered" className="bg-white text-slate-700 font-bold">Entregado</option>
-                                        <option value="cancelled" className="bg-white text-slate-700 font-bold">Cancelado</option>
-                                    </select>
-                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white/80">
-                                        <ChevronDown size={14} strokeWidth={3} />
+                                <div className="flex items-center gap-2">
+                                    <div className="relative flex-1 group">
+                                        <select 
+                                            name="status"
+                                            className={cn(
+                                                "w-full h-10 appearance-none px-4 rounded-xl text-xs font-black border-0 transition-all cursor-pointer shadow-sm focus:ring-4 focus:ring-offset-2 pr-10",
+                                                formData.status === 'scheduled' ? "bg-amber-500 text-white focus:ring-amber-200" :
+                                                formData.status === 'delivered' ? "bg-emerald-500 text-white focus:ring-emerald-200" :
+                                                formData.status === 'cancelled' ? "bg-rose-500 text-white focus:ring-rose-200" :
+                                                "bg-slate-500 text-white focus:ring-slate-300"
+                                            )}
+                                            value={formData.status}
+                                            onChange={handleInputChange}
+                                        >
+                                            <option value="scheduled" className="bg-white text-slate-700 font-bold">Programado</option>
+                                            <option value="delivered" className="bg-white text-slate-700 font-bold">Entregado</option>
+                                            <option value="cancelled" className="bg-white text-slate-700 font-bold">Cancelado</option>
+                                        </select>
+                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white/80">
+                                            <ChevronDown size={14} strokeWidth={3} />
+                                        </div>
                                     </div>
+                                    {selectedTransferId && (userRole === 'admin' || userRole === 'supervisor') && (
+                                        <Button 
+                                            type="button" 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            onClick={() => {
+                                                if(confirm('¿Eliminar este giro?')) {
+                                                    deleteTransfer(selectedTransferId).then(() => {
+                                                        loadData();
+                                                        setIsDialogOpen(false);
+                                                    });
+                                                }
+                                            }}
+                                            className="h-10 w-10 text-red-500 hover:bg-red-50 border border-red-100 shadow-sm rounded-xl"
+                                        >
+                                            <Trash2 className="h-5 w-5" />
+                                        </Button>
+                                    )}
                                 </div>
                             </div>
                             {/* Client Selection (Searchable) */}
@@ -1718,19 +1731,7 @@ export default function MoneyTransfersPage() {
                             </div>
 
 
-                            <div className="grid gap-2">
-                                <Label className="font-bold text-slate-700">Estado del Giro</Label>
-                                <select 
-                                    name="status"
-                                    value={formData.status}
-                                    onChange={handleInputChange}
-                                    className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-chimiteal focus:ring-2 focus:ring-chimiteal shadow-sm"
-                                >
-                                    <option value="scheduled">Programado</option>
-                                    <option value="delivered">Entregado</option>
-                                    <option value="cancelled">Cancelado</option>
-                                </select>
-                            </div>
+
 
                             {/* DOCUMENT UPLOAD (Simplified like flights) */}
                             <div className="border border-slate-200 rounded-md p-4 bg-slate-50 space-y-4">
@@ -1982,7 +1983,7 @@ export default function MoneyTransfersPage() {
                                     <th className="px-6 py-4 font-medium">Saldo</th>
                                     <th className="px-6 py-4 font-medium text-center">Docs</th>
                                     <th className="px-6 py-4 font-medium">Estado</th>
-                                    <th className="px-2 sm:px-6 py-4 font-medium text-right sticky right-0 bg-pink-100/90 backdrop-blur-sm z-20 border-l border-pink-200 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.15)] text-pink-700">Acciones</th>
+                                    <th className="px-1 sm:px-2 py-4 font-medium text-right sticky right-0 bg-pink-100/90 backdrop-blur-sm z-20 border-l border-pink-200 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.15)] text-pink-700">Acción</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -2097,22 +2098,17 @@ export default function MoneyTransfersPage() {
                                                     <option value="cancelled">Cancelado</option>
                                                 </select>
                                             </td>
-                                             <td className="px-2 sm:px-6 py-4 text-right sticky right-0 bg-pink-50/90 backdrop-blur-sm group-hover:bg-pink-100 z-10 border-l border-pink-100 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.15)] transition-colors">
+                                             <td className="px-1 sm:px-2 py-4 text-right sticky right-0 bg-pink-50/90 backdrop-blur-sm group-hover:bg-pink-100 z-10 border-l border-pink-100 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.15)] transition-colors">
                                                 <div className="flex items-center justify-end gap-1 sm:gap-2">
                                                     <Button 
                                                         variant="ghost" 
                                                         size="sm" 
                                                         onClick={() => handleEditClick(transfer)}
-                                                        className="h-8 w-8 text-slate-400 hover:text-chimipink hover:bg-pink-50"
+                                                        className="h-10 w-10 text-slate-400 hover:text-chimipink hover:bg-pink-50"
                                                         title="Editar"
                                                     >
-                                                        <Pencil className="h-4 w-4" />
+                                                        <Pencil className="h-5 w-5" />
                                                     </Button>
-                                                    {(userRole === 'admin' || userRole === 'supervisor') && (
-                                                        <Button variant="ghost" size="sm" onClick={() => handleDelete(transfer.id)}>
-                                                            <Trash2 className="h-4 w-4 text-red-400" />
-                                                        </Button>
-                                                    )}
                                                 </div>
                                             </td>
                                         </tr>

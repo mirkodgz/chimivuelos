@@ -735,18 +735,6 @@ export default function FlightsPage() {
         setIsDialogOpen(true)
     }
 
-    const handleDeleteFlight = async (id: string) => {
-        if (!confirm('¿Estás seguro de que deseas eliminar este vuelo? Esta acción no se puede deshacer.')) return
-        
-        const result = await deleteFlight(id)
-        if (result.success) {
-            toast.success('Vuelo eliminado correctamente')
-            loadData()
-        } else {
-            toast.error(result.error || 'Error al eliminar vuelo')
-        }
-    }
-
     const handleEditClick = (flight: Flight) => {
         handleEdit(flight)
     }
@@ -1386,44 +1374,65 @@ export default function FlightsPage() {
                         
                         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
                             {/* --- ESTADO AL INICIO --- */}
-                            <div className="grid gap-2 mb-2">
-                                <Label className="font-black text-slate-700 uppercase tracking-tighter flex items-center gap-2 text-[10px]">
-                                    <div className="w-2 h-2 rounded-full bg-chimipink animate-pulse" />
-                                    Estado de Viaje
-                                </Label>
-                                <div className="relative group">
-                                    <select 
-                                        name="status"
-                                        className={cn(
-                                            "w-full h-10 appearance-none px-4 rounded-xl text-xs font-black border-0 transition-all cursor-pointer shadow-sm focus:ring-4 focus:ring-offset-2 pr-10",
-                                            formData.status === 'Finalizado' 
-                                                ? 'bg-emerald-500 text-white focus:ring-emerald-200' 
-                                                : formData.status === 'Cancelado' || formData.status === 'Deportado'
-                                                ? 'bg-rose-500 text-white focus:ring-rose-200'
-                                                : formData.status === 'En tránsito' || formData.status === 'En migración'
-                                                ? 'bg-blue-500 text-white focus:ring-blue-200'
-                                                : formData.status === 'No-show (no se presentó)'
-                                                ? 'bg-slate-600 text-white focus:ring-slate-300'
-                                                : formData.status === 'Programado'
-                                                ? 'bg-sky-500 text-white focus:ring-sky-200'
-                                                : formData.status === 'Reprogramado'
-                                                ? 'bg-orange-500 text-white focus:ring-orange-200'
-                                                : formData.status === 'Cambio de horario'
-                                                ? 'bg-yellow-500 text-white focus:ring-yellow-200'
-                                                : 'bg-amber-500 text-white focus:ring-amber-200'
-                                        )}
-                                        value={formData.status}
-                                        onChange={handleInputChange}
-                                    >
-                                        {FLIGHT_STATUSES.map(s => (
-                                            <option key={s} value={s} className="bg-white text-slate-700 font-bold">{s}</option>
-                                        ))}
-                                    </select>
-                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white/80">
-                                        <ChevronDown size={14} strokeWidth={3} />
+                                <div className="flex items-end gap-2 mb-2">
+                                    <div className="flex-1 grid gap-2">
+                                        <Label className="font-black text-slate-700 uppercase tracking-tighter flex items-center gap-2 text-[10px]">
+                                            <div className="w-2 h-2 rounded-full bg-chimipink animate-pulse" />
+                                            Estado de Viaje
+                                        </Label>
+                                        <div className="relative group">
+                                            <select 
+                                                name="status"
+                                                className={cn(
+                                                    "w-full h-10 appearance-none px-4 rounded-xl text-xs font-black border-0 transition-all cursor-pointer shadow-sm focus:ring-4 focus:ring-offset-2 pr-10",
+                                                    formData.status === 'Finalizado' 
+                                                        ? 'bg-emerald-500 text-white focus:ring-emerald-200' 
+                                                        : formData.status === 'Cancelado' || formData.status === 'Deportado'
+                                                        ? 'bg-rose-500 text-white focus:ring-rose-200'
+                                                        : formData.status === 'En tránsito' || formData.status === 'En migración'
+                                                        ? 'bg-blue-500 text-white focus:ring-blue-200'
+                                                        : formData.status === 'No-show (no se presentó)'
+                                                        ? 'bg-slate-600 text-white focus:ring-slate-300'
+                                                        : formData.status === 'Programado'
+                                                        ? 'bg-sky-500 text-white focus:ring-sky-200'
+                                                        : formData.status === 'Reprogramado'
+                                                        ? 'bg-orange-500 text-white focus:ring-orange-200'
+                                                        : formData.status === 'Cambio de horario'
+                                                        ? 'bg-yellow-500 text-white focus:ring-yellow-200'
+                                                        : 'bg-amber-500 text-white focus:ring-amber-200'
+                                                )}
+                                                value={formData.status}
+                                                onChange={handleInputChange}
+                                            >
+                                                {FLIGHT_STATUSES.map(s => (
+                                                    <option key={s} value={s} className="bg-white text-slate-700 font-bold">{s}</option>
+                                                ))}
+                                            </select>
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white/80">
+                                                <ChevronDown size={14} strokeWidth={3} />
+                                            </div>
+                                        </div>
                                     </div>
+                                    {selectedFlightId && (userRole === 'admin' || userRole === 'supervisor') && (
+                                        <Button 
+                                            type="button" 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            onClick={() => {
+                                                if(confirm('¿Desea eliminar este vuelo permanentemente?')) {
+                                                    deleteFlight(selectedFlightId).then(() => {
+                                                        loadData();
+                                                        setIsDialogOpen(false);
+                                                    });
+                                                }
+                                            }}
+                                            className="h-10 w-10 text-red-500 hover:bg-red-50 hover:text-red-600 border border-red-100 rounded-xl"
+                                            title="Eliminar Vuelo"
+                                        >
+                                            <Trash2 className="h-5 w-5" />
+                                        </Button>
+                                    )}
                                 </div>
-                            </div>
                             {/* Client Search and Details */}
                             <div className="space-y-4 border p-4 rounded-md bg-slate-50">
                                 <Label className="font-bold text-slate-700 text-sm flex items-center gap-2">
@@ -2977,7 +2986,7 @@ export default function FlightsPage() {
                                             <th className="px-6 py-4 font-medium">Pago</th>
                                             <th className="px-6 py-4 font-medium text-center">Docs</th>
                                             <th className="px-6 py-4 font-medium">Estado</th>
-                                            <th className="px-2 sm:px-6 py-4 font-medium text-right sticky right-0 bg-pink-100/90 backdrop-blur-sm z-20 border-l border-pink-200 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.15)] text-pink-700">Acciones</th>
+                                            <th className="px-1 sm:px-2 py-4 font-medium text-right sticky right-0 bg-pink-100/90 backdrop-blur-sm z-20 border-l border-pink-200 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.15)] text-pink-700">Acción</th>
                                         </>
                                     )}
                                 </tr>
@@ -3133,22 +3142,17 @@ export default function FlightsPage() {
                                                             </select>
                                                         </div>
                                                     </td>
-                                                    <td className="px-2 sm:px-6 py-4 text-right sticky right-0 bg-pink-50/90 backdrop-blur-sm group-hover:bg-pink-100 z-10 border-l border-pink-100 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.15)] transition-colors">
+                                                    <td className="px-1 sm:px-2 py-4 text-right sticky right-0 bg-pink-50/90 backdrop-blur-sm group-hover:bg-pink-100 z-10 border-l border-pink-100 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.15)] transition-colors">
                                                         <div className="flex items-center justify-end gap-1 sm:gap-2">
                                                             <Button 
                                                                 variant="ghost" 
                                                                 size="sm" 
                                                                 onClick={() => handleEditClick(flight)}
-                                                                className="h-8 w-8 text-slate-400 hover:text-chimipink hover:bg-pink-50"
+                                                                className="h-10 w-10 text-slate-400 hover:text-chimipink hover:bg-pink-50"
                                                                 title="Editar"
-                                                            >
-                                                                <Pencil className="h-4 w-4" />
+                                                              >
+                                                                <Pencil className="h-5 w-5" />
                                                             </Button>
-                                                            {(userRole === 'admin' || userRole === 'supervisor') && (
-                                                                <Button variant="ghost" size="sm" onClick={() => handleDeleteFlight(flight.id)}>
-                                                                    <Trash2 className="h-4 w-4 text-red-400" />
-                                                                </Button>
-                                                            )}
                                                         </div>
                                                     </td>
                                                 </>

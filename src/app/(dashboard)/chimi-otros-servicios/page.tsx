@@ -660,29 +660,49 @@ export default function OtherServicesPage() {
                                     <div className="w-2 h-2 rounded-full bg-chimipink animate-pulse" />
                                     Estado del Servicio
                                 </Label>
-                                <div className="relative group">
-                                    <select 
-                                        name="status"
-                                        className={cn(
-                                            "w-full h-10 appearance-none px-4 rounded-xl text-xs font-black border-0 transition-all cursor-pointer shadow-sm focus:ring-4 focus:ring-offset-2 pr-10",
-                                            formData.status === 'pending' ? "bg-amber-500 text-white focus:ring-amber-200" :
-                                            formData.status === 'completed' ? "bg-emerald-500 text-white focus:ring-emerald-200" :
-                                            formData.status === 'delivered' ? "bg-blue-600 text-white focus:ring-blue-200" :
-                                            formData.status === 'cancelled' ? "bg-rose-500 text-white focus:ring-rose-200" :
-                                            "bg-sky-500 text-white focus:ring-sky-200"
-                                        )}
-                                        value={formData.status}
-                                        onChange={handleInputChange}
-                                    >
-                                        <option value="pending" className="bg-white text-slate-700 font-bold">Pendiente</option>
-                                        <option value="in_progress" className="bg-white text-slate-700 font-bold">En Proceso</option>
-                                        <option value="completed" className="bg-white text-slate-700 font-bold">Listo / Completado</option>
-                                        <option value="delivered" className="bg-white text-slate-700 font-bold">Entregado</option>
-                                        <option value="cancelled" className="bg-white text-slate-700 font-bold">Cancelado</option>
-                                    </select>
-                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white/80">
-                                        <ChevronDown size={18} strokeWidth={3} />
+                                <div className="flex items-center gap-2">
+                                    <div className="relative flex-1 group">
+                                        <select 
+                                            name="status"
+                                            className={cn(
+                                                "w-full h-10 appearance-none px-4 rounded-xl text-xs font-black border-0 transition-all cursor-pointer shadow-sm focus:ring-4 focus:ring-offset-2 pr-10",
+                                                formData.status === 'pending' ? "bg-amber-500 text-white focus:ring-amber-200" :
+                                                formData.status === 'completed' ? "bg-emerald-500 text-white focus:ring-emerald-200" :
+                                                formData.status === 'delivered' ? "bg-blue-600 text-white focus:ring-blue-200" :
+                                                formData.status === 'cancelled' ? "bg-rose-500 text-white focus:ring-rose-200" :
+                                                "bg-sky-500 text-white focus:ring-sky-200"
+                                            )}
+                                            value={formData.status}
+                                            onChange={handleInputChange}
+                                        >
+                                            <option value="pending" className="bg-white text-slate-700 font-bold">Pendiente</option>
+                                            <option value="in_progress" className="bg-white text-slate-700 font-bold">En Proceso</option>
+                                            <option value="completed" className="bg-white text-slate-700 font-bold">Listo / Completado</option>
+                                            <option value="delivered" className="bg-white text-slate-700 font-bold">Entregado</option>
+                                            <option value="cancelled" className="bg-white text-slate-700 font-bold">Cancelado</option>
+                                        </select>
+                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white/80">
+                                            <ChevronDown size={18} strokeWidth={3} />
+                                        </div>
                                     </div>
+                                    {selectedId && (userRole === 'admin' || userRole === 'supervisor') && (
+                                        <Button 
+                                            type="button" 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            onClick={() => {
+                                                if(confirm('¿Eliminar este servicio?')) {
+                                                    deleteOtherService(selectedId).then(() => {
+                                                        loadData();
+                                                        setIsDialogOpen(false);
+                                                    });
+                                                }
+                                            }}
+                                            className="h-10 w-10 text-red-500 hover:bg-red-50 border border-red-100 shadow-sm rounded-xl"
+                                        >
+                                            <Trash2 className="h-5 w-5" />
+                                        </Button>
+                                    )}
                                 </div>
                             </div>
                             {/* Section: Client */}
@@ -1009,21 +1029,7 @@ export default function OtherServicesPage() {
                                     </div>
 
                                     {/* Estado (Moved to Bottom) */}
-                                    <div className="space-y-2 border p-4 rounded-md bg-white">
-                                        <Label className="text-xs font-bold text-slate-500 uppercase">Estado del Servicio <span className="text-red-500">*</span></Label>
-                                        <select 
-                                            name="status" 
-                                            value={formData.status} 
-                                            onChange={handleInputChange}
-                                            className="w-full h-10 px-3 bg-white border border-slate-200 rounded-md text-sm font-bold text-slate-700 mt-1 focus:ring-chimiteal focus:border-chimiteal outline-none"
-                                        >
-                                            <option value="pending">Pendiente</option>
-                                            <option value="in_progress">En Proceso</option>
-                                            <option value="completed">Listo</option>
-                                            <option value="delivered">Entregado</option>
-                                            <option value="cancelled">Cancelado</option>
-                                        </select>
-                                    </div>
+
                                 </div>
                             </div>
 
@@ -1406,7 +1412,7 @@ export default function OtherServicesPage() {
                                 <th className="p-4 whitespace-nowrap">A CUENTA</th>
                                 <th className="p-4 whitespace-nowrap text-nowrap">SALDO PENDIENTE</th>
                                 <th className="p-4 text-center whitespace-nowrap">ESTADO</th>
-                                <th className="px-2 sm:px-4 py-4 text-right sticky right-0 bg-slate-50/90 backdrop-blur-sm z-10 border-l border-slate-100 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.15)] whitespace-nowrap">ACCIONES</th>
+                                <th className="px-1 sm:px-2 py-4 text-right sticky right-0 bg-slate-50/90 backdrop-blur-sm z-10 border-l border-slate-100 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.15)] whitespace-nowrap">Acción</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1477,23 +1483,17 @@ export default function OtherServicesPage() {
                                                 <option value="cancelled">Cancelado</option>
                                             </select>
                                         </td>
-                                        <td className="px-2 sm:px-4 py-3 text-right sticky right-0 bg-pink-50/90 backdrop-blur-sm group-hover:bg-pink-100 z-10 border-l border-pink-100 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.15)] transition-colors">
+                                         <td className="px-1 sm:px-2 py-3 text-right sticky right-0 bg-pink-50/90 backdrop-blur-sm group-hover:bg-pink-100 z-10 border-l border-pink-100 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.15)] transition-colors">
                                             <div className="flex items-center justify-end gap-1 sm:gap-2">
                                                 <Button 
                                                     variant="ghost" 
                                                     size="sm" 
                                                     onClick={() => handleActionClick(s, 'edit')}
-                                                    className="h-8 w-8 text-slate-400 hover:text-chimipink hover:bg-pink-50"
+                                                    className="h-10 w-10 text-slate-400 hover:text-chimipink hover:bg-pink-50"
                                                     title="Editar"
                                                 >
-                                                    <Pencil className="h-4 w-4" />
+                                                    <Pencil className="h-5 w-5" />
                                                 </Button>
-
-                                                {(userRole === 'admin' || userRole === 'supervisor') && (
-                                                    <Button variant="ghost" size="sm" onClick={() => handleActionClick(s, 'delete')}>
-                                                        <Trash2 className="h-4 w-4 text-red-400" />
-                                                    </Button>
-                                                )}
                                             </div>
                                         </td>
                                     </tr>

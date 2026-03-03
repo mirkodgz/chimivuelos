@@ -634,12 +634,6 @@ export default function ParcelsPage() {
         }
     }
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("¿Eliminar esta encomienda? Se borrarán los datos y archivos.")) return
-        const result = await deleteParcel(id)
-        if (!result.error) loadData()
-    }
-
     const handleDownload = async (doc: ParcelDocument) => {
         const url = await getParcelDocumentUrl(doc.path, doc.storage || 'r2')
         if (typeof url === 'string') {
@@ -735,30 +729,50 @@ export default function ParcelsPage() {
                                     <div className="w-2 h-2 rounded-full bg-chimipink animate-pulse" />
                                     Estado de Encomienda
                                 </Label>
-                                <div className="relative group">
-                                    <select 
-                                        name="status"
-                                        className={cn(
-                                            "w-full h-10 appearance-none px-4 rounded-xl text-xs font-black border-0 transition-all cursor-pointer shadow-sm focus:ring-4 focus:ring-offset-2 pr-10",
-                                            formData.status === 'pending' ? "bg-amber-500 text-white focus:ring-amber-200" :
-                                            formData.status === 'warehouse' ? "bg-sky-500 text-white focus:ring-sky-200" :
-                                            formData.status === 'transit' ? "bg-blue-600 text-white focus:ring-blue-200" :
-                                            formData.status === 'delivered' ? "bg-emerald-500 text-white focus:ring-emerald-200" :
-                                            formData.status === 'cancelled' ? "bg-rose-500 text-white focus:ring-rose-200" :
-                                            "bg-slate-500 text-white focus:ring-slate-300"
-                                        )}
-                                        value={formData.status}
-                                        onChange={handleInputChange}
-                                    >
-                                        <option value="pending" className="bg-white text-slate-700 font-bold">Pendiente</option>
-                                        <option value="warehouse" className="bg-white text-slate-700 font-bold">En Almacén</option>
-                                        <option value="transit" className="bg-white text-slate-700 font-bold">En Tránsito</option>
-                                        <option value="delivered" className="bg-white text-slate-700 font-bold">Entregado</option>
-                                        <option value="cancelled" className="bg-white text-slate-700 font-bold">Cancelado</option>
-                                    </select>
-                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white/80">
-                                        <ChevronDown size={14} strokeWidth={3} />
+                                <div className="flex items-center gap-2">
+                                    <div className="relative flex-1 group">
+                                        <select 
+                                            name="status"
+                                            className={cn(
+                                                "w-full h-10 appearance-none px-4 rounded-xl text-xs font-black border-0 transition-all cursor-pointer shadow-sm focus:ring-4 focus:ring-offset-2 pr-10",
+                                                formData.status === 'pending' ? "bg-amber-500 text-white focus:ring-amber-200" :
+                                                formData.status === 'warehouse' ? "bg-sky-500 text-white focus:ring-sky-200" :
+                                                formData.status === 'transit' ? "bg-blue-600 text-white focus:ring-blue-200" :
+                                                formData.status === 'delivered' ? "bg-emerald-500 text-white focus:ring-emerald-200" :
+                                                formData.status === 'cancelled' ? "bg-rose-500 text-white focus:ring-rose-200" :
+                                                "bg-slate-500 text-white focus:ring-slate-300"
+                                            )}
+                                            value={formData.status}
+                                            onChange={handleInputChange}
+                                        >
+                                            <option value="pending" className="bg-white text-slate-700 font-bold">Pendiente</option>
+                                            <option value="warehouse" className="bg-white text-slate-700 font-bold">En Almacén</option>
+                                            <option value="transit" className="bg-white text-slate-700 font-bold">En Tránsito</option>
+                                            <option value="delivered" className="bg-white text-slate-700 font-bold">Entregado</option>
+                                            <option value="cancelled" className="bg-white text-slate-700 font-bold">Cancelado</option>
+                                        </select>
+                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white/80">
+                                            <ChevronDown size={14} strokeWidth={3} />
+                                        </div>
                                     </div>
+                                    {selectedParcelId && (userRole === 'admin' || userRole === 'supervisor') && (
+                                        <Button 
+                                            type="button" 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            onClick={() => {
+                                                if(confirm('¿Eliminar esta encomienda?')) {
+                                                    deleteParcel(selectedParcelId).then(() => {
+                                                        loadData();
+                                                        setIsDialogOpen(false);
+                                                    });
+                                                }
+                                            }}
+                                            className="h-10 w-10 text-red-500 hover:bg-red-50 border border-red-100 shadow-sm rounded-xl"
+                                        >
+                                            <Trash2 className="h-5 w-5" />
+                                        </Button>
+                                    )}
                                 </div>
                             </div>
                             {/* Client (Sender) Selection */}
@@ -1382,21 +1396,7 @@ export default function ParcelsPage() {
                                 </div>
                             </div>
 
-                            <div className="grid gap-2 mt-4 pt-4 border-t border-slate-200 px-1">
-                                <Label className="font-bold text-slate-700">Estado del Envío</Label>
-                                <select 
-                                    name="status"
-                                    value={formData.status}
-                                    onChange={handleInputChange}
-                                    className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-chimiteal outline-none"
-                                >
-                                    <option value="pending">Pendiente (Recibido)</option>
-                                    <option value="warehouse">En Almacén</option>
-                                    <option value="transit">En Tránsito</option>
-                                    <option value="delivered">Entregado</option>
-                                    <option value="cancelled">Cancelado</option>
-                                </select>
-                            </div>
+
 
                             {/* Documents Section */}
                              <div className="space-y-4 border-t pt-4">
@@ -1671,7 +1671,7 @@ export default function ParcelsPage() {
                                     <th className="px-6 py-4 font-medium">Saldo (€)</th>
                                     <th className="px-6 py-4 font-medium text-center">Fotos</th>
                                     <th className="px-6 py-4 font-medium">Estado</th>
-                                    <th className="px-2 sm:px-6 py-4 font-medium text-right sticky right-0 bg-pink-100/90 backdrop-blur-sm z-20 border-l border-pink-200 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.15)] text-pink-700">Acciones</th>
+                                    <th className="px-1 sm:px-2 py-4 font-medium text-right sticky right-0 bg-pink-100/90 backdrop-blur-sm z-20 border-l border-pink-200 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.15)] text-pink-700">Acción</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -1796,22 +1796,17 @@ export default function ParcelsPage() {
                                                     <option value="cancelled">Cancelado</option>
                                                 </select>
                                             </td>
-                                                                                        <td className="px-2 sm:px-6 py-4 text-right sticky right-0 bg-pink-50/90 backdrop-blur-sm group-hover:bg-pink-100 z-10 border-l border-pink-100 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.15)] transition-colors">
+                                                                                        <td className="px-1 sm:px-2 py-4 text-right sticky right-0 bg-pink-50/90 backdrop-blur-sm group-hover:bg-pink-100 z-10 border-l border-pink-100 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.15)] transition-colors">
                                                 <div className="flex items-center justify-end gap-1 sm:gap-2">
                                                     <Button 
                                                         variant="ghost" 
                                                         size="sm" 
                                                         onClick={() => handleEditClick(parcel)}
-                                                        className="h-8 w-8 hover:bg-slate-100"
+                                                        className="h-10 w-10 text-slate-400 hover:text-chimipink hover:bg-pink-50"
                                                         title="Editar"
                                                     >
-                                                        <Pencil className="h-4 w-4 text-slate-400" />
+                                                        <Pencil className="h-5 w-5" />
                                                     </Button>
-                                                    {(userRole === 'admin' || userRole === 'supervisor') && (
-                                                        <Button variant="ghost" size="sm" onClick={() => handleDelete(parcel.id)}>
-                                                            <Trash2 className="h-4 w-4 text-red-400" />
-                                                        </Button>
-                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
