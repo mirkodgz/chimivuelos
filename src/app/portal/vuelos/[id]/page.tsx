@@ -8,6 +8,7 @@ import { FlightDocumentRow } from '../ClientDownloadButton'
 import { FlightRecommendations } from '../components/FlightRecommendations'
 import { FlightFAQ } from '../components/FlightFAQ'
 import { cn } from "@/lib/utils"
+import { FlightMinorsChecklist } from '../components/FlightMinorsChecklist'
 
 const STATUS_LABELS: Record<string, string> = {
     // Keys
@@ -145,11 +146,6 @@ export default async function FlightDetailPage({ params }: { params: { id: strin
 
         activeDetails.push({ key, label })
     })
-    
-    // Also check for special note
-    if (flightDetails.special_note) {
-        activeDetails.push({ key: 'special_note', label: `Nota Especial: ${flightDetails.special_note}` })
-    }
 
     return (
         <div className="space-y-6 w-full">
@@ -180,7 +176,7 @@ export default async function FlightDetailPage({ params }: { params: { id: strin
                                 <div className="bg-white/80 p-3 rounded-xl border border-white/50 text-chimipink shadow-sm">
                                     <Plane size={24} />
                                 </div>
-                                <div>
+                                <div className="flex-1">
                                     <h2 className="text-lg font-bold text-slate-900">{flight.airline}</h2>
                                     <div className="flex items-center gap-2 mt-1">
                                         <span className="text-xs font-semibold px-2 py-0.5 bg-white/60 text-slate-600 rounded border border-white/40">
@@ -191,11 +187,7 @@ export default async function FlightDetailPage({ params }: { params: { id: strin
                                             flight.status === 'cancelled' ? 'bg-red-100/80 text-red-700' :
                                             'bg-yellow-100/80 text-yellow-700'
                                         }`}>
-                                            {flight.status === 'scheduled' ? 'Programado' : 
-                                             flight.status === 'confirmed' ? 'Confirmado' :
-                                             flight.status === 'cancelled' ? 'Cancelado' :
-                                             flight.status === 'pending' ? 'Pendiente' :
-                                             flight.status}
+                                            {STATUS_LABELS[flight.status] || flight.status}
                                         </span>
                                     </div>
                                 </div>
@@ -250,7 +242,7 @@ export default async function FlightDetailPage({ params }: { params: { id: strin
                                             <Clock size={14} /> Historial de Cambio
                                         </h3>
                                         <div className="relative pl-6 space-y-4 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
-                                            {timeline.map((step, idx) => (
+                                            {timeline.slice().reverse().map((step, idx) => (
                                                 <div key={idx} className="relative flex items-center gap-4 group">
                                                     <div className={cn(
                                                         "absolute -left-[23px] h-3 w-3 rounded-full border-2 border-white shadow-sm z-10",
@@ -289,7 +281,7 @@ export default async function FlightDetailPage({ params }: { params: { id: strin
                                         </div>
                                     </div>
 
-                                    {/* Integrated Payment Info (Moved Here) */}
+                                    {/* Integrated Payment Info */}
                                     <div>
                                         <h3 className="text-xs font-bold text-chimipink uppercase tracking-wider mb-4 flex items-center gap-2">
                                             <Banknote size={14} /> Estado de Pago
@@ -316,13 +308,20 @@ export default async function FlightDetailPage({ params }: { params: { id: strin
                                             </div>
                                         </div>
                                     </div>
+
+                                    {/* Minors & Checklist Section - Moved here to fill the gap */}
+                                    <FlightMinorsChecklist 
+                                        flightId={flight.id}
+                                        minorTravelWith={flight.minor_travel_with}
+                                        requiredDocuments={flight.required_documents}
+                                    />
                                 </div>
                             </div>
                         </div>
 
-                        {/* Right Content (Image) */}
-                        <div className="w-full lg:w-1/3 flex items-center justify-center lg:justify-end">
-                             <div className="relative w-full max-w-[200px] md:max-w-[350px] aspect-4/5 lg:mr-8 transition-transform hover:scale-105 duration-500">
+                        {/* Right Content Area (Image) */}
+                        <div className="w-full lg:w-1/3 flex flex-col items-center justify-start">
+                             <div className="relative w-full max-w-[200px] md:max-w-[320px] aspect-4/5 mx-auto lg:mr-0 transition-transform hover:scale-105 duration-500">
                                 <Image 
                                     src="/img-detallevuelo.webp" 
                                     alt="Detalle de Vuelo" 
@@ -333,7 +332,6 @@ export default async function FlightDetailPage({ params }: { params: { id: strin
                              </div>
                         </div>
                    </div>
-
                 </div>
 
                 {/* Generic Info (Full Width) */}

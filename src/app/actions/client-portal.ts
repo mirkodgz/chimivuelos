@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { headers } from 'next/headers'
+import { revalidatePath } from 'next/cache'
 
 // --- HELPER TO GET CURRENT CLIENT ---
 export async function getClientUser() {
@@ -316,4 +317,48 @@ export async function getServiceHistory(resourceId: string, resourceType: 'parce
         }))
 
     return history
+}
+
+export async function updateFlightRequiredDocumentStatus(flightId: string, docName: string, status: 'si' | 'no') {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'No autorizado' }
+
+    // Use admin client to bypass RLS for this specific update, but verify ownership
+    const { data: flight, error: fetchError } = await supabaseAdmin
+        .from('flights')
+        .select('required_documents, client_id')
+        .eq('id', flightId)
+        .single()
+
+    if (fetchError || !flight) return { error: 'Vuelo no encontrado' }
+    
+    // Verify that the flight belongs to the user OR the user is an admin/agent
+    // (In case an agent is testing from the portal)
+    if (flight.client_id !== user.id) {
+        const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single()
+        if (profile?.role === 'client') {
+            return { error: 'No tienes permiso para actualizar este vuelo' }
+        }
+    }
+
+    const docs = (flight.required_documents as Record<string, { required: boolean, status: string, extra?: string }>) || {}
+    
+    if (!docs[docName]) return { error: 'Documento no encontrado en la lista' }
+
+    // Update status
+    docs[docName].status = status
+
+    const { error: updateError } = await supabaseAdmin
+        .from('flights')
+        .update({ required_documents: docs })
+        .eq('id', flightId)
+
+    if (updateError) return { error: 'Error al actualizar el estado del documento' }
+
+    // Crucial: Revalidate to clear cache
+    revalidatePath(`/portal/vuelos/${flightId}`)
+    revalidatePath('/portal/vuelos')
+    
+    return { success: true }
 }
