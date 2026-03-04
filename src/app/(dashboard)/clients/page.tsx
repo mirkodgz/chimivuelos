@@ -292,7 +292,7 @@ export default function ClientsPage() {
 
   const handleCopyLogins = (client: ClientProfile) => {
     const password = client.raw_password || "(contraseña no disponible)";
-    const message = `Hola ${client.first_name}, ¿qué tal? 😊\n\nAcabamos de crear tu cuenta con el correo que nos enviaste.\n\n✉️ Usuario: ${client.email}\n🔑 Contraseña: ${password}\n\n🔗 Link de acceso:\n👉 https://chimivuelos.pe/clienti`;
+    const message = `Hola ${client.first_name}, ¿qué tal? 😊\n\nAcabamos de crear tu cuenta con el correo que nos enviaste.\n\n✉️ Usuario: ${client.email}\n🔑 Contraseña: ${password}\n\n🔗 Link de acceso:\n👉 https://chimivuelos.pe/login`;
     navigator.clipboard.writeText(message);
 
     // Set feedback state

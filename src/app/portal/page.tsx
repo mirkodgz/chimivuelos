@@ -1,4 +1,5 @@
 import { getClientUser } from '@/app/actions/client-portal'
+import { redirect } from 'next/navigation'
 import { Plane, Package, Banknote, ShieldCheck, Info, CheckCircle2, Languages, PlusCircle, type LucideIcon } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
@@ -7,6 +8,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function PortalPage() {
     const user = await getClientUser()
+    if (!user) redirect('/login')
 
     return (
        <div className="space-y-6 md:space-y-8 max-w-5xl mx-auto pb-20 md:pb-0">
