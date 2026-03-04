@@ -201,8 +201,8 @@ export async function updateExpense(formData: FormData) {
     if (!user) throw new Error('Unauthorized')
 
     const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single()
-    if (profile?.role !== 'admin' && profile?.role !== 'supervisor') {
-        throw new Error('Solo los administradores o supervisores pueden actualizar gastos.')
+    if (profile?.role !== 'admin' && profile?.role !== 'supervisor' && profile?.role !== 'agent' && profile?.role !== 'usuario') {
+        throw new Error('Solo los administradores, supervisores o agentes pueden actualizar gastos.')
     }
 
     const id = formData.get('id') as string
