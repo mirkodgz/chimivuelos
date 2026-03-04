@@ -19,6 +19,12 @@ export interface FlightDocument {
     storage: 'r2' | 'images'
 }
 
+export interface DateHistoryEntry {
+    date: string
+    changed_at: string
+    changed_by: string
+}
+
 /**
  * Creates a new flight record
  */
@@ -192,7 +198,9 @@ export async function createFlight(formData: FormData) {
             minor_travel_with,
             required_documents,
             client_note,
-            internal_note
+            internal_note,
+            flight_date_history: [] as DateHistoryEntry[],
+            created_at: new Date().toISOString()
         }
 
         const { error } = await adminSupabase.from('flights').insert(insertData)
@@ -391,6 +399,21 @@ export async function updateFlight(formData: FormData, isDraft: boolean = false)
 
         const ticket_type = formData.get('ticket_type') as string
 
+        const currentHistory = Array.isArray(existingFlight.flight_date_history) ? [...existingFlight.flight_date_history] : []
+        const newDate = travel_date ? travel_date.trim() : null
+        const oldDate = existingFlight.travel_date ? existingFlight.travel_date.trim() : null
+
+        if (newDate && oldDate && newDate !== oldDate) {
+            const lastEntry = currentHistory.length > 0 ? currentHistory[currentHistory.length - 1] : null
+            if (!lastEntry || lastEntry.date !== oldDate) {
+                currentHistory.push({
+                    date: oldDate,
+                    changed_at: new Date().toISOString(),
+                    changed_by: user.email || user.id
+                })
+            }
+        }
+
         const updateData = {
             client_id,
             travel_date,
@@ -420,6 +443,7 @@ export async function updateFlight(formData: FormData, isDraft: boolean = false)
             required_documents,
             client_note,
             internal_note,
+            flight_date_history: currentHistory,
             updated_at: new Date().toISOString()
         }
 
@@ -630,7 +654,7 @@ export async function getFlightDocumentUrl(path: string, storage: 'r2' | 'images
 export async function getFlights() {
     const supabase = supabaseAdmin
     // Join with profiles table to get client names and agent names
-    const { data, error } = await supabase
+    const { data: flights, error } = await supabase
         .from('flights')
         .select(`
             *,
@@ -652,7 +676,49 @@ export async function getFlights() {
         console.error('Error fetching flights:', error)
         return []
     }
-    return data
+
+    // Recover histories from other_services based on PNR to show a unified history
+    const pnrs = flights.map(f => f.pnr?.trim()).filter(Boolean) as string[]
+    if (pnrs.length > 0) {
+        const { data: allServices } = await supabase
+            .from('other_services')
+            .select('flight_pnr, flight_date_history')
+            .in('flight_pnr', pnrs)
+            // No filtramos por service_type para atrapar cualquier registro de fecha
+        
+        if (allServices && allServices.length > 0) {
+            flights.forEach(flight => {
+                const flightPnr = flight.pnr?.trim()
+                if (!flightPnr) return
+
+                // Get all history entries from all services related to this PNR
+                const relevantServices = allServices.filter(s => s.flight_pnr?.trim() === flightPnr)
+                
+                let combinedHistory: any[] = Array.isArray(flight.flight_date_history) ? [...flight.flight_date_history] : []
+                
+                relevantServices.forEach(s => {
+                    if (Array.isArray(s.flight_date_history)) {
+                        combinedHistory = [...combinedHistory, ...s.flight_date_history]
+                    }
+                })
+
+                if (combinedHistory.length > 0) {
+                    // Unique entries by date + timestamp to avoid duplicates
+                    const uniqueMap = new Map()
+                    combinedHistory.forEach(h => {
+                        const key = `${h.date}_${h.changed_at}`
+                        uniqueMap.set(key, h)
+                    })
+                    
+                    flight.flight_date_history = Array.from(uniqueMap.values()).sort((a,b) => 
+                        new Date(a.changed_at).getTime() - new Date(b.changed_at).getTime()
+                    )
+                }
+            })
+        }
+    }
+
+    return flights as any[]
 }
 
 /**

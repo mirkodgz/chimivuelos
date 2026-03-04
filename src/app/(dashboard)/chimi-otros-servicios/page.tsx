@@ -1162,15 +1162,17 @@ export default function OtherServicesPage() {
                                                                     Historial de Reprogramación
                                                                 </h4>
                                                                 <div className="space-y-1.5">
-                                                                    {formData.flight_date_history.map((h, i) => (
+                                                                    {[...formData.flight_date_history].reverse().map((h, i) => (
                                                                         <div key={i} className="flex flex-col px-2 py-1.5 bg-white/50 rounded-md border border-slate-50">
                                                                             <div className="flex items-center gap-2">
-                                                                                <div className="h-1 w-1 rounded-full bg-slate-300" />
-                                                                                <span className="text-[10px] font-bold text-slate-600">FECHA ANTERIOR: {new Date(h.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+                                                                                <div className="h-1 w-1 rounded-full bg-slate-400" />
+                                                                                <span className="text-[10px] font-extrabold text-slate-700">FECHA ANTERIOR: {h.date ? new Date(h.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-'}</span>
                                                                             </div>
-                                                                            <span className="text-[9px] text-slate-400 italic ml-3">
-                                                                                Cambiado por: {h.changed_by}
-                                                                            </span>
+                                                                            {h.changed_by && (
+                                                                                <span className="text-[8.5px] text-slate-400 italic font-medium ml-3">
+                                                                                    Modificado por: {h.changed_by.split('@')[0]}
+                                                                                </span>
+                                                                            )}
                                                                         </div>
                                                                     ))}
                                                                 </div>

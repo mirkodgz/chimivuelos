@@ -18,8 +18,7 @@ import {
     Download,
     Pencil,
     ClipboardList,
-    Paperclip,
-    ShieldCheck
+    Paperclip
 } from 'lucide-react'
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -355,21 +354,6 @@ export default function GastosPage() {
     }, [expenses, searchTerm, categoryFilter])
 
     const paginatedItems = filteredExpenses.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-
-    if (userRole === 'agent') {
-        return (
-            <div className="flex flex-col items-center justify-center p-20 text-center space-y-4">
-                <div className="bg-red-50 p-6 rounded-full">
-                    <ShieldCheck className="h-12 w-12 text-red-500" />
-                </div>
-                <h2 className="text-2xl font-bold text-slate-800">Acceso Denegado</h2>
-                <p className="text-slate-500 max-w-md">Lo sentimos, no tienes los permisos necesarios para acceder al módulo de Gastos Corporativos.</p>
-                <Button onClick={() => window.location.href = '/dashboard'} variant="outline">
-                    Regresar al Dashboard
-                </Button>
-            </div>
-        )
-    }
 
     return (
         <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto animate-in fade-in duration-500 pb-10">

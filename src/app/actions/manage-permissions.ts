@@ -123,13 +123,40 @@ export async function approveEditRequest(requestId: string) {
         if (!tableName) throw new Error('Tipo de recurso no reconocido')
 
         // 2. Fetch OLD values for audit log
-        const { data: oldValues } = await supabaseAdmin
+        const { data: oldValues, error: oldError } = await supabaseAdmin
             .from(tableName)
             .select('*')
             .eq('id', request.resource_id)
             .single()
 
-        // 3. APPLY CHANGE TO SOURCE TABLE
+        if (oldError || !oldValues) throw new Error('Could not find existing record to update')
+
+        // 3. SPECIAL HANDLING FOR OTHER SERVICES HISTORY
+        // We recalculate history at approval time to avoid losing entries if there were multiple pending drafts
+        if (request.resource_type === 'other_services') {
+            const currentHistory = Array.isArray(oldValues.flight_date_history) ? [...oldValues.flight_date_history] : []
+            const draftDate = (draftData.current_flight_date as string)?.trim()
+            const dbDate = (oldValues.current_flight_date as string)?.trim()
+
+            if (draftDate && dbDate && draftDate !== dbDate) {
+                // The date in the draft is different from the CURRENT date in the DB
+                // Ensure the DB date is in the history
+                const lastEntry = currentHistory.length > 0 ? currentHistory[currentHistory.length - 1] : null
+                if (!lastEntry || lastEntry.date !== dbDate) {
+                    currentHistory.push({
+                        date: dbDate,
+                        changed_at: new Date().toISOString(),
+                        changed_by: request.agent_id || 'agent'
+                    })
+                }
+                draftData.flight_date_history = currentHistory
+            } else if (!draftDate || draftDate === dbDate) {
+                // If the date didn't change OR was cleared in draft, use the existing history from DB
+                draftData.flight_date_history = currentHistory
+            }
+        }
+
+        // 4. APPLY CHANGE TO SOURCE TABLE
         const { error: updateError } = await supabaseAdmin
             .from(tableName)
             .update(draftData)
@@ -139,9 +166,37 @@ export async function approveEditRequest(requestId: string) {
 
         // 3.5 SPECIAL SYNC: If other_services reschedule is approved, update the actual flight
         if (request.resource_type === 'other_services' && draftData.connected_flight_id) {
-            const flightUpdate: Record<string, string | null> = {}
+            // Recalculate flight update to preserve its specific history
+            const { data: flightData } = await supabaseAdmin
+                .from('flights')
+                .select('travel_date, flight_date_history')
+                .eq('id', draftData.connected_flight_id as string)
+                .single()
+
+            const flightUpdate: Record<string, unknown> = {}
             if (draftData.flight_status) flightUpdate.status = draftData.flight_status as string
-            if (draftData.current_flight_date) flightUpdate.travel_date = draftData.current_flight_date as string
+            
+            if (draftData.current_flight_date) {
+                const oldFlightDate = flightData?.travel_date?.trim()
+                const newFlightDate = (draftData.current_flight_date as string).trim()
+                
+                if (oldFlightDate && oldFlightDate !== newFlightDate) {
+                    flightUpdate.travel_date = newFlightDate
+                    const currentFlightHistory = Array.isArray(flightData?.flight_date_history) 
+                        ? [...flightData.flight_date_history] 
+                        : []
+                    
+                    const lastEntry = currentFlightHistory.length > 0 ? currentFlightHistory[currentFlightHistory.length - 1] : null
+                    if (!lastEntry || lastEntry.date !== oldFlightDate) {
+                        currentFlightHistory.push({
+                            date: oldFlightDate,
+                            changed_at: new Date().toISOString(),
+                            changed_by: request.agent_id || 'Aprobado: Admin'
+                        })
+                        flightUpdate.flight_date_history = currentFlightHistory
+                    }
+                }
+            }
             
             if (Object.keys(flightUpdate).length > 0) {
                 await supabaseAdmin

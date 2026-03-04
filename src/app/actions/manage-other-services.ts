@@ -172,9 +172,37 @@ export async function createOtherService(formData: FormData) {
 
     // Update Connected Flight if exists
     if (connected_flight_id) {
-        const flightUpdate: Record<string, string | null> = {}
+        // Fetch current flight data to preserve its history
+        const { data: flightData } = await supabase
+            .from('flights')
+            .select('travel_date, flight_date_history')
+            .eq('id', connected_flight_id)
+            .single()
+
+        const flightUpdate: Record<string, unknown> = {}
         if (flight_status) flightUpdate.status = flight_status
-        if (current_flight_date) flightUpdate.travel_date = current_flight_date
+        
+        if (current_flight_date) {
+            flightUpdate.travel_date = current_flight_date
+            
+            // If the date is changing, record it in history
+            const oldFlightDate = flightData?.travel_date?.trim()
+            if (oldFlightDate && oldFlightDate !== current_flight_date.trim()) {
+                const updatedHistory = Array.isArray(flightData?.flight_date_history) 
+                    ? [...flightData.flight_date_history] 
+                    : []
+                
+                updatedHistory.push({
+                    date: oldFlightDate,
+                    changed_at: new Date().toISOString(),
+                    changed_by: user?.email || user?.id || 'Otros Servicios'
+                })
+                flightUpdate.flight_date_history = updatedHistory
+            } else if (!oldFlightDate && flight_date_history) {
+                 // Si no había fecha vieja pero tenemos historial del servicio, usarlo
+                 flightUpdate.flight_date_history = flight_date_history
+            }
+        }
         
         if (Object.keys(flightUpdate).length > 0) {
             await supabase
@@ -266,14 +294,24 @@ export async function updateOtherService(formData: FormData) {
         const current_flight_date = formData.get('current_flight_date') as string
         const flight_status = formData.get('flight_status') as string
         
-        // Handle Date History
-        const flight_date_history = [...(existing.flight_date_history || [])]
-        if (current_flight_date && existing.current_flight_date && current_flight_date !== existing.current_flight_date) {
-            flight_date_history.push({
-                date: existing.current_flight_date,
-                changed_at: new Date().toISOString(),
-                changed_by: user.email || user.id
-            })
+        // Handle Date History with better normalization and logging
+        const flight_date_history = Array.isArray(existing.flight_date_history) ? [...existing.flight_date_history] : []
+        
+        const newDate = current_flight_date ? current_flight_date.trim() : null
+        const oldDate = existing.current_flight_date ? existing.current_flight_date.trim() : null
+
+        if (newDate && oldDate && newDate !== oldDate) {
+            // Only add if it's a real change and not already captured
+            const lastHistoryEntry = flight_date_history.length > 0 ? flight_date_history[flight_date_history.length - 1] : null
+            
+            // Avoid duplicate entries for the same date if they happen somehow
+            if (!lastHistoryEntry || lastHistoryEntry.date !== oldDate) {
+                flight_date_history.push({
+                    date: oldDate,
+                    changed_at: new Date().toISOString(),
+                    changed_by: user.email || user.id
+                })
+            }
         }
 
         const total_amount = parseFloat(formData.get('total_amount') as string) || 0
@@ -355,9 +393,39 @@ export async function updateOtherService(formData: FormData) {
 
         // Update Connected Flight if exists
         if (connected_flight_id) {
-            const flightUpdate: Record<string, string | null> = {}
-            if (flight_status) flightUpdate.status = flight_status
-            if (current_flight_date) flightUpdate.travel_date = current_flight_date
+            // Important: Fetch current flight state to NOT lose its existing history
+            const { data: flightData } = await adminSupabase
+                .from('flights')
+                .select('travel_date, flight_date_history, status')
+                .eq('id', connected_flight_id)
+                .single()
+
+            const flightUpdate: Record<string, unknown> = {}
+            if (flight_status && flightData?.status !== flight_status) {
+                flightUpdate.status = flight_status
+            }
+            
+            if (current_flight_date) {
+                const newerDate = current_flight_date.trim()
+                flightUpdate.travel_date = newerDate
+                
+                const oldFlightDate = flightData?.travel_date?.trim()
+                if (oldFlightDate && oldFlightDate !== newerDate) {
+                    const existingFlightHistory = Array.isArray(flightData?.flight_date_history) 
+                        ? [...flightData.flight_date_history] 
+                        : []
+                    
+                    const lastEntry = existingFlightHistory.length > 0 ? existingFlightHistory[existingFlightHistory.length - 1] : null
+                    if (!lastEntry || lastEntry.date !== oldFlightDate) {
+                        existingFlightHistory.push({
+                            date: oldFlightDate,
+                            changed_at: new Date().toISOString(),
+                            changed_by: user.email || user.id
+                        })
+                        flightUpdate.flight_date_history = existingFlightHistory
+                    }
+                }
+            }
             
             if (Object.keys(flightUpdate).length > 0) {
                 await adminSupabase

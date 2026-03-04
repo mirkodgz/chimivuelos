@@ -41,6 +41,12 @@ interface PaymentDetail {
     proof_path?: string
 }
 
+interface DateHistoryEntry {
+    date: string
+    changed_at: string
+    changed_by: string
+}
+
 interface Flight {
     id: string
     client_id: string
@@ -84,6 +90,7 @@ interface Flight {
     required_documents?: Record<string, { required: boolean, status: string, extra?: string }>
     client_note?: string
     internal_note?: string
+    flight_date_history?: DateHistoryEntry[]
 }
 
 interface ClientOption {
@@ -367,8 +374,11 @@ export default function FlightsPage() {
         minor_travel_with: '',
         client_note: '',
         internal_note: '',
-        required_documents: { ...INITIAL_REQUIRED_DOCUMENTS }
+        required_documents: { ...INITIAL_REQUIRED_DOCUMENTS },
+        flight_date_history: [] as DateHistoryEntry[]
     })
+    
+    const [showDateHistory, setShowDateHistory] = useState(false)
 
     const [showAdditionalFields, setShowAdditionalFields] = useState(false)
 
@@ -615,7 +625,8 @@ export default function FlightsPage() {
             minor_travel_with: '',
             client_note: '',
             internal_note: '',
-            required_documents: { ...INITIAL_REQUIRED_DOCUMENTS }
+            required_documents: { ...INITIAL_REQUIRED_DOCUMENTS },
+            flight_date_history: [] as DateHistoryEntry[]
         })
         const initialDocs = DOCUMENT_TYPES.map(type => ({ 
             title: type, 
@@ -716,8 +727,10 @@ export default function FlightsPage() {
             minor_travel_with: flight.minor_travel_with || '',
             client_note: flight.client_note || '',
             internal_note: flight.internal_note || '',
-            required_documents: flight.required_documents || { ...INITIAL_REQUIRED_DOCUMENTS }
+            required_documents: flight.required_documents || { ...INITIAL_REQUIRED_DOCUMENTS },
+            flight_date_history: Array.isArray(flight.flight_date_history) ? flight.flight_date_history : []
         })
+        setShowDateHistory(false)
         setBaseOnAccount(flight.on_account || 0)
         setClientSearch(`${flight.profiles.first_name} ${flight.profiles.last_name}`)
         setExistingDocs(flight.documents || [])
@@ -937,6 +950,9 @@ export default function FlightsPage() {
                     data.append(key, financials.fee_agv)
                 } else if (key === 'required_documents') {
                     data.append(key, JSON.stringify(val))
+                } else if (key === 'flight_date_history') {
+                    // Skip here, let the server action handle it or append properly if needed
+                    // For now, flight actions don't use this from FormData but from existing record
                 } else {
                     data.append(key, val as unknown as string)
                 }
@@ -1507,8 +1523,23 @@ export default function FlightsPage() {
                             
                             {/* Flight Details */}
                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="grid gap-2">
-                                     <Label>Fecha de Viaje</Label>
+                                 <div className="grid gap-2">
+                                         <div className="flex items-center justify-between">
+                                             <Label>Fecha de Viaje</Label>
+                                             {formData.flight_date_history && formData.flight_date_history.length > 0 && (
+                                                 <button 
+                                                     type="button" 
+                                                     onClick={() => setShowDateHistory(!showDateHistory)}
+                                                     className={cn(
+                                                         "flex items-center gap-1 text-[10px] font-black uppercase tracking-widest transition-colors",
+                                                         showDateHistory ? "text-orange-500" : "text-slate-400 hover:text-orange-400"
+                                                     )}
+                                                 >
+                                                     <RefreshCw className={cn("h-3 w-3", showDateHistory && "animate-spin-once")} />
+                                                     {showDateHistory ? "Ocultar Historial" : "Ver Historial"}
+                                                 </button>
+                                             )}
+                                         </div>
                                      <div className="relative">
                                          <Input 
                                             type="date" 
@@ -1516,7 +1547,10 @@ export default function FlightsPage() {
                                             value={formData.travel_date} 
                                             onChange={handleInputChange} 
                                             required 
-                                            className="pr-8"
+                                            className={cn(
+                                                "pr-8",
+                                                formData.flight_date_history && formData.flight_date_history.length > 0 && "border-orange-200 bg-orange-50/20"
+                                            )}
                                          />
                                          {formData.travel_date && (
                                              <button 
@@ -1528,6 +1562,27 @@ export default function FlightsPage() {
                                              </button>
                                          )}
                                      </div>
+
+                                     {/* Subtle Date History Display */}
+                                     {showDateHistory && formData.flight_date_history && formData.flight_date_history.length > 0 && (
+                                         <div className="mt-2 p-2 bg-orange-50/50 border border-orange-100 rounded-lg animate-in fade-in slide-in-from-top-1 duration-200">
+                                            <div className="space-y-1.5">
+                                                {[...formData.flight_date_history].reverse().map((h, i) => (
+                                                    <div key={i} className="flex flex-col px-2 py-1 bg-white/80 rounded border border-orange-100/50 shadow-sm">
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-[9px] font-black text-orange-600 uppercase tracking-tight">Fecha Anterior: {h.date ? new Date(h.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-'}</span>
+                                                            <span className="text-[8px] text-slate-400 font-medium">{new Date(h.changed_at).toLocaleDateString()}</span>
+                                                        </div>
+                                                        {h.changed_by && (
+                                                            <span className="text-[8px] text-slate-400 italic">
+                                                                Por: {h.changed_by.split('@')[0]}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                         </div>
+                                     )}
                                 </div>
                                 <div className="grid gap-2">
                                      <Label>Fecha de Retorno</Label>
