@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
@@ -63,7 +63,6 @@ export interface MoneyTransfer {
     commission_percentage: number
     commission: number
     total_amount: number
-    total_amount_eur: number
     on_account: number
     balance: number
     beneficiary_name: string
@@ -213,7 +212,6 @@ export async function createTransfer(formData: FormData) {
             commission_percentage,
             commission,
             total_amount,
-            total_amount_eur: totalAmountEur,
             on_account,
             balance,
             beneficiary_name,
@@ -278,18 +276,18 @@ export async function updateTransfer(formData: FormData) {
         const userRole = profile?.role || 'client'
 
         let activeRequestId = 'admin_direct';
-        let activeReason = 'Edición Directa';
+        let activeReason = 'Edici├│n Directa';
         const isDraft = formData.get('isDraft') === 'true'
 
         if (userRole === 'agent' || userRole === 'usuario') {
             if (!isDraft) {
                 const permission = await getActivePermissionDetails('money_transfers', id)
                 if (!permission.hasPermission) {
-                    throw new Error('No tienes permiso para editar este giro. Debes solicitar autorización.')
+                    throw new Error('No tienes permiso para editar este giro. Debes solicitar autorizaci├│n.')
                 }
                 activeRequestId = permission.requestId as string
                 activeReason = permission.reason as string
-                // Consumir permiso inmediatamente en la acción principal de guardado
+                // Consumir permiso inmediatamente en la acci├│n principal de guardado
                 await consumeEditPermission('money_transfers', id)
             } else {
                 activeRequestId = 'agent_proposal'
@@ -313,12 +311,12 @@ export async function updateTransfer(formData: FormData) {
         const transfer_mode = (formData.get('transfer_mode') as string) || 'eur_to_pen'
         
         // Financial Details
-        const amount_sent = parseFloat(String(formData.get('amount_sent')).replace(',', '.')) || 0
-        const exchange_rate = parseFloat(String(formData.get('exchange_rate')).replace(',', '.')) || 1.0
-        const amount_received = parseFloat(String(formData.get('amount_received')).replace(',', '.')) || 0
-        const commission_percentage = parseFloat(String(formData.get('commission_percentage')).replace(',', '.')) || 0
-        const commission = parseFloat(String(formData.get('commission')).replace(',', '.')) || 0
-        const total_amount = parseFloat(String(formData.get('total_amount')).replace(',', '.')) || (amount_sent + commission)
+        const amount_sent = parseFloat(formData.get('amount_sent') as string) || 0
+        const exchange_rate = parseFloat(formData.get('exchange_rate') as string) || 0
+        const amount_received = parseFloat(formData.get('amount_received') as string) || 0
+        const commission_percentage = parseFloat(formData.get('commission_percentage') as string) || 0
+        const commission = parseFloat(formData.get('commission') as string) || 0
+        const total_amount = parseFloat(formData.get('total_amount') as string) || (amount_sent + commission)
         const beneficiary_name = formData.get('beneficiary_name') as string
         const beneficiary_document = formData.get('beneficiary_document') as string
         const beneficiary_phone = formData.get('beneficiary_phone') as string
@@ -332,45 +330,47 @@ export async function updateTransfer(formData: FormData) {
         const agent_id = formData.get('agent_id') as string || null
 
         // Handle Payment Details
-        let finalPaymentDetails = (existingTransfer.payment_details as unknown as PaymentDetail[]) || []
+        const payment_details: PaymentDetail[] = (existingTransfer.payment_details as unknown as PaymentDetail[]) || []
         const multiPaymentsStr = formData.get('payment_details') as string
         if (multiPaymentsStr) {
             try {
-                const parsedPayments = JSON.parse(multiPaymentsStr) as PaymentDetail[]
-                // Process proofs for the incoming payments
-                for (let i = 0; i < parsedPayments.length; i++) {
+                const newMultiPayments = JSON.parse(multiPaymentsStr) as PaymentDetail[]
+                for (let i = 0; i < newMultiPayments.length; i++) {
                     const tempFile = formData.get(`payment_proof_${i}`) as File
                     if (tempFile && tempFile.size > 0) {
                         const uploadResult = await uploadClientFile(tempFile, client_id)
-                        parsedPayments[i].proof_path = uploadResult.path
+                        newMultiPayments[i].proof_path = uploadResult.path
                     }
                 }
-                finalPaymentDetails = parsedPayments
+                // Replace or merge payment details. For simplicity, replacing for now.
+                // A more robust solution might merge based on an ID or update existing.
+                payment_details.splice(0, payment_details.length, ...newMultiPayments);
             } catch (e) {
                 console.error('Error parsing payment_details:', e)
             }
         }
 
         // Handle Expense Details
-        let finalExpenseDetails = (existingTransfer.expense_details as unknown as ExpenseDetail[]) || []
+        const expense_details: ExpenseDetail[] = (existingTransfer.expense_details as unknown as ExpenseDetail[]) || []
         const expensesStr = formData.get('expense_details') as string
         if (expensesStr) {
             try {
-                const parsedExpenses = JSON.parse(expensesStr) as ExpenseDetail[]
-                for (let i = 0; i < parsedExpenses.length; i++) {
+                const newExpenses = JSON.parse(expensesStr) as ExpenseDetail[]
+                for (let i = 0; i < newExpenses.length; i++) {
                     const tempFile = formData.get(`expense_proof_${i}`) as File
                     if (tempFile && tempFile.size > 0) {
                         const uploadResult = await uploadClientFile(tempFile, client_id)
-                        parsedExpenses[i].proof_path = uploadResult.path
+                        newExpenses[i].proof_path = uploadResult.path
                     }
                 }
-                finalExpenseDetails = parsedExpenses
+                // Replace or merge expense details.
+                expense_details.splice(0, expense_details.length, ...newExpenses);
             } catch (e) {
                 console.error('Error parsing expense_details:', e)
             }
         }
 
-        const on_account = finalPaymentDetails.reduce((sum: number, p: PaymentDetail) => sum + (parseFloat(String(p.cantidad).replace(',', '.')) || 0), 0)
+        const on_account = payment_details.reduce((sum, p) => sum + (parseFloat(p.cantidad) || 0), 0)
         
         // Accounting conversion: Balance and Profit are ALWAYS in EUR
         let totalAmountEur = total_amount
@@ -382,7 +382,7 @@ export async function updateTransfer(formData: FormData) {
         }
 
         const balance = totalAmountEur - on_account
-        const total_expenses = finalExpenseDetails.reduce((sum: number, e: ExpenseDetail) => sum + (parseFloat(String(e.amount).replace(',', '.')) || 0), 0)
+        const total_expenses = expense_details.reduce((sum, e) => sum + (e.amount || 0), 0)
         const net_profit = commissionEur - total_expenses
 
         // Build new documents array (Start with existing ones)
@@ -416,7 +416,6 @@ export async function updateTransfer(formData: FormData) {
             commission_percentage,
             commission,
             total_amount,
-            total_amount_eur: totalAmountEur,
             on_account,
             balance,
             beneficiary_name,
@@ -428,12 +427,12 @@ export async function updateTransfer(formData: FormData) {
             status,
             client_note,
             internal_note,
-            payment_details: finalPaymentDetails as any,
-            expense_details: finalExpenseDetails as any,
-            documents: currentDocuments as any,
+            payment_details: payment_details as unknown,
+            expense_details: expense_details as unknown,
+            documents: currentDocuments as unknown,
             total_expenses,
             net_profit,
-            agent_id: agent_id || (existingTransfer.agent_id || user.id)
+            agent_id: agent_id || (await (await createClient()).auth.getUser()).data.user?.id
         }
 
         // --- NEW DRAFT MODE ---
@@ -441,7 +440,7 @@ export async function updateTransfer(formData: FormData) {
             return { success: true, draftData: updateData }
         }
 
-        const { error } = await adminSupabase.from('money_transfers').update(updateData).eq('id', id)
+        const { error } = await supabase.from('money_transfers').update(updateData).eq('id', id)
 
         if (error) throw error
 
@@ -467,7 +466,6 @@ export async function updateTransfer(formData: FormData) {
 
 
     } catch (error: unknown) {
-        console.error('CRITICAL ERROR updating transfer:', error)
         const errorMessage = error instanceof Error ? error.message : 'Error updating transfer'
         return { error: errorMessage }
     }
@@ -487,7 +485,7 @@ export async function updateTransferStatus(id: string, status: string) {
         const userRole = profile?.role || 'client'
 
         let activeRequestId = 'admin_direct';
-        let activeReason = 'Actualización de Estado Rápida';
+        let activeReason = 'Actualizaci├│n de Estado R├ípida';
 
         if (userRole === 'agent' || userRole === 'usuario') {
             const permission = await getActivePermissionDetails('money_transfers', id)

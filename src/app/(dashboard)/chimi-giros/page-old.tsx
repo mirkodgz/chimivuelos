@@ -1,9 +1,9 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect, useMemo, useCallback } from "react"
 import Image from "next/image"
 import { 
-    Search, Plus, Trash2, Pencil, Copy, Check, FileText, Building2, Download, X, ChevronLeft, ChevronDown, ChevronRight, FileSpreadsheet, NotebookPen, Calendar, FolderOpen, ClipboardList, Wallet
+    Search, Plus, Trash2, Pencil, Copy, Check, FileText, Building2, Download, X, ChevronLeft, ChevronDown, ChevronRight, FileSpreadsheet, NotebookPen, Calendar, FolderOpen, ClipboardList
 } from "lucide-react"
 import * as XLSX from "xlsx"
 import { createClient } from '@/lib/supabase/client'
@@ -87,7 +87,7 @@ const PERU_BANK_OPTIONS = [
     "BBVA",
     "INTERBANK",
     "SCOTIABANK",
-    "BANCO DE LA NACIÓN",
+    "BANCO DE LA NACI├ôN",
     "YAPE",
     "PLIN",
     "CAJA AREQUIPA",
@@ -181,7 +181,6 @@ export default function MoneyTransfersPage() {
         commission_percentage: "",
         commission: "",
         total_amount: "",
-        total_amount_eur: "0.00",
         on_account: "0.00",
         balance: "0.00",
         beneficiary_name: "",
@@ -211,7 +210,7 @@ export default function MoneyTransfersPage() {
         expense_exchange_rate: "1.0",
         expense_currency: "EUR",
         expense_total: "",
-        expense_category: "Comisión Bancaria",
+        expense_category: "Comisi├│n Bancaria",
         expense_description: ""
     })
 
@@ -329,15 +328,7 @@ export default function MoneyTransfersPage() {
                     newData.exchange_rate = "1.00"
                 }
                 newData.amount_received = received.toFixed(2)
-                const totalAmount = sent + calculatedCommission
-                newData.total_amount = totalAmount.toFixed(2)
-
-                // Calculate total_amount_eur for the "Total Equivalente (€)" field
-                let totalInEur = totalAmount
-                if (newData.transfer_mode === 'pen_to_eur') {
-                    totalInEur = rate !== 0 ? totalAmount / rate : 0
-                }
-                newData.total_amount_eur = totalInEur.toFixed(2)
+                newData.total_amount = (sent + calculatedCommission).toFixed(2)
             }
 
             // Recalculate temp payment conversion (Like Vuelos)
@@ -384,7 +375,7 @@ export default function MoneyTransfersPage() {
         if (!formData.payment_quantity || parseFloat(formData.payment_quantity) === 0) return
 
         const pCurrency = formData.payment_currency || 'EUR'
-        const symbol = pCurrency === 'EUR' ? '€' : pCurrency === 'PEN' ? 'S/' : '$'
+        const symbol = pCurrency === 'EUR' ? 'Ôé¼' : pCurrency === 'PEN' ? 'S/' : '$'
         
         // Use either the manually entered payment_total (EUR equiv) or the quantity
         const eurAmount = formData.payment_total || formData.payment_quantity
@@ -427,7 +418,7 @@ export default function MoneyTransfersPage() {
         if (!formData.expense_quantity || parseFloat(formData.expense_quantity) === 0) return
         
         const eCurrency = formData.expense_currency || 'EUR'
-        const symbol = eCurrency === 'EUR' ? '€' : eCurrency === 'PEN' ? 'S/' : '$'
+        const symbol = eCurrency === 'EUR' ? 'Ôé¼' : eCurrency === 'PEN' ? 'S/' : '$'
         
         const eurAmount = formData.expense_total || formData.expense_quantity
 
@@ -506,7 +497,6 @@ export default function MoneyTransfersPage() {
             commission_percentage: "",
             commission: "",
             total_amount: "",
-            total_amount_eur: "0.00",
             on_account: "0.00",
             balance: "0.00",
             beneficiary_name: "",
@@ -534,7 +524,7 @@ export default function MoneyTransfersPage() {
             expense_exchange_rate: "1.0",
             expense_currency: "EUR",
             expense_total: "",
-            expense_category: "Comisión Bancaria",
+            expense_category: "Comisi├│n Bancaria",
             expense_description: ""
         })
         setSearchClientTerm("")
@@ -565,7 +555,6 @@ export default function MoneyTransfersPage() {
             commission_percentage: transfer.commission_percentage?.toString() || "",
             commission: transfer.commission.toString(),
             total_amount: transfer.total_amount.toString(),
-            total_amount_eur: (transfer.total_amount_eur || 0).toString(),
             on_account: transfer.on_account.toString(),
             balance: transfer.balance.toString(),
             beneficiary_name: transfer.beneficiary_name,
@@ -578,7 +567,7 @@ export default function MoneyTransfersPage() {
             client_note: transfer.client_note || "",
             internal_note: transfer.internal_note || "",
             sede_it: "", sede_pe: "", payment_method_it: "", payment_method_pe: "", payment_quantity: "", payment_exchange_rate: "1.0", payment_currency: "EUR", payment_total: "",
-            expense_sede_it: "", expense_sede_pe: "", expense_method_it: "", expense_method_pe: "", expense_quantity: "", expense_exchange_rate: "1.0", expense_currency: "EUR", expense_total: "", expense_category: "Comisión Bancaria", expense_description: ""
+            expense_sede_it: "", expense_sede_pe: "", expense_method_it: "", expense_method_pe: "", expense_quantity: "", expense_exchange_rate: "1.0", expense_currency: "EUR", expense_total: "", expense_category: "Comisi├│n Bancaria", expense_description: ""
         })
         setSearchClientTerm(`${transfer.profiles?.first_name} ${transfer.profiles?.last_name}`)
         setExistingDocuments(transfer.documents || [])
@@ -613,46 +602,9 @@ export default function MoneyTransfersPage() {
             }
         })
 
-        // Create final copies of details including currently open/unsaved fields
-        const finalPayments = [...tempPayments]
-        if (showPaymentFields && formData.payment_quantity && parseFloat(formData.payment_quantity) > 0) {
-            const pCurrency = formData.payment_currency || 'EUR'
-            const symbol = pCurrency === 'EUR' ? '€' : pCurrency === 'PEN' ? 'S/' : '$'
-            const eurAmount = formData.payment_total || formData.payment_quantity
-            finalPayments.push({
-                sede_it: formData.sede_it,
-                sede_pe: formData.sede_pe,
-                metodo_it: formData.payment_method_it,
-                metodo_pe: formData.payment_method_pe,
-                cantidad: eurAmount,
-                tipo_cambio: parseFloat(formData.payment_exchange_rate) || 1.0,
-                total: `${symbol} ${parseFloat(formData.payment_quantity).toFixed(2)}`,
-                moneda: pCurrency,
-                monto_original: formData.payment_quantity,
-                created_at: new Date().toISOString()
-            })
-        }
-
-        const finalExpenses = [...tempExpenses]
-        if (showExpenseFields && formData.expense_quantity && parseFloat(formData.expense_quantity) > 0) {
-            finalExpenses.push({
-                description: formData.expense_description || formData.expense_category,
-                amount: parseFloat(formData.expense_total) || 0,
-                currency: formData.expense_currency,
-                category: formData.expense_category,
-                sede_it: formData.expense_sede_it,
-                sede_pe: formData.expense_sede_pe,
-                metodo_it: formData.expense_method_it,
-                metodo_pe: formData.expense_method_pe,
-                total_formatted: `${formData.expense_currency === 'EUR' ? '€' : 'S/'} ${formData.expense_quantity}`,
-                tipo_cambio: parseFloat(formData.expense_exchange_rate) || 1.0,
-                created_at: new Date().toISOString()
-            })
-        }
-
         // Add Multi-Payments and Expenses
-        submission.append('payment_details', JSON.stringify(finalPayments))
-        submission.append('expense_details', JSON.stringify(finalExpenses))
+        submission.append('payment_details', JSON.stringify(tempPayments))
+        submission.append('expense_details', JSON.stringify(tempExpenses))
 
         // Add Payment Proofs
         tempPaymentProofs.forEach((file, index) => {
@@ -660,10 +612,6 @@ export default function MoneyTransfersPage() {
                 submission.append(`payment_proof_${index}`, file)
             }
         })
-        // Add pending payment proof if it exists
-        if (showPaymentFields && paymentProofFile) {
-            submission.append(`payment_proof_${finalPayments.length - 1}`, paymentProofFile)
-        }
 
         // Add Expense Proofs
         tempExpenseProofs.forEach((file, index) => {
@@ -671,10 +619,6 @@ export default function MoneyTransfersPage() {
                 submission.append(`expense_proof_${index}`, file)
             }
         })
-        // Add pending expense proof if it exists
-        if (showExpenseFields && expenseProofFile) {
-            submission.append(`expense_proof_${finalExpenses.length - 1}`, expenseProofFile)
-        }
 
         // Add Documents
         documentInputs.forEach((doc, index) => {
@@ -696,7 +640,7 @@ export default function MoneyTransfersPage() {
                     const reqResult = await createEditRequest(
                         'money_transfers',
                         selectedTransferId,
-                        'Edición enviada para aprobación',
+                        'Edici├│n enviada para aprobaci├│n',
                         { draftData: result.draftData, displayId: formData.transfer_code || 'Giro' }
                     )
                     if (reqResult.success) {
@@ -733,7 +677,7 @@ export default function MoneyTransfersPage() {
         if (!transfer) return
 
         if (userRole === 'agent') {
-            toast.info("Para cambiar el estado, use el botón de edición y guarde los cambios.")
+            toast.info("Para cambiar el estado, use el bot├│n de edici├│n y guarde los cambios.")
             return
         }
 
@@ -749,7 +693,7 @@ export default function MoneyTransfersPage() {
 
     const handleCopyCode = (id: string, code: string) => {
         const url = `https://chimivuelos.pe/giros?code=${code}`
-        const message = `El registro de tu envío de dinero fue realizado, tu código de seguimiento es ${code}, puedes rastrear ingresando a ${url}`
+        const message = `El registro de tu env├¡o de dinero fue realizado, tu c├│digo de seguimiento es ${code}, puedes rastrear ingresando a ${url}`
         
         navigator.clipboard.writeText(message)
         setCopiedId(id)
@@ -795,15 +739,14 @@ export default function MoneyTransfersPage() {
             Cliente: `${t.profiles?.first_name} ${t.profiles?.last_name}`,
             Agente: t.agent ? `${t.agent.first_name} ${t.agent.last_name}` : '-',
             Beneficiario: t.beneficiary_name,
-            Enviado: `${t.transfer_mode === 'eur_to_pen' ? '€' : 'S/'} ${t.amount_sent}`,
+            Enviado: `${t.transfer_mode === 'eur_to_pen' ? 'Ôé¼' : 'S/'} ${t.amount_sent}`,
             Tasa: t.exchange_rate,
             Comision_Perc: `${t.commission_percentage}%`,
-            Comision_Monto: `${t.transfer_mode === 'eur_to_pen' ? '€' : 'S/'} ${t.commission}`,
-            Recibido: `${t.transfer_mode === 'eur_to_pen' ? 'S/' : '€'} ${t.amount_received}`,
-            Total_Original: `${t.transfer_mode === 'eur_to_pen' ? '€' : 'S/'} ${t.total_amount}`,
-            Total_Eur_Contable: `€ ${t.total_amount_eur}`,
-            A_Cuenta: `€ ${t.on_account}`,
-            Saldo: `€ ${t.balance}`,
+            Comision_Monto: `${t.transfer_mode === 'eur_to_pen' ? 'Ôé¼' : 'S/'} ${t.commission}`,
+            Recibido: `${t.transfer_mode === 'eur_to_pen' ? 'S/' : 'Ôé¼'} ${t.amount_received}`,
+            Total: `${t.transfer_mode === 'eur_to_pen' ? 'Ôé¼' : 'S/'} ${t.total_amount}`,
+            A_Cuenta: `${t.transfer_mode === 'eur_to_pen' ? 'Ôé¼' : 'S/'} ${t.on_account}`,
+            Saldo: `${t.transfer_mode === 'eur_to_pen' ? 'Ôé¼' : 'S/'} ${t.balance}`,
             Estado: t.status
         }))
         const ws = XLSX.utils.json_to_sheet(data)
@@ -839,7 +782,7 @@ export default function MoneyTransfersPage() {
                         <DialogHeader>
                             <DialogTitle>{selectedTransferId ? 'Editar Giro' : 'Registrar Nuevo Giro'}</DialogTitle>
                             <DialogDescription>
-                                Ingrese los detalles del envío de dinero.
+                                Ingrese los detalles del env├¡o de dinero.
                             </DialogDescription>
                         </DialogHeader>
 
@@ -878,7 +821,7 @@ export default function MoneyTransfersPage() {
                                             variant="ghost" 
                                             size="sm" 
                                             onClick={() => {
-                                                if(confirm('¿Eliminar este giro?')) {
+                                                if(confirm('┬┐Eliminar este giro?')) {
                                                     deleteTransfer(selectedTransferId).then(() => {
                                                         loadData();
                                                         setIsDialogOpen(false);
@@ -959,7 +902,7 @@ export default function MoneyTransfersPage() {
                                     <Input value={formData.client_email} readOnly className="bg-slate-100 h-10" />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label className="text-xs font-bold text-slate-500 uppercase">Teléfono</Label>
+                                    <Label className="text-xs font-bold text-slate-500 uppercase">Tel├®fono</Label>
                                     <Input value={formData.client_phone} readOnly className="bg-slate-100 h-10" />
                                 </div>
                             </div>
@@ -970,7 +913,7 @@ export default function MoneyTransfersPage() {
                                  {/* Financials (Left) */}
                                  <div className="space-y-4 border p-4 rounded-md bg-slate-50">
                                     <div className="flex items-center justify-between">
-                                        <h3 className="font-semibold text-slate-700 text-sm">Detalles Económicos</h3>
+                                        <h3 className="font-semibold text-slate-700 text-sm">Detalles Econ├│micos</h3>
                                         <div 
                                             className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-slate-50 transition-colors shadow-xs"
                                             onClick={() => {
@@ -1012,7 +955,6 @@ export default function MoneyTransfersPage() {
                                                         exchange_rate: newRate,
                                                         amount_received: received.toFixed(2),
                                                         total_amount: totalAmount.toFixed(2),
-                                                        total_amount_eur: totalInEur.toFixed(2),
                                                         commission: calculatedCommission.toFixed(2),
                                                         balance: (totalInEur - currentAcuenta).toFixed(2)
                                                     }
@@ -1022,21 +964,21 @@ export default function MoneyTransfersPage() {
                                             {formData.transfer_mode === 'eur_to_pen' ? (
                                                 <>
                                                     <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center">
-                                                        <span className="text-[10px] font-bold text-emerald-700">€</span>
+                                                        <span className="text-[10px] font-bold text-emerald-700">Ôé¼</span>
                                                     </div>
-                                                    <span className="text-xs font-semibold text-slate-600">Euro → Soles</span>
+                                                    <span className="text-xs font-semibold text-slate-600">Euro ÔåÆ Soles</span>
                                                 </>
                                             ) : formData.transfer_mode === 'pen_to_eur' ? (
                                                 <>
                                                     <Image src="https://flagcdn.com/w20/pe.png" width={16} height={12} alt="PE" className="rounded-sm" />
-                                                    <span className="text-xs font-semibold text-slate-600">Soles → Euro</span>
+                                                    <span className="text-xs font-semibold text-slate-600">Soles ÔåÆ Euro</span>
                                                 </>
                                             ) : (
                                                 <>
                                                     <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center">
-                                                        <span className="text-[10px] font-bold text-blue-700">€</span>
+                                                        <span className="text-[10px] font-bold text-blue-700">Ôé¼</span>
                                                     </div>
-                                                    <span className="text-xs font-semibold text-slate-600">Euro → Euro</span>
+                                                    <span className="text-xs font-semibold text-slate-600">Euro ÔåÆ Euro</span>
                                                 </>
                                             )}
                                             <ChevronRight className="h-3 w-3 text-slate-400 rotate-90" />
@@ -1045,7 +987,7 @@ export default function MoneyTransfersPage() {
                                     
                                     <div className="grid grid-cols-2 gap-3">
                                         <div className="grid gap-2">
-                                            <Label>Monto Enviado ({formData.transfer_mode === 'pen_to_eur' ? 'S/' : '€'})</Label>
+                                            <Label>Monto Enviado ({formData.transfer_mode === 'pen_to_eur' ? 'S/' : 'Ôé¼'})</Label>
                                             <Input name="amount_sent" type="number" step="0.01" value={formData.amount_sent} onChange={handleInputChange} required />
                                         </div>
                                          <div className="grid gap-2">
@@ -1056,47 +998,24 @@ export default function MoneyTransfersPage() {
 
                                     <div className="grid grid-cols-2 gap-3">
                                          <div className="grid gap-2">
-                                            <Label>Comisión (%)</Label>
+                                            <Label>Comisi├│n (%)</Label>
                                             <Input name="commission_percentage" type="number" step="0.1" value={formData.commission_percentage} onChange={handleInputChange} placeholder="Ej. 5" />
                                         </div>
                                         <div className="grid gap-2">
-                                            <Label>Monto Comisión ({formData.transfer_mode === 'pen_to_eur' ? 'S/' : '€'})</Label>
+                                            <Label>Monto Comisi├│n ({formData.transfer_mode === 'pen_to_eur' ? 'S/' : 'Ôé¼'})</Label>
                                             <Input name="commission" value={formData.commission} readOnly className="bg-slate-100 border-slate-200 text-slate-800" />
                                         </div>
                                     </div>
 
                                      <div className="grid gap-2">
-                                        <Label className="text-slate-700 font-bold">Monto a Recibir ({formData.transfer_mode === 'eur_to_pen' ? 'S/' : '€'})</Label>
+                                        <Label className="text-slate-700 font-bold">Monto a Recibir ({formData.transfer_mode === 'eur_to_pen' ? 'S/' : 'Ôé¼'})</Label>
                                         <Input name="amount_received" value={formData.amount_received} readOnly className="bg-slate-100 border-slate-200 font-bold text-slate-900" />
                                     </div>
 
                                     <div className="pt-2 border-t border-slate-200 mt-2">
                                          <div className="grid gap-2">
-                                            <Label className="text-chimipink font-bold">Total a Pagar ({formData.transfer_mode === 'pen_to_eur' ? 'S/' : '€'})</Label>
+                                            <Label className="text-chimipink font-bold">Total a Pagar ({formData.transfer_mode === 'pen_to_eur' ? 'S/' : 'Ôé¼'})</Label>
                                             <Input name="total_amount" value={formData.total_amount} readOnly className="bg-pink-50 border-pink-100 font-bold text-chimipink" />
-                                        </div>
-                                    </div>
-
-                                    {/* Costos Block */}
-                                    <div className="space-y-4 border p-4 rounded-md bg-white border-emerald-100 shadow-sm">
-                                        <h3 className="font-bold text-emerald-700 text-xs uppercase tracking-tight flex items-center gap-2">
-                                            <Wallet className="h-4 w-4" /> COSTOS
-                                        </h3>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div className="grid gap-1.5">
-                                                <Label className="text-[10px] font-bold text-slate-500 uppercase">Total a Pagar (€)</Label>
-                                                <Input value={formData.total_amount_eur} readOnly className="h-9 bg-white border-slate-200 text-sm font-medium" />
-                                            </div>
-                                            <div className="grid gap-1.5">
-                                                <Label className="text-[10px] font-bold text-slate-500 uppercase">A Cuenta (€)</Label>
-                                                <Input value={financials.on_account} readOnly className="h-9 bg-slate-50 border-slate-200 text-sm font-medium text-slate-600" />
-                                            </div>
-                                        </div>
-                                        <div className="grid gap-1.5 pt-2 border-t border-emerald-50">
-                                            <Label className="text-[10px] font-bold text-emerald-800 uppercase">Saldo Pendiente (€)</Label>
-                                            <div className="text-2xl font-black text-emerald-600 tracking-tight">
-                                                € {financials.balance}
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1121,7 +1040,7 @@ export default function MoneyTransfersPage() {
                                             />
                                         </div>
                                         <div className="grid gap-2">
-                                            <Label>Teléfono</Label>
+                                            <Label>Tel├®fono</Label>
                                             <Input name="beneficiary_phone" value={formData.beneficiary_phone} onChange={handleInputChange} />
                                         </div>
                                     </div>
@@ -1166,7 +1085,7 @@ export default function MoneyTransfersPage() {
                                         )}
                                     </div>
                                     <div className="grid gap-2">
-                                        <Label>Nº Cuenta / CCI o número de billetera digital</Label>
+                                        <Label>N┬║ Cuenta / CCI o n├║mero de billetera digital</Label>
                                         <Input name="beneficiary_account" value={formData.beneficiary_account} onChange={handleInputChange} />
                                     </div>
                                 </div>
@@ -1182,7 +1101,7 @@ export default function MoneyTransfersPage() {
                                         name="client_note"
                                         value={formData.client_note}
                                         onChange={handleInputChange}
-                                        placeholder="Información para el cliente..."
+                                        placeholder="Informaci├│n para el cliente..."
                                         className="min-h-[80px] bg-white border-slate-200 focus:ring-chimipink text-sm"
                                     />
                                 </div>
@@ -1223,7 +1142,7 @@ export default function MoneyTransfersPage() {
                                                         type="button" 
                                                         onClick={handleAddPayment}
                                                         className="text-chimiteal hover:text-teal-600 transition-colors p-1"
-                                                        title="Añadir Pago"
+                                                        title="A├▒adir Pago"
                                                     >
                                                         <Check size={20} className="h-5 w-5" />
                                                     </button>
@@ -1279,13 +1198,13 @@ export default function MoneyTransfersPage() {
                                                                         {p.metodo_it || p.metodo_pe || 'Otros'}
                                                                     </span>
                                                                     <span className="text-[10px] text-slate-400 flex items-center gap-1 font-medium italic">
-                                                                        <Calendar className="h-2.5 w-2.5" /> {p.created_at ? new Date(p.created_at).toLocaleDateString() : 'Pendiente'} • <Building2 className="h-2.5 w-2.5" /> {p.sede_it || p.sede_pe || 'S/D'}
+                                                                        <Calendar className="h-2.5 w-2.5" /> {p.created_at ? new Date(p.created_at).toLocaleDateString() : 'Pendiente'} ÔÇó <Building2 className="h-2.5 w-2.5" /> {p.sede_it || p.sede_pe || 'S/D'}
                                                                     </span>
                                                                 </div>
                                                             </div>
                                                             <div className="flex items-center gap-3">
                                                                 <div className="text-right">
-                                                                    <span className="font-bold text-emerald-600 text-sm leading-none block">€ {parseFloat(p.cantidad || '0').toFixed(2)}</span>
+                                                                    <span className="font-bold text-emerald-600 text-sm leading-none block">Ôé¼ {parseFloat(p.cantidad || '0').toFixed(2)}</span>
                                                                     <div className="flex items-center gap-1.5 mt-1 justify-end">
                                                                         <span className={cn(
                                                                             "text-[8px] font-bold px-1 rounded uppercase",
@@ -1296,7 +1215,7 @@ export default function MoneyTransfersPage() {
                                                                             {p.moneda || 'EUR'}
                                                                         </span>
                                                                         <span className="text-[9px] text-slate-400 font-medium">
-                                                                            {parseFloat(p.monto_original || p.cantidad).toFixed(2)} • TC: {(p.tipo_cambio || 1).toFixed(4)}
+                                                                            {parseFloat(p.monto_original || p.cantidad).toFixed(2)} ÔÇó TC: {(p.tipo_cambio || 1).toFixed(4)}
                                                                         </span>
                                                                     </div>
                                                                 </div>
@@ -1323,7 +1242,7 @@ export default function MoneyTransfersPage() {
                                     {showPaymentFields && (
                                         <div className="grid grid-cols-1 gap-4 animate-in fade-in slide-in-from-top-2 border-t pt-4 border-chimiteal/20">
                                             <div className="grid gap-2 relative">
-                                                <Label className="text-xs flex items-center gap-1.5 font-bold text-slate-700">🏢 Sedes</Label>
+                                                <Label className="text-xs flex items-center gap-1.5 font-bold text-slate-700">­ƒÅó Sedes</Label>
                                                 <div className="relative">
                                                     <Input 
                                                         name="sede_it" 
@@ -1366,7 +1285,7 @@ export default function MoneyTransfersPage() {
                                                 <div className="grid gap-2 relative">
                                                     <Label className="text-xs flex items-center gap-1.5 font-bold text-blue-700 uppercase">
                                                         <Image src="https://flagcdn.com/w20/it.png" width={16} height={12} alt="italia" className="rounded-sm inline-block shadow-sm" />
-                                                        Método Pago IT
+                                                        M├®todo Pago IT
                                                     </Label>
                                                     <div className="relative">
                                                         <Input 
@@ -1378,7 +1297,7 @@ export default function MoneyTransfersPage() {
                                                             }}
                                                             onFocus={() => setShowMetodoITList(true)}
                                                             onBlur={() => setTimeout(() => setShowMetodoITList(false), 200)}
-                                                            placeholder="Buscar método..."
+                                                            placeholder="Buscar m├®todo..."
                                                             autoComplete="off"
                                                             className="bg-blue-50/50 border-blue-200 focus:ring-blue-500 pr-8 h-10 text-sm"
                                                         />
@@ -1411,7 +1330,7 @@ export default function MoneyTransfersPage() {
                                                 <div className="grid gap-2 relative">
                                                     <Label className="text-xs flex items-center gap-1.5 font-bold text-rose-700 uppercase">
                                                         <Image src="https://flagcdn.com/w20/pe.png" width={16} height={12} alt="peru" className="rounded-sm inline-block shadow-sm" />
-                                                        Método Pago PE
+                                                        M├®todo Pago PE
                                                     </Label>
                                                     <div className="relative">
                                                         <Input 
@@ -1423,7 +1342,7 @@ export default function MoneyTransfersPage() {
                                                             }}
                                                             onFocus={() => setShowMetodoPEList(true)}
                                                             onBlur={() => setTimeout(() => setShowMetodoPEList(false), 200)}
-                                                            placeholder="Buscar método..."
+                                                            placeholder="Buscar m├®todo..."
                                                             autoComplete="off"
                                                             className="bg-rose-50/50 border-rose-200 focus:ring-rose-500 pr-8 h-10 text-sm"
                                                         />
@@ -1473,7 +1392,7 @@ export default function MoneyTransfersPage() {
                                                     </div>
                                                 </div>
                                                 <div className="grid gap-1.5">
-                                                    <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Cantidad (EUR €)</Label>
+                                                    <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Cantidad (EUR Ôé¼)</Label>
                                                     <Input 
                                                         type="number" 
                                                         name="payment_quantity" 
@@ -1500,7 +1419,7 @@ export default function MoneyTransfersPage() {
 
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                 <div className="grid gap-1.5">
-                                                    <Label className="text-[10px] font-bold text-chimiteal uppercase tracking-tight">Equivalente a Abonar (EUR €)</Label>
+                                                    <Label className="text-[10px] font-bold text-chimiteal uppercase tracking-tight">Equivalente a Abonar (EUR Ôé¼)</Label>
                                                     <Input name="payment_total" value={formData.payment_total} readOnly className="h-9 text-right bg-teal-50 text-chimiteal font-bold border-teal-100 text-sm" />
                                                 </div>
                                                 <div className="grid gap-1.5">
@@ -1519,7 +1438,7 @@ export default function MoneyTransfersPage() {
                                     {/* Payment Footer */}
                                     <div className="flex flex-col items-center pt-3 border-t border-slate-100 italic">
                                         <span className="text-[10px] uppercase font-bold text-slate-400">Saldo Pendiente</span>
-                                        <span className={`text-sm font-bold ${parseFloat(financials.balance) > 0 ? 'text-chimipink' : 'text-chimiteal'}`}>€ {financials.balance}</span>
+                                        <span className={`text-sm font-bold ${parseFloat(financials.balance) > 0 ? 'text-chimipink' : 'text-chimiteal'}`}>Ôé¼ {financials.balance}</span>
                                     </div>
                                 </div>
 
@@ -1544,7 +1463,7 @@ export default function MoneyTransfersPage() {
                                                         type="button" 
                                                         onClick={handleAddExpense}
                                                         className="text-chimiteal hover:text-teal-600 transition-colors p-1"
-                                                        title="Añadir Gasto"
+                                                        title="A├▒adir Gasto"
                                                     >
                                                         <Check size={20} className="h-5 w-5" />
                                                     </button>
@@ -1595,13 +1514,13 @@ export default function MoneyTransfersPage() {
                                                                          {ex.metodo_it || ex.metodo_pe || 'Otros'}
                                                                      </span>
                                                                     <span className="text-[10px] text-slate-400 flex items-center gap-1 font-medium italic">
-                                                                        <Calendar className="h-2.5 w-2.5" /> {ex.created_at ? new Date(ex.created_at).toLocaleDateString() : 'Pendiente'} • <Building2 className="h-2.5 w-2.5" /> {ex.sede_it || ex.sede_pe || 'S/D'}
+                                                                        <Calendar className="h-2.5 w-2.5" /> {ex.created_at ? new Date(ex.created_at).toLocaleDateString() : 'Pendiente'} ÔÇó <Building2 className="h-2.5 w-2.5" /> {ex.sede_it || ex.sede_pe || 'S/D'}
                                                                     </span>
                                                                 </div>
                                                             </div>
                                                             <div className="flex items-center gap-3">
                                                                 <div className="text-right">
-                                                                    <span className="font-bold text-chimipink text-sm leading-none block">€ {parseFloat(ex.amount.toString() || '0').toFixed(2)}</span>
+                                                                    <span className="font-bold text-chimipink text-sm leading-none block">Ôé¼ {parseFloat(ex.amount.toString() || '0').toFixed(2)}</span>
                                                                     <div className="flex items-center gap-1.5 mt-1 justify-end">
                                                                         <span className={cn(
                                                                             "text-[8px] font-bold px-1 rounded uppercase",
@@ -1612,7 +1531,7 @@ export default function MoneyTransfersPage() {
                                                                             {ex.currency || 'EUR'}
                                                                         </span>
                                                                         <span className="text-[9px] text-slate-400 font-medium">
-                                                                            {ex.total_formatted || `${ex.currency === 'PEN' ? 'S/' : ex.currency === 'USD' ? '$' : '€'} ${parseFloat(ex.amount.toString()).toFixed(2)}`} • TC: {(ex.tipo_cambio || 1).toFixed(4)}
+                                                                            {ex.total_formatted || `${ex.currency === 'PEN' ? 'S/' : ex.currency === 'USD' ? '$' : 'Ôé¼'} ${parseFloat(ex.amount.toString()).toFixed(2)}`} ÔÇó TC: {(ex.tipo_cambio || 1).toFixed(4)}
                                                                         </span>
                                                                     </div>
                                                                 </div>
@@ -1640,7 +1559,7 @@ export default function MoneyTransfersPage() {
                                          <div className="grid grid-cols-1 gap-4 animate-in fade-in slide-in-from-top-2 border-t pt-4 border-chimipink/20">
 
                                             <div className="grid gap-2 relative">
-                                                <Label className="text-xs flex items-center gap-1.5 font-bold text-slate-700 uppercase">🏢 Sedes</Label>
+                                                <Label className="text-xs flex items-center gap-1.5 font-bold text-slate-700 uppercase">­ƒÅó Sedes</Label>
                                                 <div className="relative">
                                                     <Input 
                                                         name="expense_sede_it" 
@@ -1680,11 +1599,11 @@ export default function MoneyTransfersPage() {
                                             </div>
 
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                {/* Métodos */}
+                                                {/* M├®todos */}
                                                 <div className="grid gap-2 relative">
                                                     <Label className="text-xs flex items-center gap-1.5 font-bold text-blue-700 uppercase">
                                                         <Image src="https://flagcdn.com/w20/it.png" width={16} height={12} alt="italia" className="rounded-sm inline-block shadow-sm" />
-                                                        Método IT
+                                                        M├®todo IT
                                                     </Label>
                                                     <div className="relative">
                                                         <Input 
@@ -1696,7 +1615,7 @@ export default function MoneyTransfersPage() {
                                                             }}
                                                             onFocus={() => setShowExMetodoITList(true)}
                                                             onBlur={() => setTimeout(() => setShowExMetodoITList(false), 200)}
-                                                            placeholder="Buscar método..."
+                                                            placeholder="Buscar m├®todo..."
                                                             autoComplete="off"
                                                             className="bg-blue-50/50 border-blue-200 focus:ring-blue-500 pr-8 h-10 text-sm"
                                                         />
@@ -1727,7 +1646,7 @@ export default function MoneyTransfersPage() {
                                                 <div className="grid gap-2 relative">
                                                     <Label className="text-xs flex items-center gap-1.5 font-bold text-rose-700 uppercase">
                                                         <Image src="https://flagcdn.com/w20/pe.png" width={16} height={12} alt="peru" className="rounded-sm inline-block shadow-sm" />
-                                                        Método PE
+                                                        M├®todo PE
                                                     </Label>
                                                     <div className="relative">
                                                         <Input 
@@ -1739,7 +1658,7 @@ export default function MoneyTransfersPage() {
                                                             }}
                                                             onFocus={() => setShowExMetodoPEList(true)}
                                                             onBlur={() => setTimeout(() => setShowExMetodoPEList(false), 200)}
-                                                            placeholder="Buscar método..."
+                                                            placeholder="Buscar m├®todo..."
                                                             autoComplete="off"
                                                             className="bg-rose-50/50 border-rose-200 focus:ring-rose-500 pr-8 h-10 text-sm"
                                                         />
@@ -1787,7 +1706,7 @@ export default function MoneyTransfersPage() {
                                                     </div>
                                                 </div>
                                                 <div className="grid gap-1.5">
-                                                    <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Cantidad (EUR €)</Label>
+                                                    <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Cantidad (EUR Ôé¼)</Label>
                                                     <Input 
                                                         type="number" 
                                                         name="expense_quantity" 
@@ -1814,7 +1733,7 @@ export default function MoneyTransfersPage() {
 
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                  <div className="grid gap-1.5">
-                                                     <Label className="text-[10px] font-bold text-chimipink uppercase tracking-tight">Monto a Pagar (€)</Label>
+                                                     <Label className="text-[10px] font-bold text-chimipink uppercase tracking-tight">Monto a Pagar (Ôé¼)</Label>
                                                      <Input name="expense_total" value={formData.expense_total} readOnly className="h-9 text-right bg-pink-50 text-chimipink font-bold border-pink-100 text-sm" />
                                                  </div>
                                                 <div className="grid gap-1.5">
@@ -1840,7 +1759,7 @@ export default function MoneyTransfersPage() {
                                              const totalEx = tempExpenses.reduce((sum, e) => sum + (e.amount || 0), 0)
                                              const draft = showExpenseFields ? (parseFloat(formData.expense_total) || 0) : 0
                                              const bal = targetEur - (totalEx + draft)
-                                             return <span className={`text-sm font-bold ${bal > 0 ? 'text-chimipink' : 'text-chimiteal'}`}>€ {bal.toFixed(2)}</span>
+                                             return <span className={`text-sm font-bold ${bal > 0 ? 'text-chimipink' : 'text-chimiteal'}`}>Ôé¼ {bal.toFixed(2)}</span>
                                          })()}
                                      </div>
                                 </div>
@@ -1865,7 +1784,7 @@ export default function MoneyTransfersPage() {
                                                         <Download className="h-3.5 w-3.5" />
                                                     </Button>
                                                     <Button variant="ghost" size="sm" onClick={async () => {
-                                                        if(confirm('¿Borrar archivo?')) {
+                                                        if(confirm('┬┐Borrar archivo?')) {
                                                             if (selectedTransferId) {
                                                                 await deleteTransferDocument(selectedTransferId, doc.path)
                                                                 setExistingDocuments(prev => prev.filter(d => d.path !== doc.path))
@@ -1882,14 +1801,14 @@ export default function MoneyTransfersPage() {
 
                                 <div className="grid gap-3">
                                     <div className="flex items-center gap-2">
-                                        <Label className="text-xs">Número de Documentos a Subir (Máx 5)</Label>
+                                        <Label className="text-xs">N├║mero de Documentos a Subir (M├íx 5)</Label>
                                         <Input type="number" value={numDocs} onChange={handleNumDocsChange} className="w-16 h-8 text-sm" />
                                     </div>
                                     
                                     {documentInputs.map((doc, idx) => (
                                         <div key={idx} className="grid grid-cols-2 gap-2 bg-white p-2 rounded-lg border border-slate-100 shadow-sm animate-in slide-in-from-left-2 duration-200">
                                             <Input 
-                                                placeholder="Título del documento..." 
+                                                placeholder="T├¡tulo del documento..." 
                                                 value={doc.title} 
                                                 onChange={(e) => handleDocInputChange(idx, 'title', e.target.value)}
                                                 className="h-9 text-xs"
@@ -1934,7 +1853,7 @@ export default function MoneyTransfersPage() {
                                 <div className="font-medium text-slate-900">{viewingBeneficiary?.beneficiary_document || '-'}</div>
                             </div>
                              <div className="grid gap-1">
-                                <Label className="text-slate-500 text-xs uppercase">Teléfono</Label>
+                                <Label className="text-slate-500 text-xs uppercase">Tel├®fono</Label>
                                 <div className="font-medium text-slate-900">{viewingBeneficiary?.beneficiary_phone || '-'}</div>
                             </div>
                         </div>
@@ -1995,7 +1914,7 @@ export default function MoneyTransfersPage() {
                     <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto flex-1">
                          <div className="relative min-w-[200px] flex-1 group">
                              <Input 
-                                placeholder="Buscar por código, beneficiario o cliente..." 
+                                placeholder="Buscar por c├│digo, beneficiario o cliente..." 
                                 className="pl-10 pr-10 border-slate-200 bg-white focus:ring-chimiteal"
                                 value={searchTerm}
                                 onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1) }}
@@ -2081,22 +2000,22 @@ export default function MoneyTransfersPage() {
                             <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-100">
                                 <tr>
                                     <th className="px-6 py-4 font-medium">Fecha</th>
-                                    <th className="px-6 py-4 font-medium">Código</th>
+                                    <th className="px-6 py-4 font-medium">C├│digo</th>
                                     <th className="px-6 py-4 font-medium">Cliente</th>
                                     <th className="px-6 py-4 font-medium">Agente</th>
                                     <th className="px-6 py-4 font-medium">Beneficiario</th>
                                     <th className="px-6 py-4 font-medium">Enviado</th>
-                                    <th className="px-6 py-4 font-medium">Comisión</th>
+                                    <th className="px-6 py-4 font-medium">Comisi├│n</th>
                                     <th className="px-6 py-4 font-medium text-red-600">Gastos</th>
                                     <th className="px-6 py-4 font-medium text-blue-700">C. Neta</th>
                                     <th className="px-6 py-4 font-medium">Total</th>
                                     <th className="px-6 py-4 font-medium">Tasa</th>
-                                    <th className="px-6 py-4 text-emerald-700 font-bold bg-slate-100/50">Total (€)</th>
+                                    <th className="px-6 py-4 font-medium text-emerald-700">Recibido</th>
                                     <th className="px-6 py-4 font-medium">A Cuenta</th>
                                     <th className="px-6 py-4 font-medium">Saldo</th>
                                     <th className="px-6 py-4 font-medium text-center">Docs</th>
                                     <th className="px-6 py-4 font-medium">Estado</th>
-                                    <th className="px-1 sm:px-2 py-4 font-medium text-right sticky right-0 bg-pink-100/90 backdrop-blur-sm z-20 border-l border-pink-200 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.15)] text-pink-700">Acción</th>
+                                    <th className="px-1 sm:px-2 py-4 font-medium text-right sticky right-0 bg-pink-100/90 backdrop-blur-sm z-20 border-l border-pink-200 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.15)] text-pink-700">Acci├│n</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -2127,7 +2046,7 @@ export default function MoneyTransfersPage() {
                                                                 {copiedId === transfer.id ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
                                                             </Button>
                                                             {copiedId === transfer.id && (
-                                                                <span className="text-[10px] text-emerald-600 font-bold animate-in fade-in zoom-in-95">¡Copiado!</span>
+                                                                <span className="text-[10px] text-emerald-600 font-bold animate-in fade-in zoom-in-95">┬íCopiado!</span>
                                                             )}
                                                         </div>
                                                     )}
@@ -2151,35 +2070,35 @@ export default function MoneyTransfersPage() {
                                                 </button>
                                             </td>
                                              <td className="px-6 py-4 whitespace-nowrap">
-                                                {transfer.transfer_mode === 'eur_to_pen' ? '€' : 'S/'} {transfer.amount_sent.toFixed(2)}
+                                                {transfer.transfer_mode === 'eur_to_pen' ? 'Ôé¼' : 'S/'} {transfer.amount_sent.toFixed(2)}
                                             </td>
                                              <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="flex flex-col">
-                                                    <span>{transfer.transfer_mode === 'eur_to_pen' ? '€' : 'S/'} {transfer.commission.toFixed(2)}</span>
+                                                    <span>{transfer.transfer_mode === 'eur_to_pen' ? 'Ôé¼' : 'S/'} {transfer.commission.toFixed(2)}</span>
                                                     {transfer.commission_percentage > 0 && (
                                                         <span className="text-[10px] text-slate-400">({transfer.commission_percentage}%)</span>
                                                     )}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-red-600 font-medium">
-                                                € {(transfer.total_expenses || 0).toFixed(2)}
+                                                Ôé¼ {(transfer.total_expenses || 0).toFixed(2)}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-blue-700 font-bold">
-                                                € {(transfer.net_profit ?? transfer.commission).toFixed(2)}
+                                                Ôé¼ {(transfer.net_profit ?? transfer.commission).toFixed(2)}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap font-semibold">
-                                                {transfer.transfer_mode === 'eur_to_pen' ? '€' : 'S/'} {transfer.total_amount.toFixed(2)}
+                                                {transfer.transfer_mode === 'eur_to_pen' ? 'Ôé¼' : 'S/'} {transfer.total_amount.toFixed(2)}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">{transfer.exchange_rate.toFixed(2)}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap font-black text-emerald-700 bg-emerald-50/30">
-                                                € {(transfer.total_amount_eur || 0).toFixed(2)}
+                                            <td className="px-6 py-4 whitespace-nowrap">{transfer.exchange_rate.toFixed(4)}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap font-bold text-emerald-700">
+                                                {transfer.transfer_mode === 'eur_to_pen' ? 'S/' : 'Ôé¼'} {transfer.amount_received.toFixed(2)}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                € {transfer.on_account.toFixed(2)}
+                                                {transfer.transfer_mode === 'eur_to_pen' ? 'Ôé¼' : 'S/'} {transfer.on_account.toFixed(2)}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap font-medium">
                                                 <span className={transfer.balance > 0 ? "text-red-600 font-bold" : "text-emerald-600 font-bold"}>
-                                                     € {transfer.balance.toFixed(2)}
+                                                     {transfer.transfer_mode === 'eur_to_pen' ? 'Ôé¼' : 'S/'} {transfer.balance.toFixed(2)}
                                                 </span>
                                             </td>
                                              <td className="px-6 py-4 text-center">

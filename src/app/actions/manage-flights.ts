@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { uploadClientFile, deleteFileFromR2, deleteImageFromCloudflare, getFileUrl } from "@/lib/storage"
 import { getActivePermissionDetails, consumeEditPermission } from "./manage-permissions"
+import { getPaymentMethodsIT, getPaymentMethodsPE } from "./manage-payment-methods"
 import { recordAuditLog } from "@/lib/audit"
 
 /**
@@ -199,7 +200,6 @@ export async function createFlight(formData: FormData) {
             required_documents,
             client_note,
             internal_note,
-            flight_date_history: [] as DateHistoryEntry[],
             created_at: new Date().toISOString()
         }
 
@@ -399,20 +399,6 @@ export async function updateFlight(formData: FormData, isDraft: boolean = false)
 
         const ticket_type = formData.get('ticket_type') as string
 
-        const currentHistory = Array.isArray(existingFlight.flight_date_history) ? [...existingFlight.flight_date_history] : []
-        const newDate = travel_date ? travel_date.trim() : null
-        const oldDate = existingFlight.travel_date ? existingFlight.travel_date.trim() : null
-
-        if (newDate && oldDate && newDate !== oldDate) {
-            const lastEntry = currentHistory.length > 0 ? currentHistory[currentHistory.length - 1] : null
-            if (!lastEntry || lastEntry.date !== oldDate) {
-                currentHistory.push({
-                    date: oldDate,
-                    changed_at: new Date().toISOString(),
-                    changed_by: user.email || user.id
-                })
-            }
-        }
 
         const updateData = {
             client_id,
@@ -443,7 +429,6 @@ export async function updateFlight(formData: FormData, isDraft: boolean = false)
             required_documents,
             client_note,
             internal_note,
-            flight_date_history: currentHistory,
             updated_at: new Date().toISOString()
         }
 
@@ -651,10 +636,39 @@ export async function getFlightDocumentUrl(path: string, storage: 'r2' | 'images
 /**
  * Get all flights with client details
  */
-export async function getFlights() {
+/**
+ * Interface for Paginated Flights Results
+ */
+export interface FetchFlightsParams {
+    page: number
+    pageSize: number
+    searchTerm?: string
+    statusFilter?: string
+    dateFrom?: string
+    dateTo?: string
+    showDeudaOnly?: boolean
+}
+
+/**
+ * Get paginated flights with server-side filters
+ */
+export async function getFlights(params: FetchFlightsParams) {
+    const { 
+        page, 
+        pageSize, 
+        searchTerm, 
+        statusFilter, 
+        dateFrom, 
+        dateTo, 
+        showDeudaOnly 
+    } = params
+
     const supabase = supabaseAdmin
-    // Join with profiles table to get client names and agent names
-    const { data: flights, error } = await supabase
+    const from = (page - 1) * pageSize
+    const to = from + pageSize - 1
+
+    // 1. Build Query
+    let query = supabase
         .from('flights')
         .select(`
             *,
@@ -669,47 +683,57 @@ export async function getFlights() {
                 first_name,
                 last_name
             )
-        `)
+        `, { count: 'exact' })
+
+    // 2. Apply Filters (Exactly like we discussed, Server-side)
+    if (showDeudaOnly) {
+        query = query.gt('balance', 0)
+    }
+
+    if (statusFilter && statusFilter !== 'all') {
+        query = query.eq('status', statusFilter)
+    }
+
+    if (searchTerm) {
+        const term = `%${searchTerm.toLowerCase()}%`
+        query = query.or(`pnr.ilike.${term},profiles.first_name.ilike.${term},profiles.last_name.ilike.${term},profiles.email.ilike.${term}`)
+    }
+
+    const dateField = showDeudaOnly ? 'travel_date' : 'created_at'
+    if (dateFrom) query = query.gte(dateField, dateFrom)
+    if (dateTo) query = query.lte(dateField, dateTo)
+
+    // 3. Execution with range (Like LIMIT/OFFSET in PHP)
+    const { data: flights, error, count } = await query
         .order('created_at', { ascending: false })
+        .range(from, to)
     
     if (error) {
         console.error('Error fetching flights:', error)
-        return []
+        return { flights: [], count: 0 }
     }
 
-    // Recover histories from other_services based on PNR to show a unified history
+    // 4. History Recovery for current page only
     const pnrs = flights.map(f => f.pnr?.trim()).filter(Boolean) as string[]
     if (pnrs.length > 0) {
         const { data: allServices } = await supabase
             .from('other_services')
             .select('flight_pnr, flight_date_history')
             .in('flight_pnr', pnrs)
-            // No filtramos por service_type para atrapar cualquier registro de fecha
         
         if (allServices && allServices.length > 0) {
             flights.forEach(flight => {
                 const flightPnr = flight.pnr?.trim()
                 if (!flightPnr) return
-
-                // Get all history entries from all services related to this PNR
                 const relevantServices = allServices.filter(s => s.flight_pnr?.trim() === flightPnr)
-                
                 let combinedHistory: any[] = Array.isArray(flight.flight_date_history) ? [...flight.flight_date_history] : []
-                
                 relevantServices.forEach(s => {
-                    if (Array.isArray(s.flight_date_history)) {
-                        combinedHistory = [...combinedHistory, ...s.flight_date_history]
-                    }
+                    if (Array.isArray(s.flight_date_history)) combinedHistory = [...combinedHistory, ...s.flight_date_history]
                 })
 
                 if (combinedHistory.length > 0) {
-                    // Unique entries by date + timestamp to avoid duplicates
                     const uniqueMap = new Map()
-                    combinedHistory.forEach(h => {
-                        const key = `${h.date}_${h.changed_at}`
-                        uniqueMap.set(key, h)
-                    })
-                    
+                    combinedHistory.forEach(h => uniqueMap.set(`${h.date}_${h.changed_at}`, h))
                     flight.flight_date_history = Array.from(uniqueMap.values()).sort((a,b) => 
                         new Date(a.changed_at).getTime() - new Date(b.changed_at).getTime()
                     )
@@ -718,7 +742,39 @@ export async function getFlights() {
         }
     }
 
-    return flights as any[]
+    return { 
+        flights: flights as any[], 
+        count: count || 0 
+    }
+}
+
+/**
+ * Combined Fetcher for Initial Chimi-Vuelos Page Load
+ */
+export async function getInitialChimiVuelosData() {
+    try {
+        const [clients, itineraries, methodsIT, methodsPE] = await Promise.all([
+            getClientsForDropdown(),
+            getItineraries(),
+            getPaymentMethodsIT(),
+            getPaymentMethodsPE()
+        ])
+        
+        return {
+            clients,
+            itineraries,
+            paymentMethodsIT: methodsIT,
+            paymentMethodsPE: methodsPE
+        }
+    } catch (error) {
+        console.error('Error in unified fetcher:', error)
+        return {
+            clients: [],
+            itineraries: [],
+            paymentMethodsIT: [],
+            paymentMethodsPE: []
+        }
+    }
 }
 
 /**
@@ -944,3 +1000,67 @@ export async function getItineraries() {
     return data.map(item => item.name)
 }
 
+/**
+ * Get a single flight with full details and combined history
+ */
+export async function getFlightFullDetails(id: string) {
+    const supabase = supabaseAdmin
+    try {
+        const { data: flight, error } = await supabase
+            .from('flights')
+            .select(`
+                *,
+                profiles:client_id (
+                    first_name,
+                    last_name,
+                    email,
+                    phone,
+                    document_number
+                ),
+                agent:agent_id (
+                    first_name,
+                    last_name
+                )
+            `)
+            .eq('id', id)
+            .single()
+
+        if (error) throw error
+
+        // Recover histories from other_services based on PNR to show a unified history
+        const flightPnr = flight.pnr?.trim()
+        if (flightPnr) {
+            const { data: allServices } = await supabase
+                .from('other_services')
+                .select('flight_pnr, flight_date_history')
+                .eq('flight_pnr', flightPnr)
+            
+            if (allServices && allServices.length > 0) {
+                let combinedHistory: any[] = Array.isArray(flight.flight_date_history) ? [...flight.flight_date_history] : []
+                
+                allServices.forEach(s => {
+                    if (Array.isArray(s.flight_date_history)) {
+                        combinedHistory = [...combinedHistory, ...s.flight_date_history]
+                    }
+                })
+
+                if (combinedHistory.length > 0) {
+                    const uniqueMap = new Map()
+                    combinedHistory.forEach(h => {
+                        const key = `${h.date}_${h.changed_at}`
+                        uniqueMap.set(key, h)
+                    })
+                    
+                    flight.flight_date_history = Array.from(uniqueMap.values()).sort((a,b) => 
+                        new Date(a.changed_at).getTime() - new Date(b.changed_at).getTime()
+                    )
+                }
+            }
+        }
+
+        return { success: true, flight }
+    } catch (error) {
+        console.error('Error fetching flight details:', error)
+        return { success: false, error: (error as Error).message }
+    }
+}

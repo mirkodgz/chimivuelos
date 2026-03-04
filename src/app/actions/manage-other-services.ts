@@ -92,8 +92,8 @@ export async function createOtherService(formData: FormData) {
     const flight_date_history: DateHistoryEntry[] = []
     
     // 3. Economics
-    const total_amount = parseFloat(formData.get('total_amount') as string) || 0
-    const on_account = parseFloat(formData.get('on_account') as string) || 0
+    const total_amount = parseFloat(String(formData.get('total_amount')).replace(',', '.')) || 0
+    const on_account = parseFloat(String(formData.get('on_account')).replace(',', '.')) || 0
     
     // 4. Multi-Payments & Proofs
     const paymentDetailsRaw = formData.get('payment_details') as string
@@ -314,8 +314,8 @@ export async function updateOtherService(formData: FormData) {
             }
         }
 
-        const total_amount = parseFloat(formData.get('total_amount') as string) || 0
-        const on_account = parseFloat(formData.get('on_account') as string) || 0
+        const total_amount = parseFloat(String(formData.get('total_amount')).replace(',', '.')) || 0
+        const on_account = parseFloat(String(formData.get('on_account')).replace(',', '.')) || 0
         const status = formData.get('status') as string
 
         const paymentDetailsRaw = formData.get('payment_details') as string

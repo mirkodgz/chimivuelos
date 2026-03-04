@@ -72,8 +72,8 @@ export async function createParcel(formData: FormData) {
     const internal_note = formData.get('internal_note') as string
     
     // 3. Economics (Simplified)
-    const shipping_cost = parseFloat(formData.get('shipping_cost') as string) || 0
-    const on_account = parseFloat(formData.get('on_account') as string) || 0
+    const shipping_cost = parseFloat(String(formData.get('shipping_cost')).replace(',', '.')) || 0
+    const on_account = parseFloat(String(formData.get('on_account')).replace(',', '.')) || 0
     // Balance is auto-generated but we calculate client-side too
     
     // 3. Multi-Payments & Proofs
@@ -240,8 +240,8 @@ export async function updateParcel(formData: FormData) {
     const client_note = formData.get('client_note') as string
     const internal_note = formData.get('internal_note') as string
     
-    const shipping_cost = parseFloat(formData.get('shipping_cost') as string) || 0
-    const on_account = parseFloat(formData.get('on_account') as string) || 0
+    const shipping_cost = parseFloat(String(formData.get('shipping_cost')).replace(',', '.')) || 0
+    const on_account = parseFloat(String(formData.get('on_account')).replace(',', '.')) || 0
     const status = formData.get('status') as string
 
     // 2. Multi-Payments & Proofs
@@ -299,8 +299,7 @@ export async function updateParcel(formData: FormData) {
         client_note,
         internal_note,
         documents: currentDocs,
-        payment_details,
-        updated_at: new Date().toISOString()
+        payment_details
     }
 
     // --- NEW DRAFT MODE ---
@@ -308,7 +307,7 @@ export async function updateParcel(formData: FormData) {
         return { success: true, draftData: updateData }
     }
 
-    const { error } = await supabase
+    const { error } = await adminSupabase
         .from('parcels')
         .update(updateData)
         .eq('id', id)

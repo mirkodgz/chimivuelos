@@ -3,9 +3,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Plus, Search, Trash2, Edit, FileText, Download, FileSpreadsheet, ChevronLeft, ChevronRight, ChevronDown, ListChecks, Wallet, Check, X, Calendar, Building2, User, Copy, Pencil, RefreshCw, AlertTriangle, NotebookPen, ClipboardList } from 'lucide-react'
 import Image from 'next/image'
+import Link from 'next/link'
 import * as XLSX from 'xlsx'
 import { createClient } from '@/lib/supabase/client'
-import { getPaymentMethodsIT, getPaymentMethodsPE, PaymentMethod } from '@/app/actions/manage-payment-methods'
+import { PaymentMethod } from '@/app/actions/manage-payment-methods'
 import { cn } from '@/lib/utils'
 import { toast } from "sonner"
 import { getActivePermissions, createEditRequest, getPendingResourceDetails } from '@/app/actions/manage-permissions'
@@ -15,7 +16,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { getFlights, getClientsForDropdown, createFlight, updateFlight, deleteFlight, deleteFlightDocument, updateFlightStatus, getFlightDocumentUrl, deleteFlightPayment, updateFlightPayment, getItineraries } from '@/app/actions/manage-flights'
+import { getFlights, createFlight, updateFlight, deleteFlight, deleteFlightDocument, updateFlightStatus, getFlightDocumentUrl, deleteFlightPayment, updateFlightPayment, getInitialChimiVuelosData } from '@/app/actions/manage-flights'
 
 interface FlightDocument {
     title: string
@@ -228,7 +229,8 @@ const SEDE_IT_OPTIONS = ["turro milano", "corsico milano", "roma", "lima"]
 const FLIGHT_STATUSES = [
     "Programado",
     "En tránsito",
-    "Reprogramado",
+    "Reprogramado por cliente",
+    "Reprogramado por aerolínea",
     "Cambio de horario",
     "Cancelado",
     "No-show (no se presentó)",
@@ -268,11 +270,14 @@ const INITIAL_FLIGHT_DETAILS: FlightDetails = {
 
 export default function FlightsPage() {
     const [flights, setFlights] = useState<Flight[]>([])
+    const [totalFlights, setTotalFlights] = useState(0)
     const [clients, setClients] = useState<ClientOption[]>([])
     const [itineraries, setItineraries] = useState<string[]>([])
+    const [isLoading, setIsLoading] = useState(true)
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [selectedFlightId, setSelectedFlightId] = useState<string | null>(null)
     const [searchTerm, setSearchTerm] = useState('')
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
     const [showDeudaOnly, setShowDeudaOnly] = useState(false)
 
     // Filters State
@@ -300,6 +305,15 @@ export default function FlightsPage() {
         setCopiedPhoneId(id)
         setTimeout(() => setCopiedPhoneId(null), 2000)
     }
+
+    // Debounce for Search Term: Professional standard to avoid overloading terminal/server
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm)
+            setCurrentPage(1) // Reset to page 1 on search
+        }, 500)
+        return () => clearTimeout(handler)
+    }, [searchTerm])
     const [detailsViewerFlight, setDetailsViewerFlight] = useState<Flight | null>(null)
 
     // Pagination State
@@ -315,7 +329,6 @@ export default function FlightsPage() {
             const supabase = createClient()
             const { data: { user } } = await supabase.auth.getUser()
             if (user) {
-                // Fetch latest role directly from database
                 const { data: profile } = await supabase
                     .from('profiles')
                     .select('role')
@@ -332,9 +345,12 @@ export default function FlightsPage() {
                 }
             }
 
-            // Load itineraries from DB
-            const dbItineraries = await getItineraries()
-            setItineraries(dbItineraries)
+            // Grouped Fetching: Professional Style
+            const initialData = await getInitialChimiVuelosData()
+            setClients(initialData.clients as any)
+            setItineraries(initialData.itineraries)
+            setPaymentMethodsIT(initialData.paymentMethodsIT)
+            setPaymentMethodsPE(initialData.paymentMethodsPE)
         }
         fetchInitialData()
     }, [])
@@ -416,21 +432,33 @@ export default function FlightsPage() {
     const [tempPaymentProofs, setTempPaymentProofs] = useState<(File | null)[]>([])
     const [pendingRequests, setPendingRequests] = useState<Record<string, string>>({})
 
-    // Load Data
+    // Load Data (Parallelized for maximum speed)
     const loadData = useCallback(async () => {
-        const [flightsData, clientsData, methodsIT, methodsPE, pendingData] = await Promise.all([
-            getFlights(),
-            getClientsForDropdown(),
-            getPaymentMethodsIT(),
-            getPaymentMethodsPE(),
-            getPendingResourceDetails('flights')
-        ])
-        setFlights(flightsData as unknown as Flight[])
-        setPendingRequests(pendingData)
-        setClients(clientsData as unknown as ClientOption[])
-        setPaymentMethodsIT(methodsIT)
-        setPaymentMethodsPE(methodsPE)
-    }, [])
+        setIsLoading(true)
+        try {
+            // We fire both requests at once (Parallel)
+            const [result, pendingData] = await Promise.all([
+                getFlights({
+                    page: currentPage,
+                    pageSize: itemsPerPage,
+                    searchTerm: debouncedSearchTerm,
+                    statusFilter: statusFilter,
+                    dateFrom: dateFrom,
+                    dateTo: dateTo,
+                    showDeudaOnly: showDeudaOnly
+                }),
+                getPendingResourceDetails('flights')
+            ])
+            
+            setFlights(result.flights as unknown as Flight[])
+            setTotalFlights(result.count)
+            setPendingRequests(pendingData)
+        } catch (error) {
+            console.error('Error loading flights:', error)
+        } finally {
+            setIsLoading(false)
+        }
+    }, [currentPage, itemsPerPage, debouncedSearchTerm, statusFilter, dateFrom, dateTo, showDeudaOnly])
 
     useEffect(() => {
         loadData()
@@ -937,11 +965,14 @@ export default function FlightsPage() {
             const data = new FormData()
             if (selectedFlightId) data.append('id', selectedFlightId)
             
-            // Append main fields
+            // Append main fields (Skipping internal UI-only fields that don't exist in DB)
+            const skipFields = ['flight_date_history', 'payment_total', 'payment_currency', 'payment_quantity', 'payment_exchange_rate', 'on_account_formatted']
+            
             Object.entries(formData).forEach(([key, val]) => {
-                if (key === 'payment_quantity') {
-                    // Send the EUR equivalent for accounting
-                    data.append(key, formData.payment_total || '0')
+                if (skipFields.includes(key)) return // Important: Don't send these to DB
+
+                if (key === 'payment_quantity_eur') { // Internal name for EUR equivalent
+                    data.append('payment_quantity', formData.payment_total || '0')
                 } else if (key === 'on_account') {
                     data.append(key, financials.on_account)
                 } else if (key === 'balance') {
@@ -950,9 +981,6 @@ export default function FlightsPage() {
                     data.append(key, financials.fee_agv)
                 } else if (key === 'required_documents') {
                     data.append(key, JSON.stringify(val))
-                } else if (key === 'flight_date_history') {
-                    // Skip here, let the server action handle it or append properly if needed
-                    // For now, flight actions don't use this from FormData but from existing record
                 } else {
                     data.append(key, val as unknown as string)
                 }
@@ -1050,7 +1078,7 @@ export default function FlightsPage() {
     }
 
     const handleExportExcel = () => {
-        const dataToExport = filteredFlights.map(f => ({
+        const dataToExport = flights.map(f => ({
             Fecha_Registro: new Date(f.created_at).toLocaleDateString('es-PE'),
             Fecha_Viaje: new Date(f.travel_date).toLocaleDateString('es-PE'),
             Agente: f.agent ? `${f.agent.first_name} ${f.agent.last_name}` : '-',
@@ -1070,7 +1098,7 @@ export default function FlightsPage() {
             PAX_CHD: f.pax_chd || 0,
             PAX_INF: f.pax_inf || 0,
             PAX_Total: f.pax_total || 0,
-            Estado: f.status === 'finished' ? 'Terminado' : 'Pendiente'
+            Estado: f.status
         }))
         const worksheet = XLSX.utils.json_to_sheet(dataToExport)
         const workbook = XLSX.utils.book_new()
@@ -1094,41 +1122,7 @@ export default function FlightsPage() {
         )
     }, [clientSearch, clients])
 
-    // Filtered Flights Logic
-    const filteredFlights = useMemo(() => {
-        return flights.filter(f => {
-            // Debt Filter
-            if (showDeudaOnly && (f.balance || 0) <= 0) return false
-
-            // Text Search
-            const lower = searchTerm.toLowerCase()
-            const matchesSearch = !searchTerm || 
-                (f.pnr || '').toLowerCase().includes(lower) ||
-                `${f.profiles?.first_name} ${f.profiles?.last_name}`.toLowerCase().includes(lower) ||
-                (f.profiles?.email || '').toLowerCase().includes(lower) ||
-                (f.profiles?.document_number || '').toLowerCase().includes(lower)
-
-            // Status Filter
-            const matchesStatus = statusFilter === 'all' || f.status === statusFilter
-
-            // Date Range Filter
-            // When in deuda mode, filter by Travel Date. Otherwise by Created At (Registration Date)
-            const dateToCompare = showDeudaOnly ? f.travel_date : f.created_at
-            const flightDate = new Date(dateToCompare).toISOString().split('T')[0]
-            
-            const matchesDateFrom = !dateFrom || flightDate >= dateFrom
-            const matchesDateTo = !dateTo || flightDate <= dateTo
-
-            return matchesSearch && matchesStatus && matchesDateFrom && matchesDateTo
-        })
-    }, [flights, searchTerm, statusFilter, dateFrom, dateTo, showDeudaOnly])
-
-    // Pagination Logic
-    const indexOfLastItem = currentPage * itemsPerPage
-    const indexOfFirstItem = indexOfLastItem - itemsPerPage
-    const currentFlights = filteredFlights.slice(indexOfFirstItem, indexOfLastItem)
-    const totalPages = Math.ceil(filteredFlights.length / itemsPerPage)
-
+    const totalPages = Math.ceil(totalFlights / itemsPerPage)
     const paginate = (pageNumber: number) => setCurrentPage(pageNumber)
 
     return (
@@ -3048,7 +3042,19 @@ export default function FlightsPage() {
                         </Button>
                     </div>
                 </div>
-                <CardContent className="p-0">
+                <CardContent className="p-0 relative overflow-hidden min-h-[400px]">
+                    {/* Centered Loading Pill */}
+                    {isLoading && (
+                        <div className="absolute inset-0 bg-white/30 backdrop-blur-[1px] z-40 flex items-center justify-center">
+                            <div className="bg-white border shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-full px-5 py-2.5 flex items-center gap-3 animate-in fade-in zoom-in-95 duration-200">
+                                <div className="relative">
+                                    <RefreshCw className="h-4 w-4 text-chimipink animate-spin" />
+                                </div>
+                                <span className="text-xs font-bold text-slate-700 tracking-tight">Actualizando vuelos...</span>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="w-full overflow-auto">
                         <table className="w-full text-sm text-left">
                             <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-100">
@@ -3084,12 +3090,12 @@ export default function FlightsPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
-                                {currentFlights.length === 0 ? (
+                                {flights.length === 0 && !isLoading ? (
                                     <tr>
                                         <td colSpan={19} className="px-6 py-8 text-center text-slate-500">No se encontraron vuelos.</td>
                                     </tr>
                                 ) : (
-                                                                        currentFlights.map((flight) => (
+                                    flights.map((flight) => (
                                         <tr key={flight.id} className="bg-white hover:bg-slate-50/50 group">
                                             <td className="px-6 py-4 text-xs text-slate-500">
                                                 {new Date(flight.created_at).toLocaleDateString('es-PE', { timeZone: 'UTC' })}
@@ -3099,7 +3105,9 @@ export default function FlightsPage() {
                                             </td>
                                             <td className="px-6 py-4 font-mono text-slate-600">
                                                 <div className="flex flex-col gap-1">
-                                                    <span className={cn(flight.status === 'Cancelado' && "line-through opacity-50")}>{flight.pnr || '-'}</span>
+                                                    <Link href={`/chimi-vuelos/${flight.id}`} className="hover:text-chimipink hover:underline transition-all underline-offset-4 decoration-chimipink/30">
+                                                        <span className={cn("font-bold", flight.status === 'Cancelado' && "line-through opacity-50")}>{flight.pnr || '-'}</span>
+                                                    </Link>
                                                     {pendingRequests[flight.id] && (
                                                         <span className="text-[8px] font-black text-amber-600 bg-amber-50 border border-amber-100 px-1.5 py-0.5 rounded flex items-center gap-1 w-fit animate-pulse" title={`Bloqueado por: ${pendingRequests[flight.id]}`}>
                                                             <RefreshCw className="h-2 w-2" /> REVISIÓN PENDIENTE
@@ -3108,7 +3116,12 @@ export default function FlightsPage() {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <div className="font-medium text-slate-900">{flight.profiles?.first_name} {flight.profiles?.last_name}</div>
+                                                <Link 
+                                                    href={`/clients/${flight.client_id}`}
+                                                    className="font-medium text-slate-900 hover:text-chimipink hover:underline transition-all underline-offset-4 decoration-chimipink/30"
+                                                >
+                                                    {flight.profiles?.first_name} {flight.profiles?.last_name}
+                                                </Link>
                                                 <div className="text-xs text-slate-500">{flight.profiles?.email}</div>
                                             </td>
                                             {showDeudaOnly && (
@@ -3223,7 +3236,7 @@ export default function FlightsPage() {
                                                                         ? 'bg-slate-600 text-white hover:bg-slate-700 focus:ring-slate-300'
                                                                         : flight.status === 'Programado'
                                                                         ? 'bg-sky-500 text-white hover:bg-sky-600 focus:ring-sky-300'
-                                                                        : flight.status === 'Reprogramado'
+                                                                        : flight.status === 'Reprogramado por cliente' || flight.status === 'Reprogramado por aerolínea'
                                                                         ? 'bg-orange-500 text-white hover:bg-orange-600 focus:ring-orange-300'
                                                                         : flight.status === 'Cambio de horario'
                                                                         ? 'bg-yellow-500 text-white hover:bg-yellow-600 focus:ring-yellow-300'
@@ -3259,26 +3272,29 @@ export default function FlightsPage() {
                     </div>
 
                     {/* Pagination Controls */}
-                    {filteredFlights.length > 0 && (
+                    {totalFlights > 0 && (
                         <div className="flex items-center justify-between px-4 py-4 border-t border-slate-100 bg-slate-50/50 flex-wrap gap-4">
                             <div className="text-xs text-slate-500">
-                                Mostrando <span className="font-medium">{Math.min(indexOfFirstItem + 1, filteredFlights.length)}</span> - <span className="font-medium">{Math.min(indexOfLastItem, filteredFlights.length)}</span> de <span className="font-medium">{filteredFlights.length}</span> resultados
+                                Mostrando <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> - <span className="font-medium">{Math.min(currentPage * itemsPerPage, totalFlights)}</span> de <span className="font-medium">{totalFlights}</span> registros
                             </div>
                             <div className="flex gap-2">
                                 <Button 
                                     variant="outline" 
                                     size="sm" 
                                     onClick={() => paginate(Math.max(1, currentPage - 1))}
-                                    disabled={currentPage === 1}
+                                    disabled={currentPage === 1 || isLoading}
                                     className="h-8 w-8 p-0"
                                 >
                                     <ChevronLeft className="h-4 w-4" />
                                 </Button>
+                                <span className="flex items-center px-3 text-xs font-bold text-slate-600 bg-white border border-slate-200 rounded-md">
+                                    Página {currentPage} de {totalPages || 1}
+                                </span>
                                 <Button 
                                     variant="outline" 
                                     size="sm" 
                                     onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
-                                    disabled={currentPage === totalPages}
+                                    disabled={currentPage === totalPages || isLoading}
                                     className="h-8 w-8 p-0"
                                 >
                                     <ChevronRight className="h-4 w-4" />
