@@ -160,21 +160,23 @@ export async function createTranslation(formData: FormData) {
         status
     }
 
-    const { error } = await supabase
+    const { data: inserted, error } = await supabase
         .from('translations')
         .insert(insertData)
+        .select('id')
+        .single()
 
     if (error) {
         return { error: error.message }
     }
 
     // Record Audit Log
-    if (user) {
+    if (user && inserted) {
         await recordAuditLog({
             actorId: user.id,
             action: 'create',
             resourceType: 'translations',
-            resourceId: tracking_code || 'new',
+            resourceId: inserted.id,
             newValues: insertData as unknown as Record<string, unknown>,
             metadata: { 
                 method: 'createTranslation',
@@ -333,7 +335,7 @@ export async function updateTranslation(formData: FormData) {
             actorId: user.id,
             action: 'update',
             resourceType: 'translations',
-            resourceId: existing.tracking_code || id,
+            resourceId: id,
             oldValues: existing,
             newValues: { ...existing, ...updateData },
             metadata: { 
@@ -371,9 +373,9 @@ export async function deleteTranslation(id: string) {
             actorId: user.id,
             action: 'delete',
             resourceType: 'translations',
-            resourceId: existing.tracking_code || id,
+            resourceId: id,
             oldValues: existing,
-            metadata: { displayId: existing.tracking_code || 'Traducción' }
+            metadata: { displayId: existing.tracking_code || id }
         })
 
         revalidatePath('/chimi-traducciones')
@@ -425,7 +427,7 @@ export async function updateTranslationStatus(id: string, status: string) {
             actorId: user.id,
             action: 'update',
             resourceType: 'translations',
-            resourceId: existing.tracking_code || id,
+            resourceId: id,
             oldValues: existing,
             newValues: { ...existing, status },
             metadata: { 

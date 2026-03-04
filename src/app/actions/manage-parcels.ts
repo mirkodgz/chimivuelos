@@ -487,12 +487,17 @@ export async function getParcelByCode(code: string) {
     const { data, error } = await supabase
         .from('parcels')
         .select(`
+            id,
             created_at,
             package_description,
             package_weight,
             package_type,
             recipient_name,
             recipient_address,
+            origin_address,
+            origin_address_client,
+            destination_address,
+            destination_address_client,
             tracking_code,
             status,
             profiles:sender_id (
@@ -515,17 +520,42 @@ export async function getParcelByCode(code: string) {
     return {
         success: true,
         data: {
+            id: data.id,
             created_at: data.created_at,
             description: data.package_description,
             weight: data.package_weight,
             type: data.package_type,
             recipient_name: maskName(data.recipient_name),
-            recipient_address: maskAddress(data.recipient_address), // Mask address for privacy
+            recipient_address: maskAddress(data.recipient_address),
+            origin_address: data.origin_address,
+            origin_address_client: maskAddress(data.origin_address_client),
+            destination_address: data.destination_address,
+            destination_address_client: maskAddress(data.destination_address_client),
             sender_name: maskName(senderName),
             code: data.tracking_code,
             status: data.status
         }
     }
+}
+
+export async function getParcelHistoryPublic(id: string) {
+    const supabase = supabaseAdmin
+    const { data, error } = await supabase
+        .from('audit_logs')
+        .select('*')
+        .eq('resource_id', id)
+        .eq('resource_type', 'parcels')
+        .eq('action', 'update')
+        .order('created_at', { ascending: true })
+
+    if (error) return []
+
+    return data
+        .filter(log => log.new_values && log.new_values.status)
+        .map(log => ({
+            status: log.new_values.status,
+            created_at: log.created_at
+        }))
 }
 
 function maskName(name: string) {

@@ -57,7 +57,20 @@ export async function createFlight(formData: FormData) {
         const pnr = formData.get('pnr') as string
         const itinerary = formData.get('itinerary') as string
         const cost = parseFloat(formData.get('cost') as string) || 0
-        const status = formData.get('status') as string || 'Programado'
+        const statusValue = formData.get('status') as string || 'PROGRAMADO'
+        const statusMap: Record<string, string> = {
+            'PROGRAMADO': 'Programado',
+            'EN TRÁNSITO': 'En tránsito',
+            'REPROGRAMADO POR CLIENTE': 'Reprogramado',
+            'REPROGRAMADO POR AEROLÍNEA': 'Reprogramado',
+            'CAMBIO DE HORARIO': 'Cambio de horario',
+            'CANCELADO': 'Cancelado',
+            'NO-SHOW (NO SE PRESENTÓ)': 'No-show (no se presentó)',
+            'EN MIGRACIÓN': 'En migración',
+            'DEPORTADO': 'Deportado',
+            'FINALIZADO': 'Finalizado'
+        }
+        const status = statusMap[statusValue] || statusValue
         
         const return_date = formData.get('return_date') as string || null
         const sold_price = parseFloat(formData.get('sold_price') as string) || 0
@@ -523,7 +536,16 @@ export async function updateFlightStatus(id: string, status: string) {
         revalidatePath('/chimi-vuelos')
         return { success: true }
     } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Error updating status'
+        console.error('Update status error:', error)
+        // Return the actual DB error message if available
+        let errorMessage = 'Error updating status'
+        if (error instanceof Error) {
+            errorMessage = error.message
+        } else if (typeof error === 'object' && error !== null && 'message' in error) {
+            errorMessage = String((error as { message: unknown }).message)
+        } else if (typeof error === 'string') {
+            errorMessage = error
+        }
         return { error: errorMessage }
     }
 }
@@ -726,7 +748,7 @@ export async function getFlights(params: FetchFlightsParams) {
                 const flightPnr = flight.pnr?.trim()
                 if (!flightPnr) return
                 const relevantServices = allServices.filter(s => s.flight_pnr?.trim() === flightPnr)
-                let combinedHistory: any[] = Array.isArray(flight.flight_date_history) ? [...flight.flight_date_history] : []
+                let combinedHistory: DateHistoryEntry[] = Array.isArray(flight.flight_date_history) ? [...(flight.flight_date_history as DateHistoryEntry[])] : []
                 relevantServices.forEach(s => {
                     if (Array.isArray(s.flight_date_history)) combinedHistory = [...combinedHistory, ...s.flight_date_history]
                 })
@@ -743,7 +765,7 @@ export async function getFlights(params: FetchFlightsParams) {
     }
 
     return { 
-        flights: flights as any[], 
+        flights: (flights || []) as unknown[], 
         count: count || 0 
     }
 }
@@ -1036,7 +1058,7 @@ export async function getFlightFullDetails(id: string) {
                 .eq('flight_pnr', flightPnr)
             
             if (allServices && allServices.length > 0) {
-                let combinedHistory: any[] = Array.isArray(flight.flight_date_history) ? [...flight.flight_date_history] : []
+                let combinedHistory: DateHistoryEntry[] = Array.isArray(flight.flight_date_history) ? [...(flight.flight_date_history as DateHistoryEntry[])] : []
                 
                 allServices.forEach(s => {
                     if (Array.isArray(s.flight_date_history)) {

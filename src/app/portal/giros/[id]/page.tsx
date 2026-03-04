@@ -12,9 +12,11 @@ const STATUS_LABELS: Record<string, string> = {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-    scheduled: 'bg-sky-400',
-    delivered: 'bg-emerald-500',
-    cancelled: 'bg-red-500'
+    scheduled: 'bg-amber-500',
+    delivered: 'bg-emerald-600',
+    cancelled: 'bg-red-600',
+    available: 'bg-chimiteal',
+    processing: 'bg-sky-500'
 }
 
 const formatCurrency = (amount: number | null | undefined, currency = 'EUR') => {
@@ -48,7 +50,7 @@ export default async function TransferDetailPage({ params }: { params: { id: str
     
     // Combine creation with audit logs
     const timeline = [
-        { status: 'CREACIÓN', created_at: transfer.created_at, color: 'bg-blue-400' },
+        { status: 'CREACIÓN', created_at: transfer.created_at, color: 'bg-slate-500' },
         ...historyLogs.map((log: HistoryLog) => ({
             status: STATUS_LABELS[log.status] || log.status.toUpperCase(),
             created_at: log.created_at,

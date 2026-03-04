@@ -1,21 +1,27 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
-import { getParcelByCode } from '@/app/actions/manage-parcels'
+import { getParcelByCode, getParcelHistoryPublic } from '@/app/actions/manage-parcels'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Search, Loader2, CheckCircle, Clock, AlertTriangle, XCircle, Package, Truck, MapPin, Box } from "lucide-react"
+import { Search, Loader2, CheckCircle, Clock, AlertTriangle, XCircle, Package, Truck, MapPin, Box, History } from "lucide-react"
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
+import { cn } from "@/lib/utils"
 
 interface ParcelResult {
+    id: string
     created_at: string
     description: string
     weight: string
     type: string
     recipient_name: string
     recipient_address?: string | null
+    origin_address?: string | null
+    origin_address_client?: string | null
+    destination_address?: string | null
+    destination_address_client?: string | null
     sender_name: string
     code: string
     status: 'pending' | 'warehouse' | 'transit' | 'delivered' | 'cancelled'
@@ -25,6 +31,7 @@ function ParcelTrackingContent() {
     const searchParams = useSearchParams()
     const [code, setCode] = useState('')
     const [result, setResult] = useState<ParcelResult | null>(null)
+    const [history, setHistory] = useState<{status: string, created_at: string}[]>([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
     const [searched, setSearched] = useState(false)
@@ -51,7 +58,11 @@ function ParcelTrackingContent() {
             if (res.error) {
                 setError(res.error)
             } else if (res.data) {
-                setResult(res.data as ParcelResult)
+                const parcelData = res.data as ParcelResult
+                setResult(parcelData)
+                // Fetch history
+                const historyData = await getParcelHistoryPublic(parcelData.id)
+                setHistory(historyData)
             }
         } catch {
             setError('Error al conectar con el servidor')
@@ -70,11 +81,11 @@ function ParcelTrackingContent() {
             case 'pending':
                 return { label: 'Pendiente', color: 'text-amber-600', bg: 'bg-amber-100', icon: Clock, desc: 'En espera de procesamiento.' }
             case 'warehouse':
-                return { label: 'En Almacén', color: 'text-blue-600', bg: 'bg-blue-100', icon: Box, desc: 'Recibido en almacén.' }
+                return { label: 'En Almacén', color: 'text-chimiteal', bg: 'bg-emerald-50', icon: Box, desc: 'Recibido en almacén.' }
             case 'transit':
-                return { label: 'En Tránsito', color: 'text-purple-600', bg: 'bg-purple-100', icon: Truck, desc: 'Envío en camino a destino.' }
+                return { label: 'En Tránsito', color: 'text-orange-600', bg: 'bg-orange-100', icon: Truck, desc: 'Envío en camino a destino.' }
             case 'delivered':
-                return { label: 'Entregado', color: 'text-slate-600', bg: 'bg-slate-200', icon: CheckCircle, desc: 'Entregado exitosamente.' }
+                return { label: 'Entregado', color: 'text-emerald-700', bg: 'bg-emerald-100', icon: CheckCircle, desc: 'Entregado exitosamente.' }
             case 'cancelled':
                 return { label: 'Cancelado', color: 'text-red-600', bg: 'bg-red-100', icon: XCircle, desc: 'Envío cancelado.' }
             default:
@@ -222,15 +233,75 @@ function ParcelTrackingContent() {
                                             </div>
                                         )}
 
+                                        <div className="pt-2 border-t border-slate-100 grid grid-cols-2 gap-4">
+                                            <div>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase">Partida</p>
+                                                <p className="text-sm font-medium text-slate-700">{result.origin_address || '—'}</p>
+                                                {result.origin_address_client && (
+                                                    <p className="text-[9px] text-slate-500 italic mt-0.5">{result.origin_address_client}</p>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase">Llegada</p>
+                                                <p className="text-sm font-medium text-slate-700">{result.destination_address || '—'}</p>
+                                                {result.destination_address_client && (
+                                                    <p className="text-[9px] text-slate-500 italic mt-0.5">{result.destination_address_client}</p>
+                                                )}
+                                            </div>
+                                        </div>
+
                                         {result.recipient_address && (
-                                            <div className="pt-2 border-t border-slate-100">
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Dirección de Recojo</p>
+                                            <div className="pt-2 border-t border-slate-100 pb-2">
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Notas de Envío</p>
                                                 <div className="flex items-start gap-1.5">
-                                                    <MapPin className="h-3.5 w-3.5 text-red-500 mt-0.5 shrink-0" />
+                                                    <MapPin className="h-3.5 w-3.5 text-blue-500 mt-0.5 shrink-0" />
                                                     <p className="text-sm font-medium text-slate-700 break-all">{result.recipient_address}</p>
                                                 </div>
                                             </div>
                                         )}
+
+                                        {/* Status Timeline */}
+                                        <div className="pt-4 border-t border-slate-200">
+                                            <h4 className="text-[10px] font-bold text-chimipink uppercase tracking-wider mb-4 flex items-center gap-1.5">
+                                                <History size={12} strokeWidth={3} /> Historial de Seguimiento
+                                            </h4>
+                                            
+                                            <div className="relative pl-4 space-y-4 before:absolute before:left-[7px] before:top-1.5 before:bottom-1.5 before:w-0.5 before:bg-slate-100">
+                                                {/* Initial Creation */}
+                                                <div className="relative flex items-center gap-3">
+                                                    <div className="absolute -left-[12px] h-2.5 w-2.5 rounded-full border-2 border-white shadow-sm z-10 bg-slate-400" />
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[10px] font-bold text-slate-400 leading-none mb-1">
+                                                            {new Date(result.created_at).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: '2-digit' })}
+                                                        </span>
+                                                        <span className="text-xs font-bold text-slate-600 uppercase tracking-tighter">
+                                                            CREACIÓN DEL ENVÍO
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                {/* History Logs */}
+                                                {history.map((log, idx) => {
+                                                    const info = getStatusInfo(log.status)
+                                                    return (
+                                                        <div key={idx} className="relative flex items-center gap-3">
+                                                            <div className={cn(
+                                                                "absolute -left-[12px] h-2.5 w-2.5 rounded-full border-2 border-white shadow-sm z-10",
+                                                                info.color.replace('text-', 'bg-')
+                                                            )} />
+                                                            <div className="flex flex-col">
+                                                                <span className="text-[10px] font-bold text-slate-400 leading-none mb-1">
+                                                                    {new Date(log.created_at).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: '2-digit' })}
+                                                                </span>
+                                                                <span className={`text-xs font-bold ${info.color} uppercase tracking-tighter`}>
+                                                                    {info.label.toUpperCase()}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

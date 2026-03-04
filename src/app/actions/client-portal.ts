@@ -289,19 +289,25 @@ export async function getOtherServiceById(id: string) {
     return data
 }
 
-export async function getServiceHistory(resourceId: string, resourceType: 'parcels' | 'money_transfers' | 'flights' | 'translations' | 'other_services') {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return []
-
+export async function getServiceHistory(resourceId: string, resourceType: 'parcels' | 'money_transfers' | 'flights' | 'translations' | 'other_services', resourceCode?: string) {
+    // Use adminSupabase because clients might not have RLS permission to read audit_logs 
+    // created by agents (actor_id != user.id)
+    const supabase = supabaseAdmin
+    
     // Fetch update logs that changed the status
-    const { data, error } = await supabase
+    let query = supabase
         .from('audit_logs')
         .select('*')
-        .eq('resource_id', resourceId)
         .eq('resource_type', resourceType)
         .eq('action', 'update')
-        .order('created_at', { ascending: true })
+
+    if (resourceCode) {
+        query = query.or(`resource_id.eq."${resourceId}",resource_id.eq."${resourceCode}"`)
+    } else {
+        query = query.eq('resource_id', resourceId)
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: true })
 
     if (error) {
         console.error('Error fetching service history:', error)

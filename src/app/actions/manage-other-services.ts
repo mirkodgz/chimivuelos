@@ -162,16 +162,18 @@ export async function createOtherService(formData: FormData) {
         status
     }
 
-    const { error } = await supabase
+    const { data: inserted, error } = await supabase
         .from('other_services')
         .insert(insertData)
+        .select('id')
+        .single()
 
     if (error) {
         return { error: error.message }
     }
 
     // Update Connected Flight if exists
-    if (connected_flight_id) {
+    if (connected_flight_id && inserted) {
         // Fetch current flight data to preserve its history
         const { data: flightData } = await supabase
             .from('flights')
@@ -213,12 +215,12 @@ export async function createOtherService(formData: FormData) {
     }
 
     // Record Audit Log
-    if (user) {
+    if (user && inserted) {
         await recordAuditLog({
             actorId: user.id,
             action: 'create',
             resourceType: 'other_services',
-            resourceId: tracking_code || 'new',
+            resourceId: inserted.id,
             newValues: insertData as unknown as Record<string, unknown>,
             metadata: { 
                 method: 'createOtherService',
@@ -439,13 +441,13 @@ export async function updateOtherService(formData: FormData) {
             actorId: user.id,
             action: 'update',
             resourceType: 'other_services',
-            resourceId: existing.tracking_code || id,
+            resourceId: id,
             oldValues: existing,
             newValues: { ...existing, ...updateData },
             metadata: { 
                 requestId: activeRequestId,
                 reason: activeReason,
-                displayId: existing.tracking_code || 'Servicio'
+                displayId: existing.tracking_code || id
             }
         })
 
@@ -477,9 +479,9 @@ export async function deleteOtherService(id: string) {
             actorId: user.id,
             action: 'delete',
             resourceType: 'other_services',
-            resourceId: existing.tracking_code || id,
+            resourceId: id,
             oldValues: existing,
-            metadata: { displayId: existing.tracking_code || 'Servicio' }
+            metadata: { displayId: existing.tracking_code || id }
         })
 
         revalidatePath('/chimi-otros-servicios')
@@ -531,14 +533,14 @@ export async function updateOtherServiceStatus(id: string, status: string) {
             actorId: user.id,
             action: 'update',
             resourceType: 'other_services',
-            resourceId: existing.tracking_code || id,
+            resourceId: id,
             oldValues: existing,
             newValues: { ...existing, status },
             metadata: { 
                 method: 'updateOtherServiceStatus',
                 action: 'status_update', 
                 newStatus: status,
-                displayId: existing.tracking_code || 'Servicio',
+                displayId: existing.tracking_code || id,
                 requestId: activeRequestId,
                 reason: activeReason
             }

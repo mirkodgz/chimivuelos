@@ -227,17 +227,55 @@ const IATA_OPTIONS = [
 const SEDE_IT_OPTIONS = ["turro milano", "corsico milano", "roma", "lima"]
 
 const FLIGHT_STATUSES = [
-    "Programado",
-    "En tránsito",
-    "Reprogramado por cliente",
-    "Reprogramado por aerolínea",
-    "Cambio de horario",
-    "Cancelado",
-    "No-show (no se presentó)",
-    "En migración",
-    "Deportado",
-    "Finalizado"
+    "PROGRAMADO",
+    "EN TRÁNSITO",
+    "REPROGRAMADO POR CLIENTE",
+    "REPROGRAMADO POR AEROLÍNEA",
+    "CAMBIO DE HORARIO",
+    "CANCELADO",
+    "NO-SHOW (NO SE PRESENTÓ)",
+    "EN MIGRACIÓN",
+    "DEPORTADO",
+    "FINALIZADO"
 ]
+
+// Mapping for DB compatibility
+const STATUS_DB_MAP: Record<string, string> = {
+    'PROGRAMADO': 'Programado',
+    'EN TRÁNSITO': 'En tránsito',
+    'REPROGRAMADO POR CLIENTE': 'Reprogramado',
+    'REPROGRAMADO POR AEROLÍNEA': 'Reprogramado',
+    'CAMBIO DE HORARIO': 'Cambio de horario',
+    'CANCELADO': 'Cancelado',
+    'NO-SHOW (NO SE PRESENTÓ)': 'No-show (no se presentó)',
+    'EN MIGRACIÓN': 'En migración',
+    'DEPORTADO': 'Deportado',
+    'FINALIZADO': 'Finalizado'
+}
+
+const STATUS_UI_MAP: Record<string, string> = {
+    'Programado': 'PROGRAMADO',
+    'En tránsito': 'EN TRÁNSITO',
+    'Reprogramado': 'REPROGRAMADO POR CLIENTE',
+    'Cambio de horario': 'CAMBIO DE HORARIO',
+    'Cancelado': 'CANCELADO',
+    'No-show (no se presentó)': 'NO-SHOW (NO SE PRESENTÓ)',
+    'En migración': 'EN MIGRACIÓN',
+    'Deportado': 'DEPORTADO',
+    'Finalizado': 'FINALIZADO'
+}
+
+const getStatusColorClass = (status: string) => {
+    const s = (STATUS_UI_MAP[status] || status).toUpperCase();
+    if (s === 'FINALIZADO') return 'bg-emerald-500 text-white focus:ring-emerald-200 hover:bg-emerald-600';
+    if (s === 'CANCELADO' || s === 'DEPORTADO') return 'bg-rose-500 text-white focus:ring-rose-200 hover:bg-rose-600';
+    if (s === 'EN TRÁNSITO' || s === 'EN MIGRACIÓN') return 'bg-blue-500 text-white focus:ring-blue-200 hover:bg-blue-600';
+    if (s === 'NO-SHOW (NO SE PRESENTÓ)') return 'bg-slate-600 text-white focus:ring-slate-300 hover:bg-slate-700';
+    if (s === 'PROGRAMADO') return 'bg-sky-500 text-white focus:ring-sky-200 hover:bg-sky-600';
+    if (s.startsWith('REPROGRAMADO')) return 'bg-orange-500 text-white focus:ring-orange-200 hover:bg-orange-600';
+    if (s === 'CAMBIO DE HORARIO') return 'bg-yellow-500 text-white focus:ring-yellow-200 hover:bg-yellow-600';
+    return 'bg-amber-500 text-white focus:ring-amber-200 hover:bg-amber-600';
+}
 
 const INITIAL_FLIGHT_DETAILS: FlightDetails = {
     ticket_one_way: false,
@@ -347,7 +385,7 @@ export default function FlightsPage() {
 
             // Grouped Fetching: Professional Style
             const initialData = await getInitialChimiVuelosData()
-            setClients(initialData.clients as any)
+            setClients(initialData.clients as ClientOption[])
             setItineraries(initialData.itineraries)
             setPaymentMethodsIT(initialData.paymentMethodsIT)
             setPaymentMethodsPE(initialData.paymentMethodsPE)
@@ -632,7 +670,7 @@ export default function FlightsPage() {
             cost: '',
             on_account: '0.00',
             balance: '0.00',
-            status: 'Programado',
+            status: 'PROGRAMADO',
             return_date: '',
             sold_price: '',
             fee_agv: '0.00',
@@ -734,7 +772,7 @@ export default function FlightsPage() {
             cost: (flight.cost || 0).toString(),
             on_account: (flight.on_account || 0).toString(),
             balance: (flight.balance || 0).toString(),
-            status: flight.status,
+            status: STATUS_UI_MAP[flight.status] || flight.status,
             return_date: flight.return_date || '',
             sold_price: (flight.sold_price || 0).toString(),
             fee_agv: (flight.fee_agv || 0).toString(),
@@ -809,9 +847,12 @@ export default function FlightsPage() {
             return
         }
 
+        // Mapping to DB value
+        const dbValue = STATUS_DB_MAP[newStatus] || newStatus
+
         // Optimistic update locally first for speed
         setFlights(prev => prev.map(f => f.id === id ? { ...f, status: newStatus as Flight['status'] } : f))
-        const result = await updateFlightStatus(id, newStatus)
+        const result = await updateFlightStatus(id, dbValue)
         if (result?.error) {
             alert("Error al actualizar estado: " + result.error)
             loadData() // Revert
@@ -971,7 +1012,9 @@ export default function FlightsPage() {
             Object.entries(formData).forEach(([key, val]) => {
                 if (skipFields.includes(key)) return // Important: Don't send these to DB
 
-                if (key === 'payment_quantity_eur') { // Internal name for EUR equivalent
+                if (key === 'status') {
+                    data.append(key, STATUS_DB_MAP[val as string] || (val as string))
+                } else if (key === 'payment_quantity_eur') { // Internal name for EUR equivalent
                     data.append('payment_quantity', formData.payment_total || '0')
                 } else if (key === 'on_account') {
                     data.append(key, financials.on_account)
@@ -1404,21 +1447,7 @@ export default function FlightsPage() {
                                                 name="status"
                                                 className={cn(
                                                     "w-full h-10 appearance-none px-4 rounded-xl text-xs font-black border-0 transition-all cursor-pointer shadow-sm focus:ring-4 focus:ring-offset-2 pr-10",
-                                                    formData.status === 'Finalizado' 
-                                                        ? 'bg-emerald-500 text-white focus:ring-emerald-200' 
-                                                        : formData.status === 'Cancelado' || formData.status === 'Deportado'
-                                                        ? 'bg-rose-500 text-white focus:ring-rose-200'
-                                                        : formData.status === 'En tránsito' || formData.status === 'En migración'
-                                                        ? 'bg-blue-500 text-white focus:ring-blue-200'
-                                                        : formData.status === 'No-show (no se presentó)'
-                                                        ? 'bg-slate-600 text-white focus:ring-slate-300'
-                                                        : formData.status === 'Programado'
-                                                        ? 'bg-sky-500 text-white focus:ring-sky-200'
-                                                        : formData.status === 'Reprogramado'
-                                                        ? 'bg-orange-500 text-white focus:ring-orange-200'
-                                                        : formData.status === 'Cambio de horario'
-                                                        ? 'bg-yellow-500 text-white focus:ring-yellow-200'
-                                                        : 'bg-amber-500 text-white focus:ring-amber-200'
+                                                    getStatusColorClass(formData.status)
                                                 )}
                                                 value={formData.status}
                                                 onChange={handleInputChange}
@@ -3222,25 +3251,11 @@ export default function FlightsPage() {
                                                     <td className="px-6 py-4">
                                                         <div className="relative">
                                                             <select
-                                                                value={flight.status}
+                                                                value={STATUS_UI_MAP[flight.status] || flight.status}
                                                                 onChange={(e) => handleStatusChange(flight.id, e.target.value)}
                                                                 className={cn(
                                                                     "appearance-none px-3 py-1 pr-8 rounded-full text-[10px] font-black uppercase border-0 cursor-pointer focus:ring-2 focus:ring-offset-1 transition-all shadow-sm",
-                                                                    flight.status === 'Finalizado' 
-                                                                        ? 'bg-emerald-500 text-white hover:bg-emerald-600 focus:ring-emerald-300' 
-                                                                        : flight.status === 'Cancelado' || flight.status === 'Deportado'
-                                                                        ? 'bg-rose-500 text-white hover:bg-rose-600 focus:ring-rose-300'
-                                                                        : flight.status === 'En tránsito' || flight.status === 'En migración'
-                                                                        ? 'bg-blue-500 text-white hover:bg-blue-600 focus:ring-blue-300'
-                                                                        : flight.status === 'No-show (no se presentó)'
-                                                                        ? 'bg-slate-600 text-white hover:bg-slate-700 focus:ring-slate-300'
-                                                                        : flight.status === 'Programado'
-                                                                        ? 'bg-sky-500 text-white hover:bg-sky-600 focus:ring-sky-300'
-                                                                        : flight.status === 'Reprogramado por cliente' || flight.status === 'Reprogramado por aerolínea'
-                                                                        ? 'bg-orange-500 text-white hover:bg-orange-600 focus:ring-orange-300'
-                                                                        : flight.status === 'Cambio de horario'
-                                                                        ? 'bg-yellow-500 text-white hover:bg-yellow-600 focus:ring-yellow-300'
-                                                                        : 'bg-amber-500 text-white hover:bg-amber-600 focus:ring-amber-300'
+                                                                    getStatusColorClass(flight.status)
                                                                 )}
                                                             >
                                                                 {FLIGHT_STATUSES.map(s => (

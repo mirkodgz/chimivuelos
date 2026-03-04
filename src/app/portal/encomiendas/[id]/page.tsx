@@ -1,6 +1,6 @@
 import { getParcelById, getServiceHistory } from '@/app/actions/client-portal'
 import { redirect } from 'next/navigation'
-import { Package, User, Download, FileText, History, Truck, Clock, CheckCircle2, NotebookPen } from 'lucide-react'
+import { Package, User, Download, FileText, History, Truck, Clock, CheckCircle2, NotebookPen, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { cn } from "@/lib/utils"
@@ -14,11 +14,11 @@ const STATUS_LABELS: Record<string, string> = {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-    pending: 'bg-amber-400',
-    warehouse: 'bg-blue-400',
-    transit: 'bg-orange-400',
-    delivered: 'bg-emerald-500',
-    cancelled: 'bg-red-500'
+    pending: 'bg-amber-500',
+    warehouse: 'bg-chimiteal',
+    transit: 'bg-orange-500',
+    delivered: 'bg-emerald-600',
+    cancelled: 'bg-red-600'
 }
 
 interface HistoryLog {
@@ -45,7 +45,7 @@ export default async function ParcelDetailPage({ params }: { params: { id: strin
     
     // Combine creation with audit logs
     const timeline = [
-        { status: 'CREACIÓN', created_at: parcel.created_at, color: 'bg-blue-400' },
+        { status: 'CREACIÓN', created_at: parcel.created_at, color: 'bg-slate-500' },
         ...historyLogs.map((log: HistoryLog) => ({
             status: STATUS_LABELS[log.status] || log.status.toUpperCase(),
             created_at: log.created_at,
@@ -126,9 +126,40 @@ export default async function ParcelDetailPage({ params }: { params: { id: strin
                                                 </div>
                                             </div>
                                             <div className="pt-2 border-t border-white/30">
-                                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Dirección de Entrega</p>
+                                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Notas de Envío</p>
                                                 <p className="text-sm text-slate-600 leading-snug">{parcel.recipient_address || '—'}</p>
                                             </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Logística de Entrega */}
+                                    <div>
+                                        <h3 className="text-xs font-bold text-chimipink uppercase tracking-wider mb-2 flex items-center gap-2">
+                                            <MapPin size={14} /> Logística de Entrega
+                                        </h3>
+                                        <div className="bg-white/40 p-4 rounded-lg border border-white/40 space-y-4">
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Dirección de Partida</p>
+                                                    <p className="text-sm font-bold text-slate-700">{parcel.origin_address || '—'}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Dirección de Llegada</p>
+                                                    <p className="text-sm font-bold text-slate-700">{parcel.destination_address || '—'}</p>
+                                                </div>
+                                            </div>
+                                            {(parcel.origin_address === 'Dirección de cliente' || parcel.origin_address_client) && (
+                                                <div className="pt-2 border-t border-white/30">
+                                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter italic">Dirección exacta de recogida</p>
+                                                    <p className="text-xs text-slate-600 font-medium">{parcel.origin_address_client || '—'}</p>
+                                                </div>
+                                            )}
+                                            {(parcel.destination_address === 'Dirección de cliente' || parcel.destination_address_client) && (
+                                                <div className="pt-2 border-t border-white/30">
+                                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter italic">Dirección exacta de entrega</p>
+                                                    <p className="text-xs text-slate-600 font-medium">{parcel.destination_address_client || '—'}</p>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 

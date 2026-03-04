@@ -11,40 +11,45 @@ import { cn } from "@/lib/utils"
 import { FlightMinorsChecklist } from '../components/FlightMinorsChecklist'
 
 const STATUS_LABELS: Record<string, string> = {
-    // Keys
     'Programado': 'PROGRAMADO',
     'En tránsito': 'EN TRÁNSITO',
-    'Reprogramado': 'REPROGRAMADO',
+    'Reprogramado': 'REPROGRAMADO POR CLIENTE',
     'Cambio de horario': 'CAMBIO DE HORARIO',
     'Cancelado': 'CANCELADO',
-    'No-show (no se presentó)': 'NO-SHOW',
+    'No-show (no se presentó)': 'NO-SHOW (NO SE PRESENTÓ)',
     'En migración': 'EN MIGRACIÓN',
     'Deportado': 'DEPORTADO',
     'Finalizado': 'FINALIZADO',
-    // Fallback technical keys
+    'PROGRAMADO': 'PROGRAMADO',
+    'EN TRÁNSITO': 'EN TRÁNSITO',
+    'REPROGRAMADO POR CLIENTE': 'REPROG. CLIENTE',
+    'REPROGRAMADO POR AEROLÍNEA': 'REPROG. AEROLÍNEA',
     pending: 'PENDIENTE',
     confirmed: 'CONFIRMADO',
-    scheduled: 'PROGRAMADO',
-    delayed: 'RETRASADO',
-    landed: 'ATERRIZADO'
 }
 
 const STATUS_COLORS: Record<string, string> = {
-    'Programado': 'bg-sky-400',
-    'En tránsito': 'bg-orange-400',
-    'Reprogramado': 'bg-amber-400',
-    'Cambio de horario': 'bg-amber-500',
-    'Cancelado': 'bg-red-500',
-    'No-show (no se presentó)': 'bg-slate-400',
-    'En migración': 'bg-purple-400',
-    'Deportado': 'bg-red-700',
-    'Finalizado': 'bg-emerald-500',
-    // Fallbacks
-    pending: 'bg-amber-400',
-    confirmed: 'bg-emerald-500',
-    scheduled: 'bg-sky-400',
-    delayed: 'bg-orange-500',
-    landed: 'bg-chimiteal'
+    'Programado': 'bg-sky-500',
+    'En tránsito': 'bg-orange-500',
+    'Reprogramado': 'bg-amber-500',
+    'Cambio de horario': 'bg-amber-600',
+    'Cancelado': 'bg-red-600',
+    'No-show (no se presentó)': 'bg-slate-500',
+    'En migración': 'bg-purple-500',
+    'Deportado': 'bg-red-800',
+    'Finalizado': 'bg-emerald-600',
+    'PROGRAMADO': 'bg-sky-500',
+    'EN TRÁNSITO': 'bg-orange-500',
+    'REPROGRAMADO POR CLIENTE': 'bg-amber-500',
+    'REPROGRAMADO POR AEROLÍNEA': 'bg-amber-600',
+    'CAMBIO DE HORARIO': 'bg-amber-600',
+    'CANCELADO': 'bg-red-600',
+    'NO-SHOW (NO SE PRESENTÓ)': 'bg-slate-500',
+    'EN MIGRACIÓN': 'bg-purple-500',
+    'DEPORTADO': 'bg-red-800',
+    'FINALIZADO': 'bg-emerald-600',
+    pending: 'bg-amber-500',
+    confirmed: 'bg-emerald-600',
 }
 
 interface HistoryLog {
@@ -97,9 +102,14 @@ export default async function FlightDetailPage({ params }: { params: { id: strin
 
     const historyLogs = await getServiceHistory(id, 'flights')
     
-    // Combine creation with audit logs
+    // Every flight starts as "PROGRAMADO" upon creation.
+    // We add this as the first step, then append all subsequent status updates.
     const timeline = [
-        { status: 'CREACIÓN', created_at: flight.created_at, color: 'bg-blue-400' },
+        { 
+            status: STATUS_LABELS['Programado'] || 'PROGRAMADO', 
+            created_at: flight.created_at, 
+            color: STATUS_COLORS['Programado'] || 'bg-sky-500' 
+        },
         ...historyLogs.map((log: HistoryLog) => ({
             status: STATUS_LABELS[log.status] || log.status.toUpperCase(),
             created_at: log.created_at,

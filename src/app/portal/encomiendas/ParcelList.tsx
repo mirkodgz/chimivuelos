@@ -26,6 +26,8 @@ export interface Parcel {
     package_type?: string
     package_weight?: string
     package_description?: string
+    origin_address?: string
+    destination_address?: string
     status: 'pending' | 'in_transit' | 'delivered' | 'cancelled'
     documents?: ParcelDocument[]
     terms_accepted_at?: string
@@ -113,8 +115,13 @@ export default function ParcelList({ parcels, termsContent, termsVersion }: { pa
                             {/* Content */}
                             <div className="space-y-4 mb-6">
                                 <div className="flex items-center gap-3 text-slate-700">
-                                    <User size={18} className="text-slate-400" />
+                                    <User size={18} className="text-slate-400" strokeWidth={2.5} />
                                     <span className="font-bold text-sm truncate">{parcel.recipient_name}</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-[10px] text-slate-500 font-bold pl-1 uppercase tracking-tight">
+                                    <span className="truncate max-w-[90px]">{parcel.origin_address || '—'}</span>
+                                    <ArrowRight size={10} className="text-slate-300" />
+                                    <span className="truncate max-w-[90px]">{parcel.destination_address || '—'}</span>
                                 </div>
                                 <div className="flex items-center justify-between text-xs font-medium">
                                     <div className="flex items-center gap-2 text-slate-400">

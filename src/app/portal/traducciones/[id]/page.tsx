@@ -9,17 +9,17 @@ import { cn } from "@/lib/utils"
 const STATUS_LABELS: Record<string, string> = {
     pending: 'PENDIENTE',
     in_progress: 'EN PROCESO',
-    completed: 'COMPLETADO',
+    completed: 'LISTO / COMPLETADO',
     delivered: 'ENTREGADO',
     cancelled: 'CANCELADO'
 }
 
 const STATUS_COLORS: Record<string, string> = {
     pending: 'bg-amber-100 text-amber-700 border-amber-200',
-    in_progress: 'bg-blue-100 text-blue-700 border-blue-200',
+    in_progress: 'bg-sky-100 text-sky-700 border-sky-200',
     completed: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-    delivered: 'bg-emerald-100/50 text-emerald-600 border-emerald-200/50',
-    cancelled: 'bg-red-100 text-red-700 border-red-200'
+    delivered: 'bg-blue-100 text-blue-700 border-blue-200',
+    cancelled: 'bg-rose-100 text-rose-700 border-rose-200'
 }
 
 const formatCurrency = (amount: number | null | undefined) => {
@@ -34,15 +34,25 @@ export default async function TranslationDetailPage({ params }: { params: { id: 
         redirect('/portal/traducciones')
     }
 
-    const historyLogs = await getServiceHistory(id, 'translations')
+    const historyLogs = await getServiceHistory(id, 'translations', translation.tracking_code)
     
     const timeline = [
-        { status: 'CREACIÓN', created_at: translation.created_at, color: 'bg-blue-400' },
-        ...historyLogs.map((log) => ({
-            status: STATUS_LABELS[log.status] || log.status.toUpperCase(),
-            created_at: log.created_at,
-            color: 'bg-slate-400'
-        }))
+        { status: 'CREACIÓN', created_at: translation.created_at, color: 'bg-blue-500' },
+        ...historyLogs.map((log) => {
+            const statusKey = (log.status || '').toLowerCase();
+            let color = 'bg-slate-400';
+            if (statusKey === 'completed') color = 'bg-emerald-500';
+            else if (statusKey === 'delivered') color = 'bg-blue-600';
+            else if (statusKey === 'cancelled') color = 'bg-rose-500';
+            else if (statusKey === 'in_progress') color = 'bg-sky-500';
+            else if (statusKey === 'pending') color = 'bg-amber-500';
+
+            return {
+                status: STATUS_LABELS[statusKey] || log.status.toUpperCase(),
+                created_at: log.created_at,
+                color: color
+            }
+        })
     ]
 
     return (
@@ -169,19 +179,30 @@ export default async function TranslationDetailPage({ params }: { params: { id: 
                                         <h3 className="text-xs font-bold text-chimiteal uppercase tracking-wider mb-3 flex items-center gap-2">
                                             <User size={14} /> Receptor y Entrega
                                         </h3>
-                                        <div className="bg-white/40 p-4 rounded-xl border border-white/40 space-y-3">
+                                        <div className="bg-white/40 p-4 rounded-xl border border-white/40 space-y-4">
                                             <div>
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Nombre</p>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Nombre Receptor</p>
                                                 <p className="text-sm font-bold text-slate-700">{translation.recipient_name || 'No especificado'}</p>
                                                 {translation.recipient_phone && <p className="text-xs text-slate-500 mt-0.5">{translation.recipient_phone}</p>}
                                             </div>
-                                            <div className="pt-2 border-t border-white/30">
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1">
-                                                    <MapPin size={10} /> Dirección
-                                                </p>
-                                                <p className="text-sm text-slate-600 leading-snug">
-                                                    {translation.destination_address_client || translation.destination_address || 'Entrega en oficina'}
-                                                </p>
+                                            
+                                            <div className="pt-3 border-t border-white/30 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1">
+                                                        <MapPin size={10} className="text-chimipink" /> Dirección de Partida
+                                                    </p>
+                                                    <p className="text-xs text-slate-600 leading-snug">
+                                                        {translation.origin_address_client || translation.origin_address || 'Oficina / No especificado'}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1">
+                                                        <MapPin size={10} className="text-chimicyan" /> Llegada / Recojo
+                                                    </p>
+                                                    <p className="text-xs text-slate-600 leading-snug">
+                                                        {translation.destination_address_client || translation.destination_address || 'Entrega en oficina'}
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
