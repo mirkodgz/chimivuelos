@@ -7,6 +7,20 @@ import { createClient } from "@/lib/supabase/server"
 import { getActivePermissionDetails, consumeEditPermission } from "./manage-permissions"
 import { recordAuditLog } from "@/lib/audit"
 
+interface Profile {
+    first_name: string | null
+    last_name: string | null
+    email?: string
+    phone?: string
+    document_number?: string
+}
+
+interface DateHistoryEntry {
+    date: string
+    changed_at: string
+    changed_by: string
+}
+
 export async function getOtherServices() {
     const supabase = supabaseAdmin
     const { data, error } = await supabase
@@ -70,6 +84,13 @@ export async function createOtherService(formData: FormData) {
     const destination_address = formData.get('destination_address') as string
     const destination_address_client = formData.get('destination_address_client') as string
     
+    // 2.6 Flight Connection
+    const connected_flight_id = formData.get('connected_flight_id') as string
+    const flight_pnr = formData.get('flight_pnr') as string
+    const current_flight_date = formData.get('current_flight_date') as string
+    const flight_status = formData.get('flight_status') as string
+    const flight_date_history: DateHistoryEntry[] = []
+    
     // 3. Economics
     const total_amount = parseFloat(formData.get('total_amount') as string) || 0
     const on_account = parseFloat(formData.get('on_account') as string) || 0
@@ -128,6 +149,11 @@ export async function createOtherService(formData: FormData) {
         origin_address_client,
         destination_address,
         destination_address_client,
+        connected_flight_id: connected_flight_id || null,
+        flight_pnr: flight_pnr || null,
+        current_flight_date: current_flight_date || null,
+        flight_status: flight_status || null,
+        flight_date_history,
         documents,
         total_amount,
         on_account,
@@ -142,6 +168,20 @@ export async function createOtherService(formData: FormData) {
 
     if (error) {
         return { error: error.message }
+    }
+
+    // Update Connected Flight if exists
+    if (connected_flight_id) {
+        const flightUpdate: Record<string, string | null> = {}
+        if (flight_status) flightUpdate.status = flight_status
+        if (current_flight_date) flightUpdate.travel_date = current_flight_date
+        
+        if (Object.keys(flightUpdate).length > 0) {
+            await supabase
+                .from('flights')
+                .update(flightUpdate)
+                .eq('id', connected_flight_id)
+        }
     }
 
     // Record Audit Log
@@ -221,6 +261,21 @@ export async function updateOtherService(formData: FormData) {
         const destination_address = formData.get('destination_address') as string
         const destination_address_client = formData.get('destination_address_client') as string
         
+        const connected_flight_id = formData.get('connected_flight_id') as string
+        const flight_pnr = formData.get('flight_pnr') as string
+        const current_flight_date = formData.get('current_flight_date') as string
+        const flight_status = formData.get('flight_status') as string
+        
+        // Handle Date History
+        const flight_date_history = [...(existing.flight_date_history || [])]
+        if (current_flight_date && existing.current_flight_date && current_flight_date !== existing.current_flight_date) {
+            flight_date_history.push({
+                date: existing.current_flight_date,
+                changed_at: new Date().toISOString(),
+                changed_by: user.email || user.id
+            })
+        }
+
         const total_amount = parseFloat(formData.get('total_amount') as string) || 0
         const on_account = parseFloat(formData.get('on_account') as string) || 0
         const status = formData.get('status') as string
@@ -273,6 +328,11 @@ export async function updateOtherService(formData: FormData) {
             origin_address_client,
             destination_address,
             destination_address_client,
+            connected_flight_id: connected_flight_id || null,
+            flight_pnr: flight_pnr || null,
+            current_flight_date: current_flight_date || null,
+            flight_status: flight_status || null,
+            flight_date_history,
             documents: newDocuments,
             total_amount,
             on_account,
@@ -292,6 +352,20 @@ export async function updateOtherService(formData: FormData) {
             .eq('id', id)
 
         if (error) throw error
+
+        // Update Connected Flight if exists
+        if (connected_flight_id) {
+            const flightUpdate: Record<string, string | null> = {}
+            if (flight_status) flightUpdate.status = flight_status
+            if (current_flight_date) flightUpdate.travel_date = current_flight_date
+            
+            if (Object.keys(flightUpdate).length > 0) {
+                await adminSupabase
+                    .from('flights')
+                    .update(flightUpdate)
+                    .eq('id', connected_flight_id)
+            }
+        }
 
         await recordAuditLog({
             actorId: user.id,
@@ -491,14 +565,12 @@ function maskName(name: string) {
     }).join(' ')
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function getSenderName(profiles: any) {
+function getSenderName(profiles: Profile | Profile[] | null) {
     if (!profiles) return '***'
-    const p = profiles as any
-    if (Array.isArray(p)) {
-        const profile = p[0]
+    if (Array.isArray(profiles)) {
+        const profile = profiles[0]
         return profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : '***'
     } else {
-        return `${p.first_name || ''} ${p.last_name || ''}`.trim() || '***'
+        return `${profiles.first_name || ''} ${profiles.last_name || ''}`.trim() || '***'
     }
 }

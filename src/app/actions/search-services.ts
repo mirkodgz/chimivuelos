@@ -6,6 +6,9 @@ export interface SearchResult {
     id: string
     display_code: string
     client_name: string
+    client_phone?: string
+    status?: string
+    travel_date?: string
 }
 
 export async function searchServiceRecords(type: string, query: string): Promise<SearchResult[]> {
@@ -46,9 +49,12 @@ export async function searchServiceRecords(type: string, query: string): Promise
             .select(`
                 id,
                 ${codeField},
+                status,
+                travel_date,
                 profiles:client_id (
                     first_name,
-                    last_name
+                    last_name,
+                    phone
                 )
             `)
             .ilike(codeField, `%${query}%`)
@@ -59,11 +65,28 @@ export async function searchServiceRecords(type: string, query: string): Promise
             return []
         }
 
-        return (data as any[]).map((item) => ({
-            id: item.id,
-            display_code: item[codeField],
-            client_name: item.profiles ? `${item.profiles.first_name || ''} ${item.profiles.last_name || ''}`.trim() : 'Cliente no encontrado'
-        }))
+        interface ProfileData {
+            first_name: string | null
+            last_name: string | null
+            phone: string | null
+        }
+        
+        return (data as unknown as (Record<string, unknown> & { 
+            id: string, 
+            status: string,
+            travel_date: string,
+            profiles: ProfileData | ProfileData[] | null 
+        })[]).map((item) => {
+            const profile = Array.isArray(item.profiles) ? item.profiles[0] : item.profiles
+            return {
+                id: item.id,
+                display_code: (item[codeField] as string) || '',
+                client_name: profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 'Cliente no encontrado',
+                client_phone: profile?.phone || '',
+                status: item.status,
+                travel_date: item.travel_date
+            }
+        })
     } catch (err) {
         console.error('Search error:', err)
         return []

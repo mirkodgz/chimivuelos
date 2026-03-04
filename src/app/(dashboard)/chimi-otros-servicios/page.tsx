@@ -33,6 +33,7 @@ import {
     X,
     Check,
     Copy,
+    RefreshCw,
     Building2,
     Briefcase,
     User,
@@ -101,6 +102,11 @@ interface OtherService {
     balance: number
     status: 'pending' | 'in_progress' | 'completed' | 'delivered' | 'cancelled'
     payment_details?: PaymentDetail[]
+    connected_flight_id?: string
+    flight_pnr?: string
+    current_flight_date?: string
+    flight_status?: string
+    flight_date_history?: { date: string, changed_at: string, changed_by: string }[]
     profiles?: {
         first_name: string | null
         last_name: string | null
@@ -123,6 +129,7 @@ interface ClientProfile {
 }
 
 const SERVICE_OPTIONS = [
+    "Reprogramación de vuelo",
     "Cartas de invitación",
     "Seguros de viaje",
     "Servicio UMNR (menores)",
@@ -133,6 +140,18 @@ const SERVICE_OPTIONS = [
     "Asesoría de viaje",
     "Penalidades",
     "Otros servicios"
+]
+
+const FLIGHT_STATUSES = [
+    "Programado",
+    "En tránsito",
+    "Reprogramado",
+    "Cambio de horario",
+    "Cancelado",
+    "No-show (no se presentó)",
+    "En migración",
+    "Deportado",
+    "Finalizado"
 ]
 
 const SEDE_IT_OPTIONS = ["turro milano", "corsico milano", "roma", "lima"]
@@ -162,6 +181,10 @@ export default function OtherServicesPage() {
     const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false)
     const [showOriginList, setShowOriginList] = useState(false)
     const [showDestinationList, setShowDestinationList] = useState(false)
+    const [showFlightSearch, setShowFlightSearch] = useState(false)
+    const [flightSearchQuery, setFlightSearchQuery] = useState('')
+    const [flightSearchResults, setFlightSearchResults] = useState<{id: string, display_code: string, client_name: string, client_phone?: string, status?: string, travel_date?: string}[]>([])
+    const [isSearchingFlights, setIsSearchingFlights] = useState(false)
     
     // Pagination & Filters
     const [currentPage, setCurrentPage] = useState(1)
@@ -175,6 +198,28 @@ export default function OtherServicesPage() {
     // Role & Permissions State
     const [userRole, setUserRole] = useState<string | null>(null)
     const [unlockedResources, setUnlockedResources] = useState<Set<string>>(new Set())
+
+    // Flight Search Effect
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(async () => {
+            if (flightSearchQuery.length >= 2) {
+                setIsSearchingFlights(true)
+                try {
+                    const { searchServiceRecords } = await import('@/app/actions/search-services')
+                    const results = await searchServiceRecords('Vuelo', flightSearchQuery)
+                    setFlightSearchResults(results)
+                } catch (error) {
+                    console.error('Flight search error:', error)
+                } finally {
+                    setIsSearchingFlights(false)
+                }
+            } else {
+                setFlightSearchResults([])
+            }
+        }, 500)
+
+        return () => clearTimeout(delayDebounceFn)
+    }, [flightSearchQuery])
 
     // Sync Permissions
     useEffect(() => {
@@ -200,11 +245,16 @@ export default function OtherServicesPage() {
         origin_address_client: "",
         destination_address: "",
         destination_address_client: "",
+        connected_flight_id: "",
+        flight_pnr: "",
+        current_flight_date: "",
+        flight_status: "",
+        flight_date_history: [] as { date: string, changed_at: string, changed_by: string }[],
         total_amount: "0.00",
         on_account: "0.00",
         balance: "0.00",
         tracking_code: "",
-        status: "pending",
+        status: "pending" as OtherService['status'],
         sede_it: "",
         sede_pe: "",
         payment_method_it: "",
@@ -364,6 +414,11 @@ export default function OtherServicesPage() {
             origin_address_client: "",
             destination_address: "",
             destination_address_client: "",
+            connected_flight_id: "",
+            flight_pnr: "",
+            current_flight_date: "",
+            flight_status: "",
+            flight_date_history: [] as { date: string, changed_at: string, changed_by: string }[],
             total_amount: "0.00",
             on_account: "0.00",
             balance: "0.00",
@@ -383,6 +438,9 @@ export default function OtherServicesPage() {
         setDocumentInputs([])
         setExistingDocuments([])
         setSearchClientTerm('')
+        setFlightSearchQuery('')
+        setFlightSearchResults([])
+        setIsClientDropdownOpen(false)
         setTempPayments([])
         setTempPaymentProofs([])
         setPaymentProofFile(null)
@@ -406,9 +464,14 @@ export default function OtherServicesPage() {
             origin_address_client: serv.origin_address_client || "",
             destination_address: serv.destination_address || "",
             destination_address_client: serv.destination_address_client || "",
-            total_amount: serv.total_amount.toString(),
-            on_account: serv.on_account.toString(),
-            balance: serv.balance.toString(),
+            connected_flight_id: serv.connected_flight_id || "",
+            flight_pnr: serv.flight_pnr || "",
+            current_flight_date: serv.current_flight_date || "",
+            flight_status: serv.flight_status || "",
+            flight_date_history: serv.flight_date_history || [],
+            total_amount: serv.total_amount.toFixed(2),
+            on_account: serv.on_account.toFixed(2),
+            balance: serv.balance.toFixed(2),
             tracking_code: serv.tracking_code || "",
             status: serv.status,
             sede_it: "",
@@ -421,6 +484,7 @@ export default function OtherServicesPage() {
             payment_total: ""
         })
         setSearchClientTerm(`${serv.profiles?.first_name} ${serv.profiles?.last_name}`)
+        setFlightSearchQuery(serv.flight_pnr || "")
         setExistingDocuments(serv.documents || [])
         setTempPayments(serv.payment_details || [])
         setTempPaymentProofs(new Array(serv.payment_details?.length || 0).fill(null))
@@ -549,6 +613,12 @@ export default function OtherServicesPage() {
         finalProofs.forEach((file, index) => {
             if (file) payload.append(`payment_proof_${index}`, file)
         })
+
+        // Linked Flight Data
+        payload.append('connected_flight_id', formData.connected_flight_id)
+        payload.append('flight_pnr', formData.flight_pnr)
+        payload.append('current_flight_date', formData.current_flight_date)
+        payload.append('flight_status', formData.flight_status)
 
         if (selectedId) {
             payload.append('id', selectedId)
@@ -852,23 +922,25 @@ export default function OtherServicesPage() {
 
                                     </div>
 
-                                    {/* Datos del Destinatario */}
-                                    <div className="space-y-3 border p-4 rounded-md bg-white mt-4">
-                                        <h3 className="font-bold text-slate-700 text-sm flex items-center gap-2 mb-2">
-                                            <User className="h-4 w-4 text-violet-500" />
-                                            Datos del Destinatario
-                                        </h3>
-                                        
-                                        <div className="grid gap-2 mb-2">
-                                            <Label className="text-[10px] text-slate-400 font-semibold uppercase">Nombre Completo</Label>
-                                            <Input name="recipient_name" value={formData.recipient_name} onChange={handleInputChange} className="h-10 text-sm bg-slate-50 border-slate-200" autoComplete="off" />
-                                        </div>
+                                    {/* Datos del Destinatario - Hidden for Flight Reprogramming */}
+                                    {formData.service_type !== "Reprogramación de vuelo" && (
+                                        <div className="space-y-3 border p-4 rounded-md bg-white mt-4 animate-in fade-in slide-in-from-top-2">
+                                            <h3 className="font-bold text-slate-700 text-sm flex items-center gap-2 mb-2">
+                                                <User className="h-4 w-4 text-violet-500" />
+                                                Datos del Destinatario
+                                            </h3>
+                                            
+                                            <div className="grid gap-2 mb-2">
+                                                <Label className="text-[10px] text-slate-400 font-semibold uppercase">Nombre Completo</Label>
+                                                <Input name="recipient_name" value={formData.recipient_name} onChange={handleInputChange} className="h-10 text-sm bg-slate-50 border-slate-200" autoComplete="off" />
+                                            </div>
 
-                                        <div className="grid gap-2">
-                                            <Label className="text-[10px] text-slate-400 font-semibold uppercase">Teléfono</Label>
-                                            <Input name="recipient_phone" value={formData.recipient_phone} onChange={handleInputChange} className="h-10 text-sm bg-slate-50 border-slate-200" autoComplete="off" />
+                                            <div className="grid gap-2">
+                                                <Label className="text-[10px] text-slate-400 font-semibold uppercase">Teléfono</Label>
+                                                <Input name="recipient_phone" value={formData.recipient_phone} onChange={handleInputChange} className="h-10 text-sm bg-slate-50 border-slate-200" autoComplete="off" />
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
 
                                     {/* Costos section */}
                                     <div className="border-t border-slate-200 pt-3 mt-4">
@@ -914,97 +986,237 @@ export default function OtherServicesPage() {
                                     <div className="space-y-4 border p-4 rounded-md bg-white flex flex-col">
                                         <h3 className="font-bold text-slate-700 text-sm flex items-center gap-2 mb-2">
                                             <MapPin className="h-4 w-4 text-chimiteal" />
-                                            Logística de Entrega
+                                            {formData.service_type === "Reprogramación de vuelo" ? "Detalles del Vuelo" : "Logística de Entrega"}
                                         </h3>
 
                                         <div className="space-y-4 flex-1">
+                                        {formData.service_type !== "Reprogramación de vuelo" && (
+                                            <>
+                                                <div className="grid gap-2 relative">
+                                                    <Label className="text-xs font-bold text-slate-700">Dirección de Partida</Label>
+                                                    <div className="relative">
+                                                        <Input 
+                                                            name="origin_address"
+                                                            value={formData.origin_address}
+                                                            onChange={(e) => { handleInputChange(e); setShowOriginList(true); }}
+                                                            onFocus={() => setShowOriginList(true)}
+                                                            onBlur={() => setTimeout(() => setShowOriginList(false), 200)}
+                                                            placeholder="Buscar oficina..."
+                                                            autoComplete="off"
+                                                            className="bg-slate-50 border-slate-200 h-10 pr-8"
+                                                        />
+                                                        {formData.origin_address ? (
+                                                            <button 
+                                                                type="button"
+                                                                onClick={() => setFormData(prev => ({ ...prev, origin_address: '' }))}
+                                                                className="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 rounded-full p-0.5 transition-colors"
+                                                            >
+                                                                <X size={14} strokeWidth={3} />
+                                                            </button>
+                                                        ) : (
+                                                            <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                                                        )}
+                                                    </div>
+                                                    {showOriginList && (
+                                                        <div className="absolute top-full z-50 w-full bg-white border border-slate-200 shadow-xl rounded-md mt-1 max-h-40 overflow-y-auto">
+                                                            {[...SEDE_IT_OPTIONS, "Dirección de cliente"].filter(opt => opt.toLowerCase().includes(formData.origin_address.toLowerCase())).map((opt, idx) => (
+                                                                <div key={idx} className="p-2.5 hover:bg-slate-50 cursor-pointer text-sm border-b last:border-0" onClick={() => {
+                                                                    setFormData(p => ({ ...p, origin_address: opt }))
+                                                                    setShowFlightSearch(false)
+                                                                }}>
+                                                                    {opt === "Dirección de cliente" ? "✓ Dirección de cliente" : opt}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {formData.origin_address === 'Dirección de cliente' && (
+                                                    <div className="grid gap-2 animate-in fade-in slide-in-from-top-2 col-span-1 sm:col-span-2">
+                                                        <Label className="text-xs font-bold text-chimipink uppercase tracking-tight italic">Ingrese la dirección exacta de recogida</Label>
+                                                        <textarea 
+                                                            name="origin_address_client"
+                                                            value={formData.origin_address_client}
+                                                            onChange={handleInputChange}
+                                                            className="min-h-[60px] w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:ring-chimipink focus:border-chimipink outline-none shadow-sm"
+                                                            placeholder="Calle, número, piso, referencia..."
+                                                        />
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+
+                                        {/* Additional fields for specific service types */}
+                                        {formData.service_type === "Reprogramación de vuelo" && (
+                                            <div className="space-y-4 pt-4 border-t border-slate-100 col-span-full animate-in fade-in slide-in-from-top-2 duration-300">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div className="space-y-2 relative">
+                                                        <Label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                                                            <Search className="h-3 w-3 text-chimipink" />
+                                                            VINCULAR VUELO (PNR)
+                                                        </Label>
+                                                        <div className="relative">
+                                                            <Input
+                                                                placeholder="Escribe el PNR..."
+                                                                value={flightSearchQuery}
+                                                                onChange={(e) => {
+                                                                    setFlightSearchQuery(e.target.value)
+                                                                    setShowFlightSearch(true)
+                                                                }}
+                                                                onFocus={() => setShowFlightSearch(true)}
+                                                                className="h-10 text-sm border-slate-200 focus:ring-chimipink"
+                                                            />
+                                                            {isSearchingFlights && (
+                                                                <div className="absolute right-3 top-2.5">
+                                                                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-chimipink border-t-transparent"></div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        {showFlightSearch && flightSearchResults.length > 0 && (
+                                                            <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl max-h-60 overflow-y-auto overflow-x-hidden animate-in fade-in zoom-in-95">
+                                                                {flightSearchResults.map((f) => (
+                                                                    <div
+                                                                        key={f.id}
+                                                                        className="p-3 hover:bg-slate-50 cursor-pointer border-b last:border-0 transition-colors"
+                                                                        onClick={() => {
+                                                                            setFormData(prev => ({
+                                                                                ...prev,
+                                                                                connected_flight_id: f.id,
+                                                                                flight_pnr: f.display_code,
+                                                                                flight_status: f.status || '',
+                                                                                current_flight_date: f.travel_date || '',
+                                                                                recipient_name: f.client_name,
+                                                                                recipient_phone: f.client_phone || ''
+                                                                            }))
+                                                                            setFlightSearchQuery(f.display_code)
+                                                                            setShowFlightSearch(false)
+                                                                            setFlightSearchResults([])
+                                                                        }}
+                                                                    >
+                                                                            <div className="flex flex-col">
+                                                                                <span className="text-sm font-bold text-slate-800">{f.display_code}</span>
+                                                                                <span className="text-[10px] text-slate-500 uppercase tracking-wider">{f.client_name}</span>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="space-y-2">
+                                                            <Label className="text-xs font-black text-slate-700">FECHA DE VUELO</Label>
+                                                            <Input
+                                                                type="date"
+                                                                value={formData.current_flight_date}
+                                                                onChange={(e) => setFormData(p => ({ ...p, current_flight_date: e.target.value }))}
+                                                                className="h-10 text-sm border-slate-200 focus:ring-chimipink shadow-inner font-bold text-chimipink"
+                                                            />
+                                                        </div>
+
+                                                        <div className="space-y-2">
+                                                            <Label className="text-xs font-black text-slate-700">ESTADO DEL VUELO</Label>
+                                                            <div className="relative group/status">
+                                                                <select
+                                                                    value={formData.flight_status}
+                                                                    onChange={(e) => setFormData(prev => ({ ...prev, flight_status: e.target.value }))}
+                                                                    className={cn(
+                                                                        "flex h-10 w-full appearance-none rounded-xl px-4 py-2 text-[11px] font-black transition-all cursor-pointer shadow-sm border-0 focus:ring-4 focus:ring-offset-2 pr-10",
+                                                                        formData.flight_status === 'Finalizado' 
+                                                                            ? 'bg-emerald-500 text-white focus:ring-emerald-200' 
+                                                                            : formData.flight_status === 'Cancelado' || formData.flight_status === 'Deportado'
+                                                                            ? 'bg-rose-500 text-white focus:ring-rose-200'
+                                                                            : formData.flight_status === 'En tránsito' || formData.flight_status === 'En migración'
+                                                                            ? 'bg-blue-500 text-white focus:ring-blue-200'
+                                                                            : formData.flight_status === 'No-show (no se presentó)'
+                                                                            ? 'bg-slate-600 text-white focus:ring-slate-300'
+                                                                            : formData.flight_status === 'Programado'
+                                                                            ? 'bg-sky-500 text-white focus:ring-sky-200'
+                                                                            : formData.flight_status === 'Reprogramado'
+                                                                            ? 'bg-orange-500 text-white focus:ring-orange-200'
+                                                                            : formData.flight_status === 'Cambio de horario'
+                                                                            ? 'bg-yellow-500 text-white focus:ring-yellow-200'
+                                                                            : formData.flight_status === ''
+                                                                            ? 'bg-slate-100 text-slate-400 font-bold border border-slate-200'
+                                                                            : 'bg-amber-500 text-white focus:ring-amber-200'
+                                                                    )}
+                                                                >
+                                                                    <option value="" className="bg-white text-slate-400">Seleccionar estado...</option>
+                                                                    {FLIGHT_STATUSES.map(s => (
+                                                                        <option key={s} value={s} className="bg-white text-slate-700 font-bold">{s}</option>
+                                                                    ))}
+                                                                </select>
+                                                                <div className={cn(
+                                                                    "absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none transition-colors",
+                                                                    formData.flight_status === "" ? "text-slate-400" : "text-white/80"
+                                                                )}>
+                                                                    <ChevronDown size={14} strokeWidth={3} />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {formData.flight_date_history && formData.flight_date_history.length > 0 && (
+                                                            <div className="mt-4 p-3 bg-slate-50/50 rounded-lg border border-slate-100 col-span-full">
+                                                                <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-2 px-1">
+                                                                    <RefreshCw className="h-3 w-3" />
+                                                                    Historial de Reprogramación
+                                                                </h4>
+                                                                <div className="space-y-1.5">
+                                                                    {formData.flight_date_history.map((h, i) => (
+                                                                        <div key={i} className="flex flex-col px-2 py-1.5 bg-white/50 rounded-md border border-slate-50">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <div className="h-1 w-1 rounded-full bg-slate-300" />
+                                                                                <span className="text-[10px] font-bold text-slate-600">FECHA ANTERIOR: {new Date(h.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+                                                                            </div>
+                                                                            <span className="text-[9px] text-slate-400 italic ml-3">
+                                                                                Cambiado por: {h.changed_by}
+                                                                            </span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                        {formData.service_type !== "Reprogramación de vuelo" && (
                                             <div className="grid gap-2 relative">
-                                                <Label className="text-xs font-bold text-slate-700">Dirección de Partida</Label>
+                                                <Label className="text-xs font-bold text-slate-700">Llegada / Recojo</Label>
                                                 <div className="relative">
                                                     <Input 
-                                                        name="origin_address"
-                                                        value={formData.origin_address}
-                                                        onChange={(e) => { handleInputChange(e); setShowOriginList(true); }}
-                                                        onFocus={() => setShowOriginList(true)}
-                                                        onBlur={() => setTimeout(() => setShowOriginList(false), 200)}
-                                                        placeholder="Buscar oficina..."
+                                                        name="destination_address"
+                                                        value={formData.destination_address}
+                                                        onChange={(e) => { handleInputChange(e); setShowDestinationList(true); }}
+                                                        onFocus={() => setShowDestinationList(true)}
+                                                        onBlur={() => setTimeout(() => setShowDestinationList(false), 200)}
+                                                        placeholder="Sede o Dirección..."
                                                         autoComplete="off"
                                                         className="bg-slate-50 border-slate-200 h-10 pr-8"
                                                     />
-                                                    {formData.origin_address ? (
+                                                    {formData.destination_address ? (
                                                         <button 
                                                             type="button"
-                                                            onClick={() => setFormData(prev => ({ ...prev, origin_address: '' }))}
+                                                            onClick={() => setFormData(prev => ({ ...prev, destination_address: '' }))}
                                                             className="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 rounded-full p-0.5 transition-colors"
                                                         >
                                                             <X size={14} strokeWidth={3} />
                                                         </button>
                                                     ) : (
-                                                        <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                                                        <ArrowRight className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
                                                     )}
                                                 </div>
-                                                {showOriginList && (
-                                                <div className="absolute top-full z-50 w-full bg-white border border-slate-200 shadow-xl rounded-md mt-1 max-h-40 overflow-y-auto">
-                                                    {[...SEDE_IT_OPTIONS, "Dirección de cliente"].filter(opt => opt.toLowerCase().includes(formData.origin_address.toLowerCase())).map((opt, idx) => (
-                                                        <div key={idx} className="p-2.5 hover:bg-slate-50 cursor-pointer text-sm border-b last:border-0" onClick={() => {
-                                                            setFormData(p => ({ ...p, origin_address: opt }))
-                                                            setShowOriginList(false)
-                                                        }}>
-                                                            {opt === "Dirección de cliente" ? "✓ Dirección de cliente" : opt}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {formData.origin_address === 'Dirección de cliente' && (
-                                            <div className="grid gap-2 animate-in fade-in slide-in-from-top-2 col-span-1 sm:col-span-2">
-                                                <Label className="text-xs font-bold text-chimipink uppercase tracking-tight italic">Ingrese la dirección exacta de recogida</Label>
-                                                <textarea 
-                                                    name="origin_address_client"
-                                                    value={formData.origin_address_client}
-                                                    onChange={handleInputChange}
-                                                    className="min-h-[60px] w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:ring-chimipink focus:border-chimipink outline-none shadow-sm"
-                                                    placeholder="Calle, número, piso, referencia..."
-                                                />
-                                            </div>
-                                        )}
-
-                                        <div className="grid gap-2 relative">
-                                            <Label className="text-xs font-bold text-slate-700">Llegada / Recojo</Label>
-                                            <div className="relative">
-                                                <Input 
-                                                    name="destination_address"
-                                                    value={formData.destination_address}
-                                                    onChange={(e) => { handleInputChange(e); setShowDestinationList(true); }}
-                                                    onFocus={() => setShowDestinationList(true)}
-                                                    onBlur={() => setTimeout(() => setShowDestinationList(false), 200)}
-                                                    placeholder="Sede o Dirección..."
-                                                    autoComplete="off"
-                                                    className="bg-slate-50 border-slate-200 h-10 pr-8"
-                                                />
-                                                {formData.destination_address ? (
-                                                    <button 
-                                                        type="button"
-                                                        onClick={() => setFormData(prev => ({ ...prev, destination_address: '' }))}
-                                                        className="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 rounded-full p-0.5 transition-colors"
-                                                    >
-                                                        <X size={14} strokeWidth={3} />
-                                                    </button>
-                                                ) : (
-                                                    <ArrowRight className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                                                {showDestinationList && (
+                                                    <div className="absolute top-full z-50 w-full bg-white border border-slate-200 shadow-xl rounded-md mt-1 max-h-40 overflow-y-auto">
+                                                        {[...SEDE_IT_OPTIONS, "Dirección de cliente"].filter(o => o.toLowerCase().includes(formData.destination_address.toLowerCase())).map(o => (
+                                                            <div key={o} className="p-2.5 hover:bg-slate-50 cursor-pointer text-sm border-b last:border-0" onClick={() => setFormData(p => ({ ...p, destination_address: o }))}>
+                                                                {o === "Dirección de cliente" ? "✓ Dirección de cliente" : o}
+                                                            </div>
+                                                        ))}
+                                                    </div>
                                                 )}
                                             </div>
-                                             {showDestinationList && (
-                                                <div className="absolute top-full z-50 w-full bg-white border border-slate-200 shadow-xl rounded-md mt-1 max-h-40 overflow-y-auto">
-                                                    {[...SEDE_IT_OPTIONS, "Dirección de cliente"].filter(o => o.toLowerCase().includes(formData.destination_address.toLowerCase())).map(o => (
-                                                        <div key={o} className="p-2.5 hover:bg-slate-50 cursor-pointer text-sm border-b last:border-0" onClick={() => setFormData(p => ({ ...p, destination_address: o }))}>
-                                                            {o === "Dirección de cliente" ? "✓ Dirección de cliente" : o}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
+                                        )}
 
                                         {formData.destination_address === 'Dirección de cliente' && (
                                             <div className="grid gap-2 animate-in fade-in slide-in-from-top-2">

@@ -137,6 +137,20 @@ export async function approveEditRequest(requestId: string) {
 
         if (updateError) throw updateError
 
+        // 3.5 SPECIAL SYNC: If other_services reschedule is approved, update the actual flight
+        if (request.resource_type === 'other_services' && draftData.connected_flight_id) {
+            const flightUpdate: Record<string, string | null> = {}
+            if (draftData.flight_status) flightUpdate.status = draftData.flight_status as string
+            if (draftData.current_flight_date) flightUpdate.travel_date = draftData.current_flight_date as string
+            
+            if (Object.keys(flightUpdate).length > 0) {
+                await supabaseAdmin
+                    .from('flights')
+                    .update(flightUpdate)
+                    .eq('id', draftData.connected_flight_id as string)
+            }
+        }
+
         // 4. RECORD AUDIT LOG (with 'approve_edit' action)
         await recordAuditLog({
             actorId: user.id,
