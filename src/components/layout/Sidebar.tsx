@@ -195,9 +195,7 @@ export function Sidebar({ role }: SidebarProps) {
                 <SidebarItem icon={Package} label="Encomiendas" href="/chimi-encomiendas" isActive={pathname.startsWith('/chimi-encomiendas')} />
                 <SidebarItem icon={Languages} label="Traducciones" href="/chimi-traducciones" isActive={pathname.startsWith('/chimi-traducciones')} />
                 <SidebarItem icon={Briefcase} label="Otros Servicios" href="/chimi-otros-servicios" isActive={pathname.startsWith('/chimi-otros-servicios')} />
-                {(role === 'admin' || role === 'supervisor' || role === 'agent' || role === 'usuario') && (
-                    <SidebarItem icon={Wallet} label="Gastos" href="/chimi-gastos" isActive={pathname.startsWith('/chimi-gastos')} />
-                )}
+                <SidebarItem icon={Wallet} label="Gastos" href="/chimi-gastos" isActive={pathname.startsWith('/chimi-gastos')} />
                 {(role === 'admin' || role === 'supervisor') && (
                     <SidebarItem icon={Calculator} label="Contabilidad" href="/chimi-contabilidad" isActive={pathname.startsWith('/chimi-contabilidad')} />
                 )}

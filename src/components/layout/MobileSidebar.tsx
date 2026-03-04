@@ -16,7 +16,8 @@ import {
   ShieldCheck,
   Languages,
   Briefcase,
-  Calculator
+  Calculator,
+  Wallet
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -143,7 +144,10 @@ export function MobileSidebar({ role }: MobileSidebarProps) {
                     <SidebarItem icon={Package} label="Encomiendas" href="/chimi-encomiendas" isActive={pathname.startsWith('/chimi-encomiendas')} onClick={() => setIsOpen(false)} />
                     <SidebarItem icon={Languages} label="Traducciones" href="/chimi-traducciones" isActive={pathname.startsWith('/chimi-traducciones')} onClick={() => setIsOpen(false)} />
                     <SidebarItem icon={Briefcase} label="Otros Servicios" href="/chimi-otros-servicios" isActive={pathname.startsWith('/chimi-otros-servicios')} onClick={() => setIsOpen(false)} />
-                    <SidebarItem icon={Calculator} label="Contabilidad" href="/chimi-contabilidad" isActive={pathname.startsWith('/chimi-contabilidad')} onClick={() => setIsOpen(false)} />
+                    <SidebarItem icon={Wallet} label="Gastos" href="/chimi-gastos" isActive={pathname.startsWith('/chimi-gastos')} onClick={() => setIsOpen(false)} />
+                    {(role === 'admin' || role === 'supervisor') && (
+                        <SidebarItem icon={Calculator} label="Contabilidad" href="/chimi-contabilidad" isActive={pathname.startsWith('/chimi-contabilidad')} onClick={() => setIsOpen(false)} />
+                    )}
 
                     <div className="my-4 border-t border-sidebar-border mx-2" />
                 </>
