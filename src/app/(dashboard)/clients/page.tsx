@@ -433,7 +433,7 @@ export default function ClientsPage() {
       </Dialog>
 
       <div className="flex items-center justify-center">
-        {(userRole === "admin" || userRole === "supervisor") && (
+        {(userRole === "admin" || userRole === "supervisor" || userRole === "agent") && (
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button
@@ -715,7 +715,7 @@ export default function ClientsPage() {
                   <th className="px-6 py-4 font-medium">Celular</th>
                   <th className="px-6 py-4 font-medium text-center">Docs</th>
                   <th className="px-6 py-4 font-medium text-center">Accesos</th>
-                  {userRole === "admin" && (
+                  {(userRole === "admin" || userRole === "supervisor" || userRole === "agent") && (
                     <th className="px-6 py-4 font-medium text-right">
                       Acciones
                     </th>
@@ -805,7 +805,7 @@ export default function ClientsPage() {
                         )}
                       </Button>
                     </td>
-                    {(userRole === "admin" || userRole === "supervisor") && (
+                    {(userRole === "admin" || userRole === "supervisor" || userRole === "agent") && (
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <Button
@@ -816,14 +816,16 @@ export default function ClientsPage() {
                           >
                             <UserCog className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(client.id)}
-                            className="h-8 w-8 p-0 text-slate-400 hover:text-red-600 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {(userRole === "admin" || userRole === "supervisor") && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(client.id)}
+                              className="h-8 w-8 p-0 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </td>
                     )}

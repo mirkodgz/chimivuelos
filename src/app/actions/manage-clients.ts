@@ -32,11 +32,23 @@ export async function registerClient(formData: FormData) {
   
   const files = formData.getAll('documents') as File[]
 
-  if (files.length > 5) {
-    return { error: 'Máximo 5 archivos permitidos.' }
-  }
-
   try {
+    const supabase = await createSupabaseClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'No autorizado' }
+
+    const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single()
+    const userRole = profile?.role === 'usuario' ? 'agent' : profile?.role
+
+    // All staff (admin, supervisor, agent) can create clients
+    if (userRole !== 'admin' && userRole !== 'supervisor' && userRole !== 'agent') {
+      return { error: 'Permisos insuficientes' }
+    }
+
+    if (files.length > 5) {
+      return { error: 'Máximo 5 archivos permitidos.' }
+    }
+
     // 1. Create user in Auth
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
