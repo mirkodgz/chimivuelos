@@ -50,7 +50,8 @@ const EXPENSE_CATEGORIES = [
     { label: "8. Giros", value: "giros", motifs: ["Comisiones de envío"] },
     { label: "9. Servicios profesionales", value: "servicios_profesionales", motifs: ["Traductores", "Notario", "Abogados", "Contador"] },
     { label: "10. Administrativos / otros", value: "administrativos", motifs: ["Impuestos", "Licencias", "Papelería", "Varios"] },
-    { label: "11 Otros gastos", value: "otros", motifs: [] }
+    { label: "11 Otros gastos", value: "otros", motifs: [] },
+    { label: "12. Devolución", value: "devolucion", motifs: ["Personales", "Precio elevado", "Mala orientación", "Otro"] }
 ]
 
 const SEDE_IT_OPTIONS = ["turro milano", "corsico milano", "roma", "lima", "remoto"]

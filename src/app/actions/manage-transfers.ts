@@ -71,10 +71,12 @@ export interface MoneyTransfer {
     beneficiary_phone: string
     beneficiary_bank: string
     beneficiary_account: string
+    beneficiary_payment_method: 'banco_billetera' | 'contado'
+    beneficiary_pickup_sede?: string
     transfer_code: string
     client_note?: string
     internal_note?: string
-    status: 'scheduled' | 'delivered' | 'cancelled'
+    status: 'scheduled' | 'delivered' | 'cancelled' | 'available' | 'processing' | 'completed'
     payment_details?: PaymentDetail[]
     expense_details?: ExpenseDetail[]
     agent_id?: string
@@ -124,6 +126,8 @@ export async function createTransfer(formData: FormData) {
         const beneficiary_phone = formData.get('beneficiary_phone') as string
         const beneficiary_bank = formData.get('beneficiary_bank') as string
         const beneficiary_account = formData.get('beneficiary_account') as string
+        const beneficiary_payment_method = (formData.get('beneficiary_payment_method') as string) || 'banco_billetera'
+        const beneficiary_pickup_sede = formData.get('beneficiary_pickup_sede') as string
         
         const transfer_code = formData.get('transfer_code') as string || `GIR-${Date.now().toString().slice(-4)}`
         const status = formData.get('status') as string || 'scheduled'
@@ -219,8 +223,10 @@ export async function createTransfer(formData: FormData) {
             beneficiary_name,
             beneficiary_document,
             beneficiary_phone,
-            beneficiary_bank,
-            beneficiary_account,
+            beneficiary_bank: beneficiary_payment_method === 'banco_billetera' ? beneficiary_bank : null,
+            beneficiary_account: beneficiary_payment_method === 'banco_billetera' ? beneficiary_account : null,
+            beneficiary_payment_method,
+            beneficiary_pickup_sede: beneficiary_payment_method === 'contado' ? beneficiary_pickup_sede : null,
             transfer_code,
             status,
             client_note,
@@ -324,6 +330,8 @@ export async function updateTransfer(formData: FormData) {
         const beneficiary_phone = formData.get('beneficiary_phone') as string
         const beneficiary_bank = formData.get('beneficiary_bank') as string
         const beneficiary_account = formData.get('beneficiary_account') as string
+        const beneficiary_payment_method = (formData.get('beneficiary_payment_method') as string) || 'banco_billetera'
+        const beneficiary_pickup_sede = formData.get('beneficiary_pickup_sede') as string
         
         const transfer_code = formData.get('transfer_code') as string
         const status = formData.get('status') as string
@@ -422,8 +430,10 @@ export async function updateTransfer(formData: FormData) {
             beneficiary_name,
             beneficiary_document,
             beneficiary_phone,
-            beneficiary_bank,
-            beneficiary_account,
+            beneficiary_bank: beneficiary_payment_method === 'banco_billetera' ? beneficiary_bank : null,
+            beneficiary_account: beneficiary_payment_method === 'banco_billetera' ? beneficiary_account : null,
+            beneficiary_payment_method,
+            beneficiary_pickup_sede: beneficiary_payment_method === 'contado' ? beneficiary_pickup_sede : null,
             transfer_code,
             status,
             client_note,

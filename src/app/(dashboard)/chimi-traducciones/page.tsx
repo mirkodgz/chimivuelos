@@ -132,7 +132,7 @@ interface ClientProfile {
 
 const LANGUAGE_OPTIONS = ["Español", "Italiano", "Inglés", "Francés", "Portugués"]
 const DOCUMENT_TYPE_OPTIONS = ["Certificados de estudios", "Acta de matrimonio", "Certificados médicos", "Brevete", "Partida de nacimiento", "Otros documentos"]
-const WORK_TYPE_OPTIONS = ["Traducir", "Legalizar", "Apostillar", "Entrega física", "Entrega digital", "Envío digital", "Consigna", "Otros"]
+const WORK_TYPE_OPTIONS = ["Minedu", "Sunedu", "Traducir", "Apostillar", "Envío a domicilio", "Declaración de valor", "Reniec", "Otros"]
 const SEDE_IT_OPTIONS = ["turro milano", "corsico milano", "roma", "lima"]
 const CURRENCY_OPTIONS = ["EUR", "PEN", "USD"]
 
@@ -858,7 +858,7 @@ export default function TranslationsPage() {
                                 <div className="space-y-4 border p-4 rounded-md bg-slate-50 flex flex-col h-full">
                                     <h3 className="font-bold text-slate-700 text-sm flex items-center gap-2 mb-2">
                                         <FileText className="h-4 w-4 text-chimicyan" />
-                                        Detalles de la Traducción
+                                        Documentación
                                     </h3>
 
                                     <div className="space-y-4 flex-1">
@@ -866,14 +866,14 @@ export default function TranslationsPage() {
                                             <Label className="text-xs font-bold text-slate-500 uppercase">Tipo de Documento</Label>
                                             <div className="grid grid-cols-2 gap-2">
                                                 {DOCUMENT_TYPE_OPTIONS.map(opt => (
-                                                    <label key={opt} className="flex items-center gap-2 text-sm cursor-pointer group">
+                                                    <label key={opt} className="flex items-center gap-2 text-sm cursor-pointer">
                                                         <input 
                                                             type="checkbox" 
                                                             checked={formData.document_types.includes(opt)}
                                                             onChange={(e) => handleCheckboxChange('document_types', opt, e.target.checked)}
                                                             className="rounded border-slate-300 text-chimipink focus:ring-chimipink h-4 w-4"
                                                         />
-                                                        <span className="group-hover:text-chimipink transition-colors font-medium text-slate-600">{opt}</span>
+                                                        <span className="font-medium text-slate-600">{opt}</span>
                                                     </label>
                                                 ))}
                                             </div>
@@ -903,14 +903,14 @@ export default function TranslationsPage() {
                                             <Label className="text-xs font-bold text-slate-500 uppercase">Trabajo a Realizar</Label>
                                             <div className="grid grid-cols-2 gap-2 text-xs">
                                                 {WORK_TYPE_OPTIONS.map(opt => (
-                                                    <label key={opt} className="flex items-center gap-2 cursor-pointer group">
+                                                    <label key={opt} className="flex items-center gap-2 cursor-pointer">
                                                         <input 
                                                             type="checkbox" 
                                                             checked={formData.work_types.includes(opt)}
                                                             onChange={(e) => handleCheckboxChange('work_types', opt, e.target.checked)}
                                                             className="rounded border-slate-300 text-chimicyan focus:ring-chimicyan h-3.5 w-3.5"
                                                         />
-                                                        <span className="group-hover:text-chimicyan transition-colors font-medium text-slate-600">{opt}</span>
+                                                        <span className="font-medium text-slate-600">{opt}</span>
                                                     </label>
                                                 ))}
                                             </div>

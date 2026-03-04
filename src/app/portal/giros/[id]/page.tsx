@@ -133,11 +133,18 @@ export default async function TransferDetailPage({ params }: { params: { id: str
                                                     <p className="text-sm font-semibold text-slate-700">{transfer.beneficiary_phone || '—'}</p>
                                                 </div>
                                             </div>
-                                            {transfer.beneficiary_bank && (
+                                            {transfer.beneficiary_payment_method === 'banco_billetera' && transfer.beneficiary_bank && (
                                                 <div className="pt-2 border-t border-white/30">
-                                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Banco / Nro de Cuenta</p>
+                                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Bancos/Yape/Plin</p>
                                                     <p className="text-sm font-semibold text-slate-700">{transfer.beneficiary_bank}</p>
-                                                    <p className="text-xs font-mono text-slate-500 mt-0.5">{transfer.beneficiary_account || '—'}</p>
+                                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter mt-1">Nº Cuenta / Billetera</p>
+                                                    <p className="text-xs font-mono text-slate-500">{transfer.beneficiary_account || '—'}</p>
+                                                </div>
+                                            )}
+                                            {transfer.beneficiary_payment_method === 'contado' && transfer.beneficiary_pickup_sede && (
+                                                <div className="pt-2 border-t border-white/30">
+                                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Sede de Recojo</p>
+                                                    <p className="text-sm font-semibold text-slate-700">En ventanilla - {transfer.beneficiary_pickup_sede}</p>
                                                 </div>
                                             )}
                                         </div>

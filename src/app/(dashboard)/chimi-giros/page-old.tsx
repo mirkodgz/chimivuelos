@@ -119,7 +119,7 @@ export default function MoneyTransfersPage() {
     const [currentPage, setCurrentPage] = useState(1)
     const [itemsPerPage, setItemsPerPage] = useState(10)
     const [searchTerm, setSearchTerm] = useState('')
-    const [statusFilter, setStatusFilter] = useState<'all' | 'scheduled' | 'delivered' | 'cancelled'>('all')
+    const [statusFilter, setStatusFilter] = useState<MoneyTransfer['status'] | 'all'>('all')
 
     // Dates (Local Time Safe)
     const [dateFrom, setDateFrom] = useState(() => {

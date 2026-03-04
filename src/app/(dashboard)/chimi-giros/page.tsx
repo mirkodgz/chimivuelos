@@ -119,7 +119,7 @@ export default function MoneyTransfersPage() {
     const [currentPage, setCurrentPage] = useState(1)
     const [itemsPerPage, setItemsPerPage] = useState(10)
     const [searchTerm, setSearchTerm] = useState('')
-    const [statusFilter, setStatusFilter] = useState<'all' | 'scheduled' | 'delivered' | 'cancelled'>('all')
+    const [statusFilter, setStatusFilter] = useState<'all' | 'scheduled' | 'delivered' | 'cancelled' | 'available' | 'processing' | 'completed'>('all')
 
     // Dates (Local Time Safe)
     const [dateFrom, setDateFrom] = useState(() => {
@@ -189,6 +189,8 @@ export default function MoneyTransfersPage() {
         beneficiary_phone: "",
         beneficiary_bank: "",
         beneficiary_account: "",
+        beneficiary_payment_method: "banco_billetera",
+        beneficiary_pickup_sede: "",
         transfer_code: "",
         status: "scheduled",
         client_note: "",
@@ -234,6 +236,7 @@ export default function MoneyTransfersPage() {
     const [showExMetodoITList, setShowExMetodoITList] = useState(false)
     const [showExMetodoPEList, setShowExMetodoPEList] = useState(false)
     const [showBankList, setShowBankList] = useState(false)
+    const [showSedePickupList, setShowSedePickupList] = useState(false)
 
     // File Upload State
     const [numDocs, setNumDocs] = useState(0)
@@ -514,6 +517,8 @@ export default function MoneyTransfersPage() {
             beneficiary_phone: "",
             beneficiary_bank: "",
             beneficiary_account: "",
+            beneficiary_payment_method: "banco_billetera",
+            beneficiary_pickup_sede: "",
             transfer_code: "",
             status: "scheduled",
             client_note: "",
@@ -571,8 +576,10 @@ export default function MoneyTransfersPage() {
             beneficiary_name: transfer.beneficiary_name,
             beneficiary_document: transfer.beneficiary_document,
             beneficiary_phone: transfer.beneficiary_phone,
-            beneficiary_bank: transfer.beneficiary_bank,
-            beneficiary_account: transfer.beneficiary_account,
+            beneficiary_bank: transfer.beneficiary_bank || "",
+            beneficiary_account: transfer.beneficiary_account || "",
+            beneficiary_payment_method: transfer.beneficiary_payment_method || "banco_billetera",
+            beneficiary_pickup_sede: transfer.beneficiary_pickup_sede || "",
             transfer_code: transfer.transfer_code || "",
             status: transfer.status,
             client_note: transfer.client_note || "",
@@ -1126,49 +1133,124 @@ export default function MoneyTransfersPage() {
                                         </div>
                                     </div>
 
-                                    <div className="grid gap-2 relative">
-                                        <Label>Banco o billetera digital</Label>
-                                        <div className="relative">
-                                            <Input 
-                                                name="beneficiary_bank" 
-                                                value={formData.beneficiary_bank} 
-                                                onChange={(e) => {
-                                                    handleInputChange(e)
-                                                    setShowBankList(true)
-                                                }}
-                                                onFocus={() => setShowBankList(true)}
-                                                onBlur={() => setTimeout(() => setShowBankList(false), 200)}
-                                                placeholder="Buscar banco..." 
-                                                autoComplete="off"
-                                                className="pr-8"
-                                            />
-                                            {formData.beneficiary_bank ? (
-                                                <button 
-                                                    type="button" 
-                                                    onClick={() => setFormData(p => ({ ...p, beneficiary_bank: '' }))}
-                                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 rounded-full p-0.5 transition-colors"
-                                                >
-                                                    <X size={14} strokeWidth={3} />
-                                                </button>
-                                            ) : (
-                                                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                    <div className="grid gap-2">
+                                        <Label>Método de Pago</Label>
+                                        <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
+                                            <button
+                                                type="button"
+                                                onClick={() => setFormData(p => ({ ...p, beneficiary_payment_method: 'banco_billetera' }))}
+                                                className={cn(
+                                                    "flex-1 py-1.5 text-[10px] font-bold uppercase rounded-md transition-all",
+                                                    formData.beneficiary_payment_method === 'banco_billetera' 
+                                                        ? "bg-white text-chimipink shadow-sm" 
+                                                        : "text-slate-500 hover:text-slate-700"
+                                                )}
+                                            >
+                                                Banco o billetera digital
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setFormData(p => ({ ...p, beneficiary_payment_method: 'contado' }))}
+                                                className={cn(
+                                                    "flex-1 py-1.5 text-[10px] font-bold uppercase rounded-md transition-all",
+                                                    formData.beneficiary_payment_method === 'contado' 
+                                                        ? "bg-white text-chimipink shadow-sm" 
+                                                        : "text-slate-500 hover:text-slate-700"
+                                                )}
+                                            >
+                                                Al contado
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {formData.beneficiary_payment_method === 'banco_billetera' ? (
+                                        <>
+                                            <div className="grid gap-2 relative">
+                                                <Label>Bancos/Yape/Plin</Label>
+                                                <div className="relative">
+                                                    <Input 
+                                                        name="beneficiary_bank" 
+                                                        value={formData.beneficiary_bank} 
+                                                        onChange={(e) => {
+                                                            handleInputChange(e)
+                                                            setShowBankList(true)
+                                                        }}
+                                                        onFocus={() => setShowBankList(true)}
+                                                        onBlur={() => setTimeout(() => setShowBankList(false), 200)}
+                                                        placeholder="Buscar banco..." 
+                                                        autoComplete="off"
+                                                        className="pr-8"
+                                                    />
+                                                    {formData.beneficiary_bank ? (
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => setFormData(p => ({ ...p, beneficiary_bank: '' }))}
+                                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 rounded-full p-0.5 transition-colors"
+                                                        >
+                                                            <X size={14} strokeWidth={3} />
+                                                        </button>
+                                                    ) : (
+                                                        <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                                    )}
+                                                </div>
+                                                {showBankList && (
+                                                    <div className="absolute top-full z-50 w-full bg-white border border-slate-200 shadow-xl rounded-md mt-1 max-h-40 overflow-y-auto">
+                                                        {PERU_BANK_OPTIONS.filter(opt => opt.toLowerCase().includes(formData.beneficiary_bank.toLowerCase())).map((opt, idx) => (
+                                                            <div key={idx} className="p-2.5 hover:bg-slate-50 cursor-pointer text-sm border-b last:border-0" onClick={() => {
+                                                                setFormData(p => ({ ...p, beneficiary_bank: opt }))
+                                                                setShowBankList(false)
+                                                            }}>{opt}</div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="grid gap-2">
+                                                <Label>Nº Cuenta / CCI o número de billetera digital</Label>
+                                                <Input name="beneficiary_account" value={formData.beneficiary_account} onChange={handleInputChange} placeholder="Nº de cuenta" />
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="grid gap-2 relative animate-in fade-in slide-in-from-top-1">
+                                            <Label>Sede de Recojo</Label>
+                                            <div className="relative">
+                                                <Input 
+                                                    name="beneficiary_pickup_sede" 
+                                                    value={formData.beneficiary_pickup_sede} 
+                                                    onChange={(e) => {
+                                                        handleInputChange(e)
+                                                        setShowSedePickupList(true)
+                                                    }}
+                                                    onFocus={() => setShowSedePickupList(true)}
+                                                    onBlur={() => setTimeout(() => setShowSedePickupList(false), 200)}
+                                                    placeholder="Buscar sede..." 
+                                                    autoComplete="off"
+                                                    className="pr-8"
+                                                />
+                                                {formData.beneficiary_pickup_sede ? (
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => setFormData(p => ({ ...p, beneficiary_pickup_sede: '' }))}
+                                                        className="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 rounded-full p-0.5 transition-colors"
+                                                    >
+                                                        <X size={14} strokeWidth={3} />
+                                                    </button>
+                                                ) : (
+                                                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                                )}
+                                            </div>
+                                            {showSedePickupList && (
+                                                <div className="absolute top-full z-50 w-full bg-white border border-slate-200 shadow-xl rounded-md mt-1 max-h-40 overflow-y-auto">
+                                                    {SEDE_IT_OPTIONS.filter(opt => opt.toLowerCase().includes(formData.beneficiary_pickup_sede.toLowerCase())).map((opt, idx) => (
+                                                        <div key={idx} className="p-2.5 hover:bg-slate-50 cursor-pointer text-sm border-b last:border-0" onClick={() => {
+                                                            setFormData(p => ({ ...p, beneficiary_pickup_sede: opt }))
+                                                            setShowSedePickupList(false)
+                                                        }}>{opt}</div>
+                                                    ))}
+                                                </div>
                                             )}
                                         </div>
-                                        {showBankList && (
-                                            <div className="absolute top-full z-100 w-full bg-white border border-slate-200 shadow-xl rounded-md mt-1 max-h-40 overflow-y-auto">
-                                                {PERU_BANK_OPTIONS.filter(opt => opt.toLowerCase().includes(formData.beneficiary_bank.toLowerCase())).map((opt, idx) => (
-                                                    <div key={idx} className="p-2.5 hover:bg-slate-50 cursor-pointer text-sm border-b last:border-0" onClick={() => {
-                                                        setFormData(p => ({ ...p, beneficiary_bank: opt }))
-                                                        setShowBankList(false)
-                                                    }}>{opt}</div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label>Nº Cuenta / CCI o número de billetera digital</Label>
-                                        <Input name="beneficiary_account" value={formData.beneficiary_account} onChange={handleInputChange} />
-                                    </div>
+                                    )}
                                 </div>
                             </div>
 
