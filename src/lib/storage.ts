@@ -85,7 +85,7 @@ export async function getFileUrl(path: string, storage?: StorageType): Promise<s
         // Construct Image Delivery URL
         // Format: https://imagedelivery.net/<account_hash>/<image_id>/<variant_name>
         // We assume 'large' variant for original quality with edge resizing
-        return `https://imagedelivery.net/${CLOUDFLARE_IMAGES_HASH}/${path}/large`;
+        return `https://imagedelivery.net/${CLOUDFLARE_IMAGES_HASH}/${path}/public`;
     } else {
         // R2 Presigned URL
         try {
