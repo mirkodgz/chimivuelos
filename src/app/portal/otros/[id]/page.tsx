@@ -1,6 +1,6 @@
 import { getOtherServiceById, getServiceHistory } from '@/app/actions/client-portal'
 import { redirect } from 'next/navigation'
-import { Briefcase, FileText, Banknote, Clock, MapPin, User, ArrowLeft, Info, NotebookPen } from 'lucide-react'
+import { Briefcase, FileText, Banknote, Clock, MapPin, User, ArrowLeft, Info, NotebookPen, Package } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { ServiceDocumentRow } from '../../components/ServiceDocumentRow'
@@ -132,6 +132,53 @@ export default async function OtherServiceDetailPage({ params }: { params: { id:
                                         </div>
                                     </div>
                                 </div>
+
+                                {service.service_type === "Agregar Equipaje" && service.internal_note && (
+                                    <div>
+                                        <h3 className="text-xs font-bold text-chimipink uppercase tracking-wider mb-3 flex items-center gap-2">
+                                            <Package size={14} /> Equipaje Seleccionado
+                                        </h3>
+                                        <div className="bg-white/60 p-4 rounded-xl border border-chimipink/20 flex flex-wrap gap-2">
+                                            {service.internal_note.split(', ').map((opt: string) => (
+                                                <span key={opt} className="bg-chimipink/10 text-chimipink text-[11px] font-black px-3 py-1 rounded-full border border-chimipink/20 uppercase">
+                                                    {opt}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {(service.flight_pnr || service.connected_flight_id) && (
+                                    <div className="col-span-1 md:col-span-2">
+                                        <h3 className="text-xs font-bold text-chimicyan uppercase tracking-wider mb-3 flex items-center gap-2">
+                                            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8l-8.2-1.8c-1-.2-2 .1-2.2 1.1-.3.8.3 1.5 1.1 1.7L11 11l-3.5 3.5-3 1.5c-.5.3-.5 1 .1 1.3L8 18l.7 3.4c.3.6 1 .6 1.3.1l1.5-3 3.5-3.5 1.7 7.1c.2.8.9 1.4 1.7 1.1 1-.2 1.3-1.2 1.1-2.2Z"/></svg>
+                                            Detalles del Vuelo Vinculado
+                                        </h3>
+                                        <div className="bg-linear-to-r from-sky-50/50 to-white/40 p-5 rounded-2xl border border-sky-100/50 grid grid-cols-1 sm:grid-cols-3 gap-6 shadow-sm">
+                                            <div>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">PNR / Reserva</p>
+                                                <p className="text-sm font-black text-slate-700 tracking-tight">{service.flight_pnr || 'S/D'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">Fecha del Vuelo</p>
+                                                <p className="text-sm font-black text-slate-700 tracking-tight">
+                                                    {service.current_flight_date ? new Date(service.current_flight_date).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' }) : 'S/D'}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">Estado en Reserva</p>
+                                                <span className={cn(
+                                                    "text-[10px] font-black px-2.5 py-1 rounded-full border shadow-sm inline-block",
+                                                    service.flight_status === 'Programado' ? "bg-sky-500 text-white border-sky-600" :
+                                                    service.flight_status === 'Cancelado' ? "bg-rose-500 text-white border-rose-600" :
+                                                    "bg-slate-700 text-white border-slate-800"
+                                                )}>
+                                                    {(service.flight_status || 'S/D').toUpperCase()}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Right Side: Destination and Logistics */}
                                 <div className="space-y-6">

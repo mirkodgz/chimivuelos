@@ -131,6 +131,7 @@ interface ClientProfile {
 
 const SERVICE_OPTIONS = [
     "Reprogramación de vuelo",
+    "Agregar Equipaje",
     "Cartas de invitación",
     "Seguros de viaje",
     "Servicio UMNR (menores)",
@@ -186,6 +187,28 @@ export default function OtherServicesPage() {
     const [flightSearchQuery, setFlightSearchQuery] = useState('')
     const [flightSearchResults, setFlightSearchResults] = useState<{id: string, display_code: string, client_name: string, client_phone?: string, status?: string, travel_date?: string}[]>([])
     const [isSearchingFlights, setIsSearchingFlights] = useState(false)
+    const [luggageOption, setLuggageOption] = useState<string>("")
+
+    const toggleLuggage = useCallback((opt: string) => {
+        setLuggageOption(prev => {
+            const current = (prev || "").split(", ").filter(Boolean)
+            if (current.includes(opt)) {
+                return current.filter(i => i !== opt).join(", ")
+            } else {
+                return [...current, opt].join(", ")
+            }
+        })
+    }, [])
+    
+    // Controlled reset when closing
+    useEffect(() => {
+        if (!isDialogOpen) {
+            resetForm();
+        }
+    }, [isDialogOpen])
+
+    // Tracking code generation only on fresh open
+    // Move this after formData declaration
     
     // Pagination & Filters
     const [currentPage, setCurrentPage] = useState(1)
@@ -266,6 +289,13 @@ export default function OtherServicesPage() {
         payment_total: ""
     })
 
+    // Tracking code generation only on fresh open
+    useEffect(() => {
+        if (isDialogOpen && !selectedId && !formData.tracking_code) {
+           setFormData(prev => ({ ...prev, tracking_code: generateTrackingCode() }));
+        }
+    }, [isDialogOpen, selectedId, formData.tracking_code])
+
     const [tempPayments, setTempPayments] = useState<PaymentDetail[]>([])
     const [tempPaymentProofs, setTempPaymentProofs] = useState<(File | null)[]>([])
     const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null)
@@ -292,13 +322,7 @@ export default function OtherServicesPage() {
         }
     }, [tempPayments, showPaymentFields, formData.payment_quantity, formData.payment_total, formData.total_amount])
 
-    useEffect(() => {
-        setFormData(prev => ({ 
-            ...prev, 
-            on_account: financials.on_account,
-            balance: financials.balance
-        }))
-    }, [financials.on_account, financials.balance])
+    // financials useMemo stays (line 293-307)
 
     // Dropdown visibility
     const [showServiceList, setShowServiceList] = useState(false)
@@ -434,6 +458,7 @@ export default function OtherServicesPage() {
             payment_currency: "EUR",
             payment_total: ""
         })
+        setLuggageOption("")
         setSelectedId(null)
         setNumDocs(0)
         setDocumentInputs([])
@@ -484,6 +509,11 @@ export default function OtherServicesPage() {
             payment_currency: "EUR",
             payment_total: ""
         })
+        if (serv.service_type === "Agregar Equipaje") {
+            setLuggageOption(serv.internal_note || "")
+        } else {
+            setLuggageOption("")
+        }
         setSearchClientTerm(`${serv.profiles?.first_name} ${serv.profiles?.last_name}`)
         setFlightSearchQuery(serv.flight_pnr || "")
         setExistingDocuments(serv.documents || [])
@@ -597,6 +627,8 @@ export default function OtherServicesPage() {
                 payload.append(key, financials.on_account)
             } else if (key === 'balance') {
                 payload.append(key, financials.balance)
+            } else if (key === 'internal_note' && formData.service_type === "Agregar Equipaje") {
+                payload.append(key, luggageOption)
             } else {
                 payload.append(key, value as string)
             }
@@ -702,14 +734,10 @@ export default function OtherServicesPage() {
         <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto animate-in fade-in duration-500">
             {/* Header section */}
             <div className="flex flex-col items-center gap-4">
-                <Dialog open={isDialogOpen} onOpenChange={(open) => { 
-                    setIsDialogOpen(open); 
-                    if (!open) {
-                        resetForm(); 
-                    } else if (!selectedId) {
-                        setFormData(prev => ({ ...prev, tracking_code: generateTrackingCode() }));
-                    }
-                }}>
+                <Dialog 
+                    open={isDialogOpen} 
+                    onOpenChange={setIsDialogOpen}
+                >
                     <DialogTrigger asChild>
                         <Button className="bg-linear-to-r from-chimipink to-chimicyan font-bold text-slate-700 shadow-lg hover:scale-105 transition-transform px-8">
                             <Plus className="mr-2 h-5 w-5" /> Registrar Otro Servicio
@@ -987,11 +1015,11 @@ export default function OtherServicesPage() {
                                     <div className="space-y-4 border p-4 rounded-md bg-white flex flex-col">
                                         <h3 className="font-bold text-slate-700 text-sm flex items-center gap-2 mb-2">
                                             <MapPin className="h-4 w-4 text-chimiteal" />
-                                            {formData.service_type === "Reprogramación de vuelo" ? "Detalles del Vuelo" : "Logística de Entrega"}
+                                            {(formData.service_type === "Reprogramación de vuelo" || formData.service_type === "Agregar Equipaje") ? "Detalles del Vuelo" : "Logística de Entrega"}
                                         </h3>
 
                                         <div className="space-y-4 flex-1">
-                                        {formData.service_type !== "Reprogramación de vuelo" && (
+                                        {!(formData.service_type === "Reprogramación de vuelo" || formData.service_type === "Agregar Equipaje") && (
                                             <>
                                                 <div className="grid gap-2 relative">
                                                     <Label className="text-xs font-bold text-slate-700">Dirección de Partida</Label>
@@ -1048,8 +1076,47 @@ export default function OtherServicesPage() {
                                         )}
 
                                         {/* Additional fields for specific service types */}
-                                        {formData.service_type === "Reprogramación de vuelo" && (
+                                        {(formData.service_type === "Reprogramación de vuelo" || formData.service_type === "Agregar Equipaje") && (
                                             <div className="space-y-4 pt-4 border-t border-slate-100 col-span-full animate-in fade-in slide-in-from-top-2 duration-300">
+                                                {formData.service_type === "Agregar Equipaje" && (
+                                                    <div className="space-y-3 p-1">
+                                                        <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                                            Seleccionar Opción de Equipaje
+                                                        </Label>
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                            {["1 PC 23 kg", "2 PC 23 kg"].map((opt) => (
+                                                                <div 
+                                                                    key={opt}
+                                                                    className={cn(
+                                                                        "flex items-center gap-3 px-4 py-3 rounded-lg border transition-all cursor-pointer group",
+                                                                        luggageOption.includes(opt)
+                                                                            ? "border-chimipink bg-white ring-1 ring-chimipink/20" 
+                                                                            : "border-slate-200 bg-white hover:border-slate-300"
+                                                                    )}
+                                                                    onClick={(e) => {
+                                                                        e.preventDefault();
+                                                                        toggleLuggage(opt);
+                                                                    }}
+                                                                >
+                                                                    <div className={cn(
+                                                                        "h-4 w-4 rounded border flex items-center justify-center transition-colors",
+                                                                        luggageOption.includes(opt)
+                                                                            ? "bg-chimipink border-chimipink text-white"
+                                                                            : "border-slate-300 bg-slate-50"
+                                                                    )}>
+                                                                        {luggageOption.includes(opt) && <Check className="h-2 w-2" strokeWidth={5} />}
+                                                                    </div>
+                                                                    <span className={cn(
+                                                                        "flex-1 text-xs font-bold select-none transition-colors",
+                                                                        luggageOption.includes(opt) ? "text-chimipink" : "text-slate-600"
+                                                                    )}>
+                                                                        {opt}
+                                                                    </span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                     <div className="space-y-2 relative">
                                                         <Label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
@@ -1095,95 +1162,99 @@ export default function OtherServicesPage() {
                                                                             setFlightSearchResults([])
                                                                         }}
                                                                     >
-                                                                            <div className="flex flex-col">
-                                                                                <span className="text-sm font-bold text-slate-800">{f.display_code}</span>
-                                                                                <span className="text-[10px] text-slate-500 uppercase tracking-wider">{f.client_name}</span>
-                                                                            </div>
+                                                                        <div className="flex flex-col">
+                                                                            <span className="text-sm font-bold text-slate-800">{f.display_code}</span>
+                                                                            <span className="text-[10px] text-slate-500 uppercase tracking-wider">{f.client_name}</span>
                                                                         </div>
-                                                                    ))}
-                                                                </div>
-                                                            )}
-                                                        </div>
-
-                                                        <div className="space-y-2">
-                                                            <Label className="text-xs font-black text-slate-700">FECHA DE VUELO</Label>
-                                                            <Input
-                                                                type="date"
-                                                                value={formData.current_flight_date}
-                                                                onChange={(e) => setFormData(p => ({ ...p, current_flight_date: e.target.value }))}
-                                                                className="h-10 text-sm border-slate-200 focus:ring-chimipink shadow-inner font-bold text-chimipink"
-                                                            />
-                                                        </div>
-
-                                                        <div className="space-y-2">
-                                                            <Label className="text-xs font-black text-slate-700">ESTADO DEL VUELO</Label>
-                                                            <div className="relative group/status">
-                                                                <select
-                                                                    value={formData.flight_status}
-                                                                    onChange={(e) => setFormData(prev => ({ ...prev, flight_status: e.target.value }))}
-                                                                    className={cn(
-                                                                        "flex h-10 w-full appearance-none rounded-xl px-4 py-2 text-[11px] font-black transition-all cursor-pointer shadow-sm border-0 focus:ring-4 focus:ring-offset-2 pr-10",
-                                                                        formData.flight_status === 'Finalizado' 
-                                                                            ? 'bg-emerald-500 text-white focus:ring-emerald-200' 
-                                                                            : formData.flight_status === 'Cancelado' || formData.flight_status === 'Deportado'
-                                                                            ? 'bg-rose-500 text-white focus:ring-rose-200'
-                                                                            : formData.flight_status === 'En tránsito' || formData.flight_status === 'En migración'
-                                                                            ? 'bg-blue-500 text-white focus:ring-blue-200'
-                                                                            : formData.flight_status === 'No-show (no se presentó)'
-                                                                            ? 'bg-slate-600 text-white focus:ring-slate-300'
-                                                                            : formData.flight_status === 'Programado'
-                                                                            ? 'bg-sky-500 text-white focus:ring-sky-200'
-                                                                            : formData.flight_status === 'Reprogramado'
-                                                                            ? 'bg-orange-500 text-white focus:ring-orange-200'
-                                                                            : formData.flight_status === 'Cambio de horario'
-                                                                            ? 'bg-yellow-500 text-white focus:ring-yellow-200'
-                                                                            : formData.flight_status === ''
-                                                                            ? 'bg-slate-100 text-slate-400 font-bold border border-slate-200'
-                                                                            : 'bg-amber-500 text-white focus:ring-amber-200'
-                                                                    )}
-                                                                >
-                                                                    <option value="" className="bg-white text-slate-400">Seleccionar estado...</option>
-                                                                    {FLIGHT_STATUSES.map(s => (
-                                                                        <option key={s} value={s} className="bg-white text-slate-700 font-bold">{s}</option>
-                                                                    ))}
-                                                                </select>
-                                                                <div className={cn(
-                                                                    "absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none transition-colors",
-                                                                    formData.flight_status === "" ? "text-slate-400" : "text-white/80"
-                                                                )}>
-                                                                    <ChevronDown size={14} strokeWidth={3} />
-                                                                </div>
-                                                            </div>
-                                                        </div>
-
-                                                        {formData.flight_date_history && formData.flight_date_history.length > 0 && (
-                                                            <div className="mt-4 p-3 bg-slate-50/50 rounded-lg border border-slate-100 col-span-full">
-                                                                <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-2 px-1">
-                                                                    <RefreshCw className="h-3 w-3" />
-                                                                    Historial de Reprogramación
-                                                                </h4>
-                                                                <div className="space-y-1.5">
-                                                                    {[...formData.flight_date_history].reverse().map((h, i) => (
-                                                                        <div key={i} className="flex flex-col px-2 py-1.5 bg-white/50 rounded-md border border-slate-50">
-                                                                            <div className="flex items-center gap-2">
-                                                                                <div className="h-1 w-1 rounded-full bg-slate-400" />
-                                                                                <span className="text-[10px] font-extrabold text-slate-700">FECHA ANTERIOR: {h.date ? new Date(h.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-'}</span>
-                                                                            </div>
-                                                                            {h.changed_by && (
-                                                                                <span className="text-[8.5px] text-slate-400 italic font-medium ml-3">
-                                                                                    Modificado por: {h.changed_by.split('@')[0]}
-                                                                                </span>
-                                                                            )}
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
+                                                                    </div>
+                                                                ))}
                                                             </div>
                                                         )}
                                                     </div>
-                                                </div>
-                                            )}
 
-                                        {formData.service_type !== "Reprogramación de vuelo" && (
+                                                    {formData.service_type === "Reprogramación de vuelo" && (
+                                                        <>
+                                                            <div className="space-y-2">
+                                                                <Label className="text-xs font-black text-slate-700">FECHA DE VUELO</Label>
+                                                                <Input
+                                                                    type="date"
+                                                                    value={formData.current_flight_date}
+                                                                    onChange={(e) => setFormData(p => ({ ...p, current_flight_date: e.target.value }))}
+                                                                    className="h-10 text-sm border-slate-200 focus:ring-chimipink shadow-inner font-bold text-chimipink"
+                                                                />
+                                                            </div>
+
+                                                            <div className="space-y-2">
+                                                                <Label className="text-xs font-black text-slate-700">ESTADO DEL VUELO</Label>
+                                                                <div className="relative group/status">
+                                                                    <select
+                                                                        value={formData.flight_status}
+                                                                        onChange={(e) => setFormData(prev => ({ ...prev, flight_status: e.target.value }))}
+                                                                        className={cn(
+                                                                            "flex h-10 w-full appearance-none rounded-xl px-4 py-2 text-[11px] font-black transition-all cursor-pointer shadow-sm border-0 focus:ring-4 focus:ring-offset-2 pr-10",
+                                                                            formData.flight_status === 'Finalizado' 
+                                                                                ? 'bg-emerald-500 text-white focus:ring-emerald-200' 
+                                                                                : formData.flight_status === 'Cancelado' || formData.flight_status === 'Deportado'
+                                                                                ? 'bg-rose-500 text-white focus:ring-rose-200'
+                                                                                : formData.flight_status === 'En tránsito' || formData.flight_status === 'En migración'
+                                                                                ? 'bg-blue-500 text-white focus:ring-blue-200'
+                                                                                : formData.flight_status === 'No-show (no se presentó)'
+                                                                                ? 'bg-slate-600 text-white focus:ring-slate-300'
+                                                                                : formData.flight_status === 'Programado'
+                                                                                ? 'bg-sky-500 text-white focus:ring-sky-200'
+                                                                                : formData.flight_status === 'Reprogramado'
+                                                                                ? 'bg-orange-500 text-white focus:ring-orange-200'
+                                                                                : formData.flight_status === 'Cambio de horario'
+                                                                                ? 'bg-yellow-500 text-white focus:ring-yellow-200'
+                                                                                : formData.flight_status === ''
+                                                                                ? 'bg-slate-100 text-slate-400 font-bold border border-slate-200'
+                                                                                : 'bg-amber-500 text-white focus:ring-amber-200'
+                                                                        )}
+                                                                    >
+                                                                        <option value="" className="bg-white text-slate-400">Seleccionar estado...</option>
+                                                                        {FLIGHT_STATUSES.map(s => (
+                                                                            <option key={s} value={s} className="bg-white text-slate-700 font-bold">{s}</option>
+                                                                        ))}
+                                                                    </select>
+                                                                    <div className={cn(
+                                                                        "absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none transition-colors",
+                                                                        formData.flight_status === "" ? "text-slate-400" : "text-white/80"
+                                                                    )}>
+                                                                        <ChevronDown size={14} strokeWidth={3} />
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </div>
+
+                                                {formData.service_type === "Reprogramación de vuelo" && formData.flight_date_history && formData.flight_date_history.length > 0 && (
+                                                    <div className="mt-4 p-3 bg-slate-50/50 rounded-lg border border-slate-100 col-span-full">
+                                                        <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-2 px-1">
+                                                            <RefreshCw className="h-3 w-3" />
+                                                            Historial de Reprogramación
+                                                        </h4>
+                                                        <div className="space-y-1.5">
+                                                            {[...formData.flight_date_history].reverse().map((h, i) => (
+                                                                <div key={i} className="flex flex-col px-2 py-1.5 bg-white/50 rounded-md border border-slate-50">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className="h-1 w-1 rounded-full bg-slate-400" />
+                                                                        <span className="text-[10px] font-extrabold text-slate-700">FECHA ANTERIOR: {h.date ? new Date(h.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-'}</span>
+                                                                    </div>
+                                                                    {h.changed_by && (
+                                                                        <span className="text-[8.5px] text-slate-400 italic font-medium ml-3">
+                                                                            Modificado por: {h.changed_by.split('@')[0]}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {!(formData.service_type === "Reprogramación de vuelo" || formData.service_type === "Agregar Equipaje") && (
                                             <div className="grid gap-2 relative">
                                                 <Label className="text-xs font-bold text-slate-700">Llegada / Recojo</Label>
                                                 <div className="relative">
