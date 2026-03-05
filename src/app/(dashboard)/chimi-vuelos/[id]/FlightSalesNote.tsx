@@ -175,58 +175,58 @@ export function FlightSalesNote({ flight, onClose }: { flight: Flight, onClose: 
                         </div>
                     </div>
 
-                    <div className="p-6 md:p-10">
+                    <div className="p-4 md:p-8">
                         {/* Section: Information Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                             {/* Client Section */}
-                            <div className="space-y-3">
-                                <div className="flex items-center gap-2 border-b-2 border-slate-900 pb-1.5">
-                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900">I. Datos del Cliente</h3>
+                             <div className="space-y-2">
+                                <div className="flex items-center gap-2 border-b-2 border-slate-900 pb-1">
+                                    <h3 className="text-[9px] font-black uppercase tracking-widest text-slate-900">I. Datos del Cliente</h3>
                                 </div>
-                                <div className="grid grid-cols-1 gap-3 pt-1">
-                                    <div className="bg-slate-50 px-3 py-2 rounded border border-slate-100">
-                                        <p className="text-[8px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Nombre y Apellido</p>
-                                        <p className="text-xs font-black text-slate-900 uppercase leading-none">{(flight.profiles?.first_name || 'PASAJERO').toUpperCase()} {(flight.profiles?.last_name || '').toUpperCase()}</p>
+                                <div className="grid grid-cols-1 gap-2 pt-0.5">
+                                    <div className="bg-slate-50 px-2 py-1.5 rounded border border-slate-100">
+                                        <p className="text-[7px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Nombre y Apellido</p>
+                                        <p className="text-[10px] font-black text-slate-900 uppercase leading-none">{(flight.profiles?.first_name || 'PASAJERO').toUpperCase()} {(flight.profiles?.last_name || '').toUpperCase()}</p>
                                     </div>
-                                    <div className="flex gap-3">
-                                        <div className="bg-slate-50 px-3 py-2 rounded border border-slate-100 flex-1">
-                                            <p className="text-[8px] font-black uppercase text-slate-400 tracking-widest mb-0.5">DNI / Documento</p>
-                                            <p className="text-xs font-black text-slate-900 leading-none">{flight.profiles?.document_number || '---'}</p>
+                                    <div className="flex gap-2">
+                                        <div className="bg-slate-50 px-2 py-1.5 rounded border border-slate-100 flex-1">
+                                            <p className="text-[7px] font-black uppercase text-slate-400 tracking-widest mb-0.5">DNI / Documento</p>
+                                            <p className="text-[10px] font-black text-slate-900 leading-none">{flight.profiles?.document_number || '---'}</p>
                                         </div>
-                                        <div className="bg-slate-50 px-3 py-2 rounded border border-slate-100 flex-1">
-                                            <p className="text-[8px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Teléfono</p>
-                                            <p className="text-xs font-black text-slate-900 leading-none">{flight.profiles?.phone || '---'}</p>
+                                        <div className="bg-slate-50 px-2 py-1.5 rounded border border-slate-100 flex-1">
+                                            <p className="text-[7px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Teléfono</p>
+                                            <p className="text-[10px] font-black text-slate-900 leading-none">{flight.profiles?.phone || '---'}</p>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Flight Section */}
-                            <div className="space-y-3">
-                                <div className="flex items-center gap-2 border-b-2 border-slate-900 pb-1.5">
-                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900">II. Detalles del Itinerario</h3>
+                             <div className="space-y-2">
+                                <div className="flex items-center gap-2 border-b-2 border-slate-900 pb-1">
+                                    <h3 className="text-[9px] font-black uppercase tracking-widest text-slate-900">II. Detalles del Itinerario</h3>
                                 </div>
-                                <div className="grid grid-cols-1 gap-3 pt-1">
-                                    <div className="bg-linear-to-r from-chimipink to-chimicyan text-slate-950 px-3 py-3 rounded flex justify-between items-center shadow-md border border-chimipink/20">
+                                <div className="grid grid-cols-1 gap-2 pt-0.5">
+                                    <div className="bg-linear-to-r from-chimipink to-chimicyan text-slate-950 px-2.5 py-2 rounded flex justify-between items-center shadow-md border border-chimipink/20">
                                         <div>
-                                            <p className="text-[8px] font-black text-slate-950/70 uppercase tracking-widest mb-0.5 leading-none">PNR / Reserva</p>
-                                            <p className="text-sm font-black tracking-[0.2em] leading-none">{flight.pnr || 'CONFIRMAR'}</p>
+                                            <p className="text-[7px] font-black text-slate-950/70 uppercase tracking-widest mb-0.5 leading-none">PNR / Reserva</p>
+                                            <p className="text-[13px] font-black tracking-[0.2em] leading-none">{flight.pnr || 'CONFIRMAR'}</p>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-[8px] font-black text-slate-950/70 uppercase tracking-widest mb-0.5 leading-none">Ruta</p>
-                                            <p className="text-xs font-black uppercase leading-none">{flight.itinerary}</p>
+                                            <p className="text-[7px] font-black text-slate-950/70 uppercase tracking-widest mb-0.5 leading-none">Ruta</p>
+                                            <p className="text-[10px] font-black uppercase leading-none">{flight.itinerary}</p>
                                         </div>
                                     </div>
-                                    <div className="flex gap-3">
-                                        <div className="bg-slate-50 px-3 py-2 rounded border border-slate-100 flex-1">
-                                            <p className="text-[8px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Salida</p>
-                                            <p className="text-xs font-black text-slate-900 leading-tight">
+                                    <div className="flex gap-2">
+                                        <div className="bg-slate-50 px-2 py-1.5 rounded border border-slate-100 flex-1">
+                                            <p className="text-[7px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Salida</p>
+                                            <p className="text-[10px] font-black text-slate-900 leading-tight">
                                                 {flight.travel_date ? new Date(flight.travel_date as string).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }) : '---'}
                                             </p>
                                         </div>
-                                        <div className="bg-slate-50 px-3 py-2 rounded border border-slate-100 flex-1">
-                                            <p className="text-[8px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Retorno</p>
-                                            <p className="text-xs font-black text-slate-900 leading-tight">
+                                        <div className="bg-slate-50 px-2 py-1.5 rounded border border-slate-100 flex-1">
+                                            <p className="text-[7px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Retorno</p>
+                                            <p className="text-[10px] font-black text-slate-900 leading-tight">
                                                 {flight.return_date ? new Date(flight.return_date as string).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }) : 'SOLO IDA'}
                                             </p>
                                         </div>
@@ -236,34 +236,34 @@ export function FlightSalesNote({ flight, onClose }: { flight: Flight, onClose: 
                         </div>
 
                         {/* Section: Service Detail Table */}
-                        <div className="mb-6">
-                            <div className="flex items-center gap-2 border-b-2 border-slate-900 pb-1.5 mb-3">
-                                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900">III. Detalle de Servicios Adquiridos</h3>
+                         <div className="mb-4">
+                            <div className="flex items-center gap-2 border-b-2 border-slate-900 pb-1 mb-2">
+                                <h3 className="text-[9px] font-black uppercase tracking-widest text-slate-900">III. Detalle de Servicios Adquiridos</h3>
                             </div>
                             <div className="overflow-hidden border border-slate-200 rounded">
                                 <table className="w-full text-left border-collapse">
                                     <thead>
-                                        <tr className="bg-slate-100 text-[8px] font-black uppercase tracking-widest text-slate-500 border-b border-slate-200">
-                                            <th className="py-2 px-4 border-r border-slate-200">Descripción del Servicio</th>
-                                            <th className="py-2 px-4 text-center w-[100px]">Estado</th>
-                                            <th className="py-2 px-4 text-right w-[100px]">Importe</th>
+                                        <tr className="bg-slate-100 text-[7px] font-black uppercase tracking-widest text-slate-500 border-b border-slate-200">
+                                            <th className="py-1.5 px-3 border-r border-slate-200">Descripción del Servicio</th>
+                                            <th className="py-1.5 px-3 text-center w-[100px]">Estado</th>
+                                            <th className="py-1.5 px-3 text-right w-[100px]">Importe</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="text-[10px]">
+                                    <tbody className="text-[9px]">
                                         <tr className="border-b border-slate-100">
-                                            <td className="py-2 px-4 border-r border-slate-200">
-                                                <p className="font-black text-slate-900 uppercase leading-none text-[9px]">Emisión de Boletos Aéreos</p>
-                                                <div className="flex gap-3 mt-1 text-[7px] text-slate-500 font-bold uppercase">
+                                            <td className="py-1.5 px-3 border-r border-slate-200">
+                                                <p className="font-black text-slate-900 uppercase leading-none text-[8px]">Emisión de Boletos Aéreos</p>
+                                                <div className="flex gap-2.5 mt-1 text-[7px] text-slate-400 font-bold uppercase">
                                                     <span>Adultos: {flight.pax_adt || 0}</span>
                                                     <span>Niños: {flight.pax_chd || 0}</span>
                                                     <span>Infantes: {flight.pax_inf || 0}</span>
-                                                    <span className="text-slate-900 underline">Total Pax: {flight.pax_total || 0}</span>
+                                                    <span className="text-slate-700 underline underline-offset-2">Total Pax: {flight.pax_total || 0}</span>
                                                 </div>
                                             </td>
-                                            <td className="py-2 px-4 text-center">
+                                            <td className="py-1.5 px-3 text-center">
                                                 <span className="bg-slate-900 text-white text-[7px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter">Confirmado</span>
                                             </td>
-                                            <td className="py-2 px-4 text-right font-bold text-slate-900">
+                                            <td className="py-1.5 px-3 text-right font-black text-slate-900">
                                                 € {flight.sold_price.toFixed(2)}
                                             </td>
                                         </tr>
@@ -271,23 +271,23 @@ export function FlightSalesNote({ flight, onClose }: { flight: Flight, onClose: 
                                             if (!val || !DETAILS_LABELS[key]) return null;
                                             return (
                                                 <tr key={key} className="border-b border-slate-100">
-                                                    <td className="py-2 px-4 border-r border-slate-200">
-                                                        <p className="font-bold text-slate-700 uppercase leading-none text-[9px]">{DETAILS_LABELS[key]}</p>
+                                                    <td className="py-1.5 px-3 border-r border-slate-200">
+                                                        <p className="font-bold text-slate-600 uppercase leading-none text-[8px]">{DETAILS_LABELS[key]}</p>
                                                     </td>
-                                                    <td className="py-2 px-4 text-center">
+                                                    <td className="py-1.5 px-3 text-center">
                                                         <span className="bg-emerald-100 text-emerald-700 text-[7px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter">Incluido</span>
                                                     </td>
-                                                    <td className="py-2 px-4 text-right text-slate-400 italic">
+                                                    <td className="py-1.5 px-3 text-right text-slate-300 italic">
                                                         --
                                                     </td>
                                                 </tr>
                                             )
                                         })}
                                         <tr className="bg-linear-to-r from-chimipink to-chimicyan text-slate-950">
-                                            <td colSpan={2} className="py-2 px-4 text-right font-black uppercase tracking-widest text-[8px]">
+                                            <td colSpan={2} className="py-1.5 px-3 text-right font-black uppercase tracking-widest text-[7px]">
                                                 Total Neto de Servicios (EUR)
                                             </td>
-                                            <td className="py-2 px-4 text-right font-black text-sm">
+                                            <td className="py-1.5 px-3 text-right font-black text-xs">
                                                 € {flight.sold_price.toFixed(2)}
                                             </td>
                                         </tr>
@@ -297,9 +297,9 @@ export function FlightSalesNote({ flight, onClose }: { flight: Flight, onClose: 
                         </div>
 
                         {/* Section: Payment History */}
-                        <div className="mb-8">
-                            <div className="flex items-center gap-2 border-b-2 border-slate-900 pb-1.5 mb-3">
-                                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900">IV. Historial de Pagos y Transacciones</h3>
+                         <div className="mb-6">
+                            <div className="flex items-center gap-2 border-b-2 border-slate-900 pb-1 mb-2">
+                                <h3 className="text-[9px] font-black uppercase tracking-widest text-slate-900">IV. Historial de Pagos y Transacciones</h3>
                             </div>
                             <div className="overflow-hidden border border-slate-200 rounded">
                                 <table className="w-full text-left border-collapse">
@@ -348,22 +348,22 @@ export function FlightSalesNote({ flight, onClose }: { flight: Flight, onClose: 
                         </div>
 
                         {/* Section: Payments & Totals */}
-                        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-8">
+                         <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-6">
                             {/* Terms */}
-                            <div className="md:col-span-7 space-y-3">
-                                <div className="bg-amber-50 p-4 rounded border border-amber-100">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <AlertCircle size={12} className="text-amber-600" />
-                                        <h4 className="text-[8px] font-black uppercase tracking-[0.2em] text-amber-700">Términos y condiciones de la reserva</h4>
+                            <div className="md:col-span-7 space-y-2">
+                                <div className="bg-amber-50 p-2.5 rounded border border-amber-100">
+                                    <div className="flex items-center gap-2 mb-1.5">
+                                        <AlertCircle size={10} className="text-amber-600" />
+                                        <h4 className="text-[7px] font-black uppercase tracking-[0.15em] text-amber-700">Términos y condiciones de la reserva</h4>
                                     </div>
-                                    <ul className="space-y-1.5">
+                                    <ul className="space-y-1">
                                         {[
                                             "Los boletos aéreos están sujetos a las regulaciones tarifarias de cada aerolínea.",
                                             "Los servicios opcionales (Hoteles, Seguros) no permiten reembolsos una vez confirmados.",
                                             "El pasajero es responsable de portar sus documentos de identidad y visas vigentes.",
                                             "Chimi Vuelos actúa únicamente como intermediario entre el pasajero y el transportista."
                                         ].map((text, i) => (
-                                            <li key={i} className="text-[8px] text-amber-700/80 flex gap-2 leading-none">
+                                            <li key={i} className="text-[7.5px] text-amber-700/80 flex gap-1.5 leading-none">
                                                 <span className="font-black text-amber-500">•</span>
                                                 {text}
                                             </li>
@@ -371,21 +371,21 @@ export function FlightSalesNote({ flight, onClose }: { flight: Flight, onClose: 
                                     </ul>
                                 </div>
                             </div>
-
+ 
                             {/* Final Financials */}
                             <div className="md:col-span-5">
-                                <div className="space-y-2">
-                                    <div className="flex justify-between items-center py-1.5 px-3 bg-slate-50 rounded border border-slate-100">
-                                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Total Servicios</span>
-                                        <span className="text-xs font-black text-slate-900">€ {flight.sold_price.toFixed(2)}</span>
+                                <div className="space-y-1.5">
+                                    <div className="flex justify-between items-center py-1 px-3 bg-slate-50 rounded border border-slate-100">
+                                        <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Total Servicios</span>
+                                        <span className="text-[10px] font-black text-slate-900">€ {flight.sold_price.toFixed(2)}</span>
                                     </div>
-                                    <div className="flex justify-between items-center py-1.5 px-3 bg-emerald-50 rounded border border-emerald-100">
-                                        <span className="text-[8px] font-black text-emerald-700 uppercase tracking-widest">Total Pagado</span>
-                                        <span className="text-xs font-black text-emerald-700">€ {flight.on_account.toFixed(2)}</span>
+                                    <div className="flex justify-between items-center py-1 px-3 bg-emerald-50 rounded border border-emerald-100">
+                                        <span className="text-[7px] font-black text-emerald-700 uppercase tracking-widest">Total Pagado</span>
+                                        <span className="text-[10px] font-black text-emerald-700">€ {flight.on_account.toFixed(2)}</span>
                                     </div>
-                                    <div className="flex justify-between items-center py-2 px-4 bg-linear-to-r from-chimipink to-chimicyan text-slate-950 rounded shadow-md mt-1 border border-chimipink/20">
-                                        <span className="text-[9px] font-black uppercase tracking-widest leading-none">Saldo Pendiente</span>
-                                        <span className="text-sm font-black leading-none">€ {flight.balance.toFixed(2)}</span>
+                                    <div className="flex justify-between items-center py-1.5 px-3 bg-linear-to-r from-chimipink to-chimicyan text-slate-950 rounded shadow-md mt-0.5 border border-chimipink/20">
+                                        <span className="text-[8px] font-black uppercase tracking-widest leading-none">Saldo Pendiente</span>
+                                        <span className="text-xs font-black leading-none">€ {flight.balance.toFixed(2)}</span>
                                     </div>
                                 </div>
                             </div>
