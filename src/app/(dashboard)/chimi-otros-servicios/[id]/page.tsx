@@ -13,7 +13,8 @@ import {
     Calendar,
     Plane,
     MapPin,
-    ClipboardList
+    ClipboardList,
+    Printer
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -26,12 +27,14 @@ import {
     type PaymentDetail
 } from "@/app/actions/manage-other-services"
 import { cn } from "@/lib/utils"
+import { OtherSalesNote } from "./OtherSalesNote"
 
 export default function OtherServiceDetailsPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params)
     const [service, setService] = useState<OtherService | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [showSalesNote, setShowSalesNote] = useState(false)
 
     useEffect(() => {
         getOtherServiceFullDetails(id).then(res => {
@@ -103,7 +106,7 @@ export default function OtherServiceDetailsPage({ params }: { params: Promise<{ 
             </Link>
 
             {/* Unified Main Container */}
-            <Card className="border-slate-200 shadow-xl rounded-xl overflow-hidden bg-white">
+            <Card className="border-slate-200 shadow-xl rounded-3xl overflow-hidden bg-white">
                 
                 {/* Header Section */}
                 <div className="bg-slate-50/50 p-6 md:p-8 border-b border-slate-100">
@@ -120,7 +123,14 @@ export default function OtherServiceDetailsPage({ params }: { params: Promise<{ 
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-10">
+                        <div className="flex items-center gap-6">
+                            <Button 
+                                onClick={() => setShowSalesNote(true)}
+                                className="bg-slate-800 hover:bg-slate-900 text-white gap-2 font-bold px-5 h-11 rounded-xl shadow-lg shadow-slate-200 transition-all active:scale-95"
+                            >
+                                <Printer size={18} />
+                                <span className="hidden sm:inline">Nota de Venta</span>
+                            </Button>
                             <div className="space-y-1 text-right md:text-left">
                                 <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Cliente</span>
                                 <div className="flex items-center gap-3 justify-end md:justify-start">
@@ -375,6 +385,9 @@ export default function OtherServiceDetailsPage({ params }: { params: Promise<{ 
                 </CardContent>
             </Card>
 
+            {showSalesNote && service && (
+                <OtherSalesNote service={service} onClose={() => setShowSalesNote(false)} />
+            )}
         </div>
     )
 }

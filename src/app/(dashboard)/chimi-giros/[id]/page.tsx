@@ -15,7 +15,8 @@ import {
     User,
     ArrowRightLeft,
     Banknote,
-    NotebookPen
+    NotebookPen,
+    Printer
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -29,12 +30,14 @@ import {
     type MoneyTransfer
 } from "@/app/actions/manage-transfers"
 import { cn } from "@/lib/utils"
+import { GiroSalesNote } from "./GiroSalesNote"
 
 export default function TransferDetailsPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params)
     const [transfer, setTransfer] = useState<MoneyTransfer | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [showSalesNote, setShowSalesNote] = useState(false)
 
     useEffect(() => {
         getTransferFullDetails(id).then(res => {
@@ -124,7 +127,14 @@ export default function TransferDetailsPage({ params }: { params: Promise<{ id: 
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-10">
+                        <div className="flex items-center gap-6">
+                            <Button 
+                                onClick={() => setShowSalesNote(true)}
+                                className="bg-slate-800 hover:bg-slate-900 text-white gap-2 font-bold px-5 h-11 rounded-xl shadow-lg shadow-slate-200 transition-all active:scale-95"
+                            >
+                                <Printer size={18} />
+                                <span className="hidden sm:inline">Nota de Venta</span>
+                            </Button>
                             <div className="space-y-1">
                                 <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Cliente Remitente</span>
                                 <div className="flex items-center gap-3">
@@ -440,6 +450,9 @@ export default function TransferDetailsPage({ params }: { params: Promise<{ id: 
                 </CardContent>
             </Card>
 
+            {showSalesNote && transfer && (
+                <GiroSalesNote transfer={transfer} onClose={() => setShowSalesNote(false)} />
+            )}
         </div>
     )
 }
