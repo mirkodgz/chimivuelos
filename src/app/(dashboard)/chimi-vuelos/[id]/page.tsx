@@ -6,7 +6,6 @@ import {
     ChevronLeft, 
     Calendar, 
     FileText, 
-    Plane, 
     CreditCard,
     Info,
     CheckCircle2,
@@ -23,8 +22,51 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { getFlightFullDetails, getFlightDocumentUrl } from "@/app/actions/manage-flights"
+import { 
+    getFlightFullDetails, 
+    getFlightDocumentUrl,
+    type FlightDocument,
+    type PaymentDetail,
+    type DateHistoryEntry 
+} from "@/app/actions/manage-flights"
 import { cn } from "@/lib/utils"
+
+interface Flight {
+    id: string;
+    pnr: string;
+    status: string;
+    client_id: string;
+    itinerary: string;
+    ticket_type?: string;
+    travel_date?: string;
+    return_date?: string;
+    pax_total?: number;
+    pax_adt?: number;
+    pax_chd?: number;
+    pax_inf?: number;
+    details?: Record<string, boolean>;
+    required_documents?: Record<string, { required: boolean; status: string; extra?: string }>;
+    minor_travel_with?: string;
+    payment_details?: PaymentDetail[];
+    iata_gds?: string;
+    agent?: { first_name: string; last_name: string };
+    profiles?: { 
+        first_name: string; 
+        last_name: string; 
+        email: string;
+        phone: string;
+        document_number: string;
+    };
+    sold_price: number;
+    cost: number;
+    fee_agv: number;
+    on_account: number;
+    balance: number;
+    documents?: FlightDocument[];
+    client_note?: string;
+    internal_note?: string;
+    flight_date_history?: DateHistoryEntry[];
+}
 
 const DETAILS_LABELS: Record<string, string> = {
     ticket_one_way: "Pasaje solo ida",
@@ -52,7 +94,7 @@ const DETAILS_LABELS: Record<string, string> = {
 
 export default function FlightDetailsPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params)
-    const [flight, setFlight] = useState<any | null>(null)
+    const [flight, setFlight] = useState<Flight | null>(null)
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
@@ -107,7 +149,7 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
     }
 
     return (
-        <div className="max-w-6xl mx-auto space-y-6 py-6 px-4 animate-in fade-in duration-500">
+        <div className="max-w-7xl mx-auto space-y-6 py-6 px-4 animate-in fade-in duration-500">
             
             {/* Top Navigation */}
             <Link href="/chimi-vuelos">
@@ -118,15 +160,12 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
             </Link>
 
             {/* Unified Main Container */}
-            <Card className="border-slate-200 shadow-xl rounded-[2.5rem] overflow-hidden bg-white">
+            <Card className="border-slate-200 shadow-xl rounded-3xl overflow-hidden bg-white">
                 
                 {/* Header Section - Integrated */}
-                <div className="bg-slate-50/50 p-8 md:p-12 border-b border-slate-100">
+                <div className="bg-slate-50/50 p-6 md:p-8 border-b border-slate-100">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                         <div className="flex items-center gap-5">
-                            <div className="h-16 w-16 rounded-2xl bg-white flex items-center justify-center shadow-sm border border-slate-200">
-                                <Plane className="h-8 w-8 text-chimipink" />
-                            </div>
                             <div>
                                 <div className="flex items-center gap-3 mb-1">
                                     <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Reserva PNR</span>
@@ -134,7 +173,7 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
                                         {flight.status}
                                     </Badge>
                                 </div>
-                                <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{flight.pnr || '---'}</h1>
+                                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{flight.pnr || '---'}</h1>
                             </div>
                         </div>
 
@@ -157,7 +196,7 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
                     <div className="grid grid-cols-1 lg:grid-cols-12">
                         
                         {/* Main Body Column */}
-                        <div className="lg:col-span-8 p-8 md:p-12 space-y-12 border-b lg:border-b-0 lg:border-r border-slate-100">
+                        <div className="lg:col-span-8 p-6 md:p-8 space-y-12 border-b lg:border-b-0 lg:border-r border-slate-100">
                             
                             {/* 1. Trip Information Detail */}
                             <section className="space-y-8">
@@ -245,7 +284,7 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
                                     </div>
                                     <div className="space-y-3">
                                         {flight.required_documents && Object.keys(flight.required_documents).length > 0 ? (
-                                            Object.entries(flight.required_documents as Record<string, any>).map(([name, data]) => {
+                                            Object.entries(flight.required_documents).map(([name, data]) => {
                                                 if (!data.required && data.status === 'no') return null
                                                 return (
                                                     <div key={name} className="flex items-center justify-between text-xs bg-slate-50/50 px-3 py-2.5 rounded-xl border border-slate-100/50">
@@ -286,7 +325,7 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
                                 <div className="space-y-4">
                                     {flight.payment_details && flight.payment_details.length > 0 ? (
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            {flight.payment_details.map((payment: any, idx: number) => (
+                                            {flight.payment_details.map((payment: PaymentDetail, idx: number) => (
                                                 <div key={idx} className="p-5 bg-white border border-slate-100 rounded-[1.5rem] shadow-xs relative overflow-hidden group">
                                                     <div className="absolute top-0 left-0 w-1 h-full bg-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                                                     <div className="flex justify-between items-center text-[10px] text-slate-400 font-black uppercase tracking-widest border-b border-slate-50 pb-3 mb-3">
@@ -307,7 +346,7 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
                                                     </div>
                                                     {payment.proof_path && (
                                                         <button 
-                                                            onClick={() => handleDownload(payment.proof_path, payment.proof_path.startsWith('clients/') ? 'r2' : 'images')}
+                                                            onClick={() => handleDownload(payment.proof_path!, payment.proof_path!.startsWith('clients/') ? 'r2' : 'images')}
                                                             className="mt-4 w-full h-8 text-[10px] font-black text-chimiteal bg-teal-50/50 hover:bg-teal-50 rounded-xl flex items-center justify-center gap-2 border border-teal-100/30 tracking-widest"
                                                         >
                                                             <Download className="h-3 w-3" /> VER COMPROBANTE
@@ -326,7 +365,7 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
                         </div>
 
                         {/* Sidebar Column within the Card */}
-                        <div className="lg:col-span-4 bg-slate-50/30 p-8 md:p-12 space-y-12">
+                        <div className="lg:col-span-4 bg-slate-50/30 p-6 md:p-8 space-y-12">
                             
                             {/* Technical Details - Integrated Sidebar */}
                             <section className="space-y-6">
@@ -372,10 +411,15 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
                                         <span className="text-[10px] font-black uppercase text-emerald-600 tracking-wider">Comisión (Fee)</span>
                                         <span className="text-sm font-black text-emerald-700">€ {flight.fee_agv.toFixed(2)}</span>
                                     </div>
-                                    <div className="bg-emerald-500 p-4 rounded-xl text-white shadow-lg shadow-emerald-500/10">
-                                        <span className="text-[9px] font-black uppercase tracking-wider block mb-1">Total Abonado</span>
-                                        <p className="text-2xl font-black leading-none inline-block">€ {flight.on_account.toFixed(2)}</p>
-                                        <p className="text-[10px] mt-1 opacity-80 font-bold uppercase tracking-widest underline decoration-white/30 underline-offset-2">Saldo: € {flight.balance.toFixed(2)}</p>
+                                    <div className="flex justify-between text-xs pt-1">
+                                        <span className="text-slate-500 font-medium uppercase tracking-tighter">Total Abonado</span>
+                                        <span className="font-bold text-emerald-600">€ {flight.on_account.toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                        <span className="text-slate-500 font-medium uppercase tracking-tighter">Saldo Pendiente</span>
+                                        <span className={cn("font-bold", flight.balance > 0 ? "text-rose-500" : "text-emerald-600")}>
+                                            € {flight.balance.toFixed(2)}
+                                        </span>
                                     </div>
                                 </Card>
                             </section>
@@ -388,7 +432,7 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
                                 </div>
                                 <div className="space-y-3">
                                     {flight.documents && flight.documents.length > 0 ? (
-                                        flight.documents.map((doc: any, i: number) => (
+                                        flight.documents.map((doc: FlightDocument, i: number) => (
                                             <div key={i} className="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-2xl hover:border-chimicyan/50 transition-colors group">
                                                 <div className="flex items-center gap-3 min-w-0">
                                                     <div className="h-8 w-8 rounded-lg bg-slate-50 flex items-center justify-center shrink-0">
@@ -447,7 +491,7 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
                                         <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Trazabilidad</h3>
                                     </div>
                                     <div className="space-y-5 relative before:absolute before:inset-0 before:left-2.5 before:w-0.5 before:bg-slate-100 pl-8">
-                                        {flight.flight_date_history.map((h: any, i: number) => (
+                                        {flight.flight_date_history.map((h: DateHistoryEntry, i: number) => (
                                             <div key={i} className="relative">
                                                 <div className="absolute -left-8 top-1.5 h-3 w-3 rounded-full bg-white border-2 border-amber-400 z-10" />
                                                 <p className="text-xs font-bold text-slate-700">Cambio: {new Date(h.date).toLocaleDateString()}</p>
@@ -462,10 +506,6 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
                 </CardContent>
             </Card>
 
-            {/* Print Footer Placeholder */}
-            <div className="flex justify-center text-slate-300 text-[10px] font-black uppercase tracking-[0.3em] py-10">
-                Resumen Oficial Chimivuelos — Generado Automáticamente
-            </div>
         </div>
     )
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react"
 import Image from "next/image"
+import Link from "next/link"
 import { 
     Search, Plus, Trash2, Pencil, Copy, Check, FileText, Building2, Download, X, ChevronLeft, ChevronDown, ChevronRight, FileSpreadsheet, NotebookPen, Calendar, FolderOpen, ClipboardList, Wallet
 } from "lucide-react"
@@ -2195,9 +2196,14 @@ export default function MoneyTransfersPage() {
                                                 {new Date(transfer.created_at).toLocaleDateString('es-PE')}
                                             </td>
                                             <td className="px-6 py-4">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-mono text-slate-600">{transfer.transfer_code || '-'}</span>
-                                                    {transfer.transfer_code && (
+                                                 <div className="flex items-center gap-2">
+                                                     <Link 
+                                                         href={`/chimi-giros/${transfer.id}`}
+                                                         className="font-mono text-slate-600 hover:text-chimipink hover:underline transition-colors"
+                                                     >
+                                                         {transfer.transfer_code || '-'}
+                                                     </Link>
+                                                     {transfer.transfer_code && (
                                                         <div className="flex items-center gap-1">
                                                             <Button 
                                                                 variant="ghost" 

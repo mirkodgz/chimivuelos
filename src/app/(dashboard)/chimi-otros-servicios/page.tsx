@@ -1,5 +1,6 @@
 'use client'
 
+import Link from "next/link"
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
@@ -1545,8 +1546,8 @@ export default function OtherServicesPage() {
                                                         </div>
                                                         <div className="flex gap-1">
                                                             <Button type="button" variant="ghost" size="sm" className="h-8 w-8 text-blue-500 hover:bg-blue-50" onClick={async () => {
-                                                                const url = await getOtherServiceDocumentUrl(doc.path, doc.storage)
-                                                                window.open(url, '_blank')
+                                                                const res = await getOtherServiceDocumentUrl(doc.path, doc.storage)
+                                                                if (res.url) window.open(res.url, '_blank')
                                                             }}>
                                                                 <Download className="h-4 w-4" />
                                                             </Button>
@@ -1660,7 +1661,12 @@ export default function OtherServicesPage() {
                                         </td>
                                         <td className="p-4 py-3">
                                             <div className="flex items-center gap-2">
-                                                <span className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">{s.tracking_code}</span>
+                                                <Link 
+                                                    href={`/chimi-otros-servicios/${s.id}`}
+                                                    className="hover:text-chimipink hover:underline transition-all duration-200"
+                                                >
+                                                    <span className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">{s.tracking_code}</span>
+                                                </Link>
                                                 <div className="flex items-center gap-1">
                                                     <Button 
                                                         variant="ghost" 

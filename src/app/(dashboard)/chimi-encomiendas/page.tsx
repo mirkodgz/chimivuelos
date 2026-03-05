@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import Image from "next/image"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -1725,7 +1726,12 @@ export default function ParcelsPage() {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="font-mono text-slate-600 font-bold">{parcel.tracking_code || '-'}</span>
+                                                    <Link 
+                                                        href={`/chimi-encomiendas/${parcel.id}`}
+                                                        className="font-mono text-slate-600 font-bold hover:text-chimipink hover:underline transition-colors"
+                                                    >
+                                                        {parcel.tracking_code || '-'}
+                                                    </Link>
                                                     {parcel.tracking_code && (
                                                         <div className="flex items-center gap-1">
                                                             <Button 

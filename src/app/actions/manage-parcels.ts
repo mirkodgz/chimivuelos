@@ -7,6 +7,66 @@ import { createClient } from "@/lib/supabase/server"
 import { getActivePermissionDetails, consumeEditPermission } from "./manage-permissions"
 import { recordAuditLog } from "@/lib/audit"
 
+export interface ParcelDocument {
+    title: string
+    path: string
+    name: string
+    type: string
+    size: number
+    storage: 'r2' | 'images'
+    uploaded_at?: string
+}
+
+export interface PaymentDetail {
+    sede_it: string
+    sede_pe: string
+    metodo_it: string
+    metodo_pe: string
+    cantidad: string
+    tipo_cambio: number
+    total: string
+    moneda?: string
+    monto_original?: string
+    created_at?: string
+    proof_path?: string
+}
+
+export interface Parcel {
+    id: string
+    created_at: string
+    sender_id: string
+    recipient_name: string
+    recipient_phone: string
+    recipient_address: string
+    origin_address: string
+    origin_address_client: string
+    destination_address: string
+    destination_address_client: string
+    package_type: string
+    package_weight: string
+    package_description: string
+    shipping_cost: number
+    on_account: number
+    status: 'pending' | 'in_transit' | 'delivered' | 'returned' | 'cancelled'
+    tracking_code: string
+    client_note?: string
+    internal_note?: string
+    documents?: ParcelDocument[]
+    payment_details?: PaymentDetail[]
+    agent_id?: string
+    profiles?: {
+        first_name: string
+        last_name: string
+        email: string
+        phone: string
+        document_number: string
+    }
+    agent?: {
+        first_name: string
+        last_name: string
+    }
+}
+
 export async function getParcels() {
     const supabase = supabaseAdmin
     const { data, error } = await supabase
@@ -472,7 +532,59 @@ export async function updateParcelStatus(id: string, status: string) {
 }
 
 export async function getParcelDocumentUrl(path: string, storage: StorageType = 'r2') {
-    return await getFileUrl(path, storage)
+    try {
+        const url = await getFileUrl(path, storage)
+        return { url }
+    } catch (error) {
+        console.error('Error generating parcel URL:', error)
+        return { error: 'Failed to generate download URL' }
+    }
+}
+
+/**
+ * Get parcel full details for the single page
+ */
+export async function getParcelFullDetails(id: string) {
+    const supabase = supabaseAdmin
+    try {
+        const { data: parcel, error } = await supabase
+            .from('parcels')
+            .select(`
+                *,
+                profiles:sender_id (
+                    first_name,
+                    last_name,
+                    email,
+                    phone,
+                    document_number
+                )
+            `)
+            .eq('id', id)
+            .single()
+
+        if (error) {
+            console.error('Error fetching parcel:', error)
+            return { success: false, error: 'Encomienda no encontrada' }
+        }
+
+        // Fetch agent details separately if agent_id exists
+        if (parcel.agent_id) {
+            const { data: agentData } = await supabase
+                .from('profiles')
+                .select('first_name, last_name')
+                .eq('id', parcel.agent_id)
+                .single()
+            
+            if (agentData) {
+                (parcel as unknown as Parcel).agent = agentData
+            }
+        }
+
+        return { success: true, parcel: parcel as unknown as Parcel }
+    } catch (error) {
+        console.error('Error fetching parcel details:', error)
+        return { success: false, error: (error as Error).message }
+    }
 }
 
 /**

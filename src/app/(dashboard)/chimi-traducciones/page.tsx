@@ -1,5 +1,6 @@
 'use client'
 
+import Link from "next/link"
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
@@ -150,7 +151,7 @@ const DocumentPreview = ({
     useEffect(() => {
         if (doc.type.startsWith('image/')) {
             getTranslationDocumentUrl(doc.path, doc.storage).then(res => {
-                if(res) setUrl(res)
+                if ('url' in res && res.url) setUrl(res.url)
             }).catch(() => {})
         }
     }, [doc])
@@ -686,8 +687,10 @@ export default function TranslationsPage() {
     const totalPages = Math.ceil(filteredTranslations.length / itemsPerPage)
 
     const handleDownload = async (doc: TranslationDocument) => {
-        const url = await getTranslationDocumentUrl(doc.path, doc.storage)
-        window.open(url, '_blank')
+        const res = await getTranslationDocumentUrl(doc.path, doc.storage)
+        if ('url' in res && res.url) {
+            window.open(res.url, '_blank')
+        }
     }
 
     const handleCopyCode = (id: string, code: string) => {
@@ -1579,7 +1582,12 @@ export default function TranslationsPage() {
                                     </td>
                                     <td className="p-4 py-3 font-bold text-slate-400 mt-1">
                                         <div className="flex items-center gap-2">
-                                            <span>{t.tracking_code}</span>
+                                            <Link 
+                                                href={`/chimi-traducciones/${t.id}`}
+                                                className="hover:text-chimipink hover:underline transition-all duration-200"
+                                            >
+                                                {t.tracking_code}
+                                            </Link>
                                             <div className="flex items-center gap-1">
                                                 <Button 
                                                     variant="ghost" 

@@ -10,7 +10,7 @@ import { recordAuditLog } from "@/lib/audit"
 /**
  * Interface for Transfer Document
  */
-interface TransferDocument {
+export interface TransferDocument {
     title: string
     path: string
     name: string
@@ -22,7 +22,7 @@ interface TransferDocument {
 /**
  * Interface for Money Transfer Record
  */
-interface PaymentDetail {
+export interface PaymentDetail {
     sede_it: string
     sede_pe: string
     metodo_it: string
@@ -37,7 +37,7 @@ interface PaymentDetail {
     proof_path?: string
 }
 
-interface ExpenseDetail {
+export interface ExpenseDetail {
     description: string
     amount: number
     currency: string
@@ -438,9 +438,9 @@ export async function updateTransfer(formData: FormData) {
             status,
             client_note,
             internal_note,
-            payment_details: finalPaymentDetails as any,
-            expense_details: finalExpenseDetails as any,
-            documents: currentDocuments as any,
+            payment_details: finalPaymentDetails as PaymentDetail[],
+            expense_details: finalExpenseDetails as ExpenseDetail[],
+            documents: currentDocuments as TransferDocument[],
             total_expenses,
             net_profit,
             agent_id: agent_id || (existingTransfer.agent_id || user.id)
@@ -637,7 +637,13 @@ export async function deleteTransferDocument(transferId: string, docPath: string
  * Get signed URL for a transfer document
  */
 export async function getTransferDocumentUrl(path: string, storage: 'r2' | 'images') {
-    return getFileUrl(path, storage)
+    try {
+        const url = await getFileUrl(path, storage)
+        return { url }
+    } catch (error) {
+        console.error('Error generating URL:', error)
+        return { error: 'Failed to generate download URL' }
+    }
 }
 
 /**
@@ -771,5 +777,51 @@ function getSenderName(profiles: any) {
         return profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : '***'
     } else {
         return `${p.first_name || ''} ${p.last_name || ''}`.trim() || '***'
+    }
+}
+
+/**
+ * Get transfer full details for the single page
+ */
+export async function getTransferFullDetails(id: string) {
+    const supabase = supabaseAdmin
+    try {
+        const { data: transfer, error } = await supabase
+            .from('money_transfers')
+            .select(`
+                *,
+                profiles:client_id (
+                    first_name,
+                    last_name,
+                    email,
+                    phone,
+                    document_number
+                )
+            `)
+            .eq('id', id)
+            .single()
+
+        if (error) {
+            console.error('Error fetching transfer:', error)
+            return { success: false, error: 'Transfer not found' }
+        }
+
+        // Fetch agent details separately if agent_id exists
+        if (transfer.agent_id) {
+            const { data: agentData } = await supabase
+                .from('profiles')
+                .select('first_name, last_name')
+                .eq('id', transfer.agent_id)
+                .single()
+            
+            if (agentData) {
+                (transfer as any).agent = agentData
+            }
+        }
+
+        return { success: true, transfer }
+    } catch (error) {
+        console.error('Error fetching transfer details:', error)
+        return { success: false, error: (error as Error).message }
     }
 }

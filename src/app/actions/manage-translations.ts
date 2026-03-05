@@ -14,6 +14,62 @@ export interface TranslationDocument {
     type: string
     size: number
     storage: StorageType
+    uploaded_at?: string
+}
+
+export interface PaymentDetail {
+    sede_it: string
+    sede_pe: string
+    metodo_it: string
+    metodo_pe: string
+    cantidad: string
+    tipo_cambio: number
+    total: string
+    moneda?: string
+    monto_original?: string
+    created_at?: string
+    proof_path?: string
+}
+
+export interface Translation {
+    id: string
+    created_at: string
+    client_id: string
+    tracking_code: string
+    document_types: string[]
+    document_types_other?: string
+    work_types: string[]
+    work_types_other?: string
+    source_language: string
+    target_language: string
+    quantity: number
+    notes?: string
+    internal_notes?: string
+    recipient_name?: string
+    recipient_phone?: string
+    origin_address?: string
+    origin_address_client?: string
+    destination_address?: string
+    destination_address_client?: string
+    net_amount: number
+    total_amount: number
+    on_account: number
+    balance: number
+    status: 'pending' | 'in_process' | 'completed' | 'cancelled'
+    documents?: TranslationDocument[]
+    payment_details?: PaymentDetail[]
+    agent_id?: string
+    profiles?: {
+        first_name: string
+        last_name: string
+        email: string
+        phone: string
+        document_number: string
+    }
+    agent?: {
+        first_name: string
+        last_name: string
+    }
 }
 
 export async function getTranslations() {
@@ -470,7 +526,59 @@ export async function deleteTranslationDocument(id: string, path: string) {
 }
 
 export async function getTranslationDocumentUrl(path: string, storage: StorageType = 'r2') {
-    return await getFileUrl(path, storage)
+    try {
+        const url = await getFileUrl(path, storage)
+        return { url }
+    } catch (error) {
+        console.error('Error generating translation URL:', error)
+        return { error: 'Failed to generate download URL' }
+    }
+}
+
+/**
+ * Get translation full details for the single page
+ */
+export async function getTranslationFullDetails(id: string) {
+    const supabase = supabaseAdmin
+    try {
+        const { data: translation, error } = await supabase
+            .from('translations')
+            .select(`
+                *,
+                profiles:client_id (
+                    first_name,
+                    last_name,
+                    email,
+                    phone,
+                    document_number
+                )
+            `)
+            .eq('id', id)
+            .single()
+
+        if (error) {
+            console.error('Error fetching translation:', error)
+            return { success: false, error: 'Traducción no encontrada' }
+        }
+
+        // Fetch agent details separately if agent_id exists
+        if (translation.agent_id) {
+            const { data: agentData } = await supabase
+                .from('profiles')
+                .select('first_name, last_name')
+                .eq('id', translation.agent_id)
+                .single()
+            
+            if (agentData) {
+                (translation as unknown as Translation).agent = agentData
+            }
+        }
+
+        return { success: true, translation: translation as unknown as Translation }
+    } catch (error) {
+        console.error('Error fetching translation details:', error)
+        return { success: false, error: (error as Error).message }
+    }
 }
 
 /**

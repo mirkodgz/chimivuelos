@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Download, Eye, FileText, Loader2, AlertCircle } from "lucide-react"
 import { getTranslationDocumentUrl } from '@/app/actions/manage-translations'
 import { getOtherServiceDocumentUrl } from '@/app/actions/manage-other-services'
+import { type StorageType } from '@/lib/storage'
 import {
   Dialog,
   DialogContent,
@@ -17,7 +18,7 @@ interface ServiceDocument {
     title: string
     path: string
     name: string
-    storage: 'r2' | 'images'
+    storage: StorageType
 }
 
 export function ServiceDocumentRow({ doc, type }: { doc: ServiceDocument, type: 'translation' | 'other' }) {
@@ -42,11 +43,11 @@ export function ServiceDocumentRow({ doc, type }: { doc: ServiceDocument, type: 
         if (!url) {
             setLoading(true)
             const result = type === 'translation' 
-                ? await getTranslationDocumentUrl(doc.path, doc.storage as any) 
-                : await getOtherServiceDocumentUrl(doc.path, doc.storage as any)
+                ? await getTranslationDocumentUrl(doc.path, doc.storage) 
+                : await getOtherServiceDocumentUrl(doc.path, doc.storage)
             
-            if (result) {
-                setUrl(result)
+            if (result && 'url' in result && result.url) {
+                setUrl(result.url)
             }
             setLoading(false)
         }
@@ -54,11 +55,11 @@ export function ServiceDocumentRow({ doc, type }: { doc: ServiceDocument, type: 
 
     const downloadFile = async () => {
         const result = type === 'translation' 
-            ? await getTranslationDocumentUrl(doc.path, doc.storage as any) 
-            : await getOtherServiceDocumentUrl(doc.path, doc.storage as any)
+            ? await getTranslationDocumentUrl(doc.path, doc.storage) 
+            : await getOtherServiceDocumentUrl(doc.path, doc.storage)
         
-        if (result) {
-            window.open(result, '_blank')
+        if (result && 'url' in result && result.url) {
+            window.open(result.url, '_blank')
         }
     }
 

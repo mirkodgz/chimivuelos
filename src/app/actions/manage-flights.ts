@@ -29,7 +29,7 @@ export interface DateHistoryEntry {
 /**
  * Creates a new flight record
  */
-interface PaymentDetail {
+export interface PaymentDetail {
     sede_it: string
     sede_pe: string
     metodo_it: string

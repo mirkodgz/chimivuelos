@@ -21,6 +21,70 @@ interface DateHistoryEntry {
     changed_by: string
 }
 
+export interface OtherServiceDocument {
+    title: string
+    path: string
+    name: string
+    size: number
+    type: string
+    storage?: 'r2' | 'images'
+    uploaded_at?: string
+}
+
+export interface PaymentDetail {
+    monto_original?: string
+    moneda?: string
+    tipo_cambio?: number
+    cantidad: string
+    metodo_it?: string
+    metodo_pe?: string
+    sede_it?: string
+    sede_pe?: string
+    proof_path?: string
+    created_at?: string
+    total?: string
+}
+
+export interface OtherService {
+    id: string
+    created_at: string
+    client_id: string
+    tracking_code: string
+    agent_id: string
+    service_type: string
+    service_type_other: string
+    note: string
+    internal_note: string
+    recipient_name: string
+    recipient_phone: string
+    origin_address: string
+    origin_address_client: string
+    destination_address: string
+    destination_address_client: string
+    connected_flight_id: string | null
+    flight_pnr: string | null
+    current_flight_date: string | null
+    flight_status: string | null
+    flight_date_history: unknown[]
+    documents: OtherServiceDocument[]
+    total_amount: number
+    on_account: number
+    balance: number
+    payment_details: PaymentDetail[]
+    status: string
+    profiles?: {
+        first_name: string | null
+        last_name: string | null
+        email: string | null
+        phone: string | null
+        document_number: string | null
+    }
+    agent?: {
+        first_name: string | null
+        last_name: string | null
+    }
+}
+
 export async function getOtherServices() {
     const supabase = supabaseAdmin
     const { data, error } = await supabase
@@ -576,7 +640,50 @@ export async function deleteOtherServiceDocument(id: string, path: string) {
 }
 
 export async function getOtherServiceDocumentUrl(path: string, storage: StorageType = 'r2') {
-    return await getFileUrl(path, storage)
+    const url = await getFileUrl(path, storage)
+    return { url }
+}
+
+export async function getOtherServiceFullDetails(id: string) {
+    const supabase = supabaseAdmin
+    
+    const { data: service, error } = await supabase
+        .from('other_services')
+        .select(`
+            *,
+            profiles:client_id (
+                first_name,
+                last_name,
+                email,
+                phone,
+                document_number
+            )
+        `)
+        .eq('id', id)
+        .single()
+
+    if (error || !service) {
+        console.error('Error fetching service details:', error)
+        return { success: false, error: 'Servicio no encontrado' }
+    }
+
+    // Fetch Agent details
+    if (service.agent_id) {
+        const { data: agentData } = await supabase
+            .from('profiles')
+            .select('first_name, last_name')
+            .eq('id', service.agent_id)
+            .single()
+        
+        if (agentData) {
+            (service as unknown as OtherService).agent = agentData
+        }
+    }
+
+    return { 
+        success: true, 
+        service: service as unknown as OtherService 
+    }
 }
 
 /**
