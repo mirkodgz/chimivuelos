@@ -144,8 +144,8 @@ export function FlightSalesNote({ flight, onClose }: { flight: Flight, onClose: 
                 {/* Sales Note Content */}
                 <div id="sales-note" className="p-0 text-slate-900 print:text-[10pt] font-sans">
                     
-                    {/* Formal Header Bar - Ultra Compact */}
-                    <div className="bg-linear-to-r from-chimipink to-chimicyan text-slate-950 p-4 md:p-5 flex flex-col md:flex-row justify-between items-center gap-3">
+                     {/* Formal Header Bar - Ultra Compact */}
+                    <div className="bg-linear-to-r from-chimipink to-chimicyan text-slate-950 p-2.5 md:p-3.5 flex flex-col md:flex-row justify-between items-center gap-2">
                         <div className="flex items-center gap-3">
                             <div className="shrink-0 flex items-center justify-center h-10 w-10">
                                 <Image
@@ -164,7 +164,7 @@ export function FlightSalesNote({ flight, onClose }: { flight: Flight, onClose: 
                             </div>
                         </div>
                         <div className="flex items-center gap-4">
-                            <div className="bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded border border-slate-950/20 flex flex-col items-center md:items-end min-w-[140px]">
+                            <div className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded border border-slate-950/20 flex flex-col items-center md:items-end min-w-[140px]">
                                 <h2 className="text-[7px] font-black text-slate-950/70 uppercase tracking-widest mb-0.5 leading-none">Nota de Venta No.</h2>
                                 <p className="text-sm font-black text-slate-950 tracking-widest leading-none uppercase">{flight.pnr || '---'}</p>
                             </div>
@@ -179,22 +179,22 @@ export function FlightSalesNote({ flight, onClose }: { flight: Flight, onClose: 
                         {/* Section: Information Grid */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                             {/* Client Section */}
-                             <div className="space-y-2">
-                                <div className="flex items-center gap-2 border-b-2 border-slate-900 pb-1">
+                             <div className="space-y-1">
+                                <div className="flex items-center gap-2 border-b-2 border-slate-900 pb-0.5">
                                     <h3 className="text-[9px] font-black uppercase tracking-widest text-slate-900">I. Datos del Cliente</h3>
                                 </div>
-                                <div className="grid grid-cols-1 gap-2 pt-0.5">
-                                    <div className="bg-slate-50 px-2 py-1.5 rounded border border-slate-100">
-                                        <p className="text-[7px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Nombre y Apellido</p>
+                                <div className="grid grid-cols-1 gap-1 pt-0">
+                                    <div className="bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
+                                        <p className="text-[7px] font-black uppercase text-slate-400 tracking-widest mb-0">Nombre y Apellido</p>
                                         <p className="text-[10px] font-black text-slate-900 uppercase leading-none">{(flight.profiles?.first_name || 'PASAJERO').toUpperCase()} {(flight.profiles?.last_name || '').toUpperCase()}</p>
                                     </div>
-                                    <div className="flex gap-2">
-                                        <div className="bg-slate-50 px-2 py-1.5 rounded border border-slate-100 flex-1">
-                                            <p className="text-[7px] font-black uppercase text-slate-400 tracking-widest mb-0.5">DNI / Documento</p>
+                                    <div className="flex gap-1">
+                                        <div className="bg-slate-50 px-2 py-0.5 rounded border border-slate-100 flex-1">
+                                            <p className="text-[7px] font-black uppercase text-slate-400 tracking-widest mb-0">DNI / Documento</p>
                                             <p className="text-[10px] font-black text-slate-900 leading-none">{flight.profiles?.document_number || '---'}</p>
                                         </div>
-                                        <div className="bg-slate-50 px-2 py-1.5 rounded border border-slate-100 flex-1">
-                                            <p className="text-[7px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Teléfono</p>
+                                        <div className="bg-slate-50 px-2 py-0.5 rounded border border-slate-100 flex-1">
+                                            <p className="text-[7px] font-black uppercase text-slate-400 tracking-widest mb-0">Teléfono</p>
                                             <p className="text-[10px] font-black text-slate-900 leading-none">{flight.profiles?.phone || '---'}</p>
                                         </div>
                                     </div>
@@ -202,30 +202,30 @@ export function FlightSalesNote({ flight, onClose }: { flight: Flight, onClose: 
                             </div>
 
                             {/* Flight Section */}
-                             <div className="space-y-2">
-                                <div className="flex items-center gap-2 border-b-2 border-slate-900 pb-1">
+                             <div className="space-y-1">
+                                <div className="flex items-center gap-2 border-b-2 border-slate-900 pb-0.5">
                                     <h3 className="text-[9px] font-black uppercase tracking-widest text-slate-900">II. Detalles del Itinerario</h3>
                                 </div>
-                                <div className="grid grid-cols-1 gap-2 pt-0.5">
-                                    <div className="bg-linear-to-r from-chimipink to-chimicyan text-slate-950 px-2.5 py-2 rounded flex justify-between items-center shadow-md border border-chimipink/20">
+                                <div className="grid grid-cols-1 gap-1 pt-0">
+                                    <div className="bg-linear-to-r from-chimipink to-chimicyan text-slate-950 px-2 py-1 rounded flex justify-between items-center shadow-md border border-chimipink/20">
                                         <div>
-                                            <p className="text-[7px] font-black text-slate-950/70 uppercase tracking-widest mb-0.5 leading-none">PNR / Reserva</p>
+                                            <p className="text-[7px] font-black text-slate-950/70 uppercase tracking-widest mb-0 leading-none">PNR / Reserva</p>
                                             <p className="text-[13px] font-black tracking-[0.2em] leading-none">{flight.pnr || 'CONFIRMAR'}</p>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-[7px] font-black text-slate-950/70 uppercase tracking-widest mb-0.5 leading-none">Ruta</p>
+                                            <p className="text-[7px] font-black text-slate-950/70 uppercase tracking-widest mb-0 leading-none">Ruta</p>
                                             <p className="text-[10px] font-black uppercase leading-none">{flight.itinerary}</p>
                                         </div>
                                     </div>
-                                    <div className="flex gap-2">
-                                        <div className="bg-slate-50 px-2 py-1.5 rounded border border-slate-100 flex-1">
-                                            <p className="text-[7px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Salida</p>
+                                    <div className="flex gap-1">
+                                        <div className="bg-slate-50 px-2 py-0.5 rounded border border-slate-100 flex-1">
+                                            <p className="text-[7px] font-black uppercase text-slate-400 tracking-widest mb-0">Salida</p>
                                             <p className="text-[10px] font-black text-slate-900 leading-tight">
                                                 {flight.travel_date ? new Date(flight.travel_date as string).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }) : '---'}
                                             </p>
                                         </div>
-                                        <div className="bg-slate-50 px-2 py-1.5 rounded border border-slate-100 flex-1">
-                                            <p className="text-[7px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Retorno</p>
+                                        <div className="bg-slate-50 px-2 py-0.5 rounded border border-slate-100 flex-1">
+                                            <p className="text-[7px] font-black uppercase text-slate-400 tracking-widest mb-0">Retorno</p>
                                             <p className="text-[10px] font-black text-slate-900 leading-tight">
                                                 {flight.return_date ? new Date(flight.return_date as string).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }) : 'SOLO IDA'}
                                             </p>
