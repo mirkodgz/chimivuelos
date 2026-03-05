@@ -1,7 +1,7 @@
 import React from "react"
 import { createPortal } from "react-dom"
 import Image from "next/image"
-import { Printer, X, AlertCircle, MapPin, Phone } from "lucide-react"
+import { Printer, X, AlertCircle, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { type Flight } from "@/app/actions/manage-flights"
 
@@ -369,53 +369,62 @@ export function FlightSalesNote({ flight, onClose }: { flight: Flight, onClose: 
 
                         {/* Footer: Office Information */}
                         <div className="border-t-2 border-slate-900 pt-6">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                                <div className="space-y-2">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                                <div className="space-y-1">
                                     <div className="flex items-center gap-1.5">
                                         <Image src="https://flagcdn.com/w40/it.png" width={14} height={10} alt="it" className="rounded-xs shadow-sm" unoptimized />
-                                        <h5 className="text-[8px] font-black uppercase tracking-widest text-slate-500">Sede Milano</h5>
+                                        <h5 className="text-[8px] font-black uppercase tracking-widest text-slate-500">Sede Corsico</h5>
                                     </div>
-                                <div className="space-y-2 text-[8px] text-slate-600">
-                                    <p className="flex items-start gap-1.5 leading-tight"><MapPin size={8} className="shrink-0 mt-0.5 text-slate-300" /> Via Adelaide Bono Cairoli 18</p>
-                                    <p className="flex items-center gap-1.5 leading-none"><Phone size={8} className="text-slate-300" /> +39 388 800 8194</p>
+                                    <p className="text-[8px] text-slate-600 flex items-start gap-1 leading-tight">
+                                        <MapPin size={8} className="shrink-0 mt-0.5 text-slate-300" /> Via Molinetto di Lorenteggio, 39/41
+                                    </p>
+                                </div>
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-1.5">
+                                        <Image src="https://flagcdn.com/w40/it.png" width={14} height={10} alt="it" className="rounded-xs shadow-sm" unoptimized />
+                                        <h5 className="text-[8px] font-black uppercase tracking-widest text-slate-500">Sede Roma</h5>
+                                    </div>
+                                    <p className="text-[8px] text-slate-600 flex items-start gap-1 leading-tight">
+                                        <MapPin size={8} className="shrink-0 mt-0.5 text-slate-300" /> via palestro 35
+                                    </p>
+                                </div>
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-1.5">
+                                        <Image src="https://flagcdn.com/w40/pe.png" width={14} height={10} alt="pe" className="rounded-xs shadow-sm" unoptimized />
+                                        <h5 className="text-[8px] font-black uppercase tracking-widest text-slate-500">Sede Lima</h5>
+                                    </div>
+                                    <p className="text-[8px] text-slate-600 flex items-start gap-1 leading-tight">
+                                        <MapPin size={8} className="shrink-0 mt-0.5 text-slate-300" /> Av. Abancay 210, Of. 204
+                                    </p>
+                                </div>
+                                <div className="space-y-1 md:text-right flex flex-col items-center md:items-end">
+                                    <h5 className="text-[8px] font-black uppercase tracking-widest text-slate-500">Canal Digital</h5>
+                                    <p className="text-[8px] font-black text-slate-900 uppercase">www.chimi-peru.com</p>
                                 </div>
                             </div>
-                            <div className="space-y-2">
-                                <div className="flex items-center gap-1.5">
-                                    <Image src="https://flagcdn.com/w40/pe.png" width={14} height={10} alt="pe" className="rounded-xs shadow-sm" unoptimized />
-                                    <h5 className="text-[8px] font-black uppercase tracking-widest text-slate-500">Sede Lima</h5>
-                                </div>
-                                <div className="space-y-1 text-[8px] text-slate-600">
-                                    <p className="flex items-start gap-1.5 leading-tight"><MapPin size={8} className="shrink-0 mt-0.5 text-slate-300" /> Av. Abancay 210, Of. 204</p>
-                                    <p className="flex items-center gap-1.5 leading-none"><Phone size={8} className="text-slate-300" /> +51 943 055 999</p>
-                                </div>
-                            </div>
-                            <div className="space-y-2 md:text-right flex flex-col items-center md:items-end">
-                                <h5 className="text-[8px] font-black uppercase tracking-widest text-slate-500">Canal Digital</h5>
-                                <p className="text-[8px] font-black text-slate-900 uppercase">www.chimi-peru.com</p>
-                            </div>
-                        </div>
 
-                        <div className="grid grid-cols-2 gap-12 md:gap-24">
-                            <div className="border-t border-slate-200 pt-2 text-center">
-                                <p className="text-[8px] font-black uppercase text-slate-400 tracking-[0.2em] mb-0.5">Firma del Titular</p>
-                                <div className="h-4" />
+                            {/* Contact Numbers Section */}
+                            <div className="bg-slate-50 p-4 rounded-xl grid grid-cols-2 md:grid-cols-4 gap-4 border border-slate-100 mb-6">
+                                <div className="space-y-0.5">
+                                    <p className="text-[7px] font-black uppercase text-slate-400 tracking-widest">Ventas Lima</p>
+                                    <p className="text-[10px] font-black text-slate-900">+51 943 055 999</p>
+                                </div>
+                                <div className="space-y-0.5">
+                                    <p className="text-[7px] font-black uppercase text-slate-400 tracking-widest">Ventas Italia</p>
+                                    <p className="text-[10px] font-black text-slate-900">+39 388 800 8194</p>
+                                </div>
+                                <div className="space-y-0.5">
+                                    <p className="text-[7px] font-black uppercase text-slate-400 tracking-widest">Asistencia</p>
+                                    <p className="text-[10px] font-black text-slate-900">+39 02 8286 1556</p>
+                                </div>
+                                <div className="space-y-0.5 md:text-right">
+                                    <p className="text-[7px] font-black uppercase text-slate-400 tracking-widest">Traducciones y Envíos</p>
+                                    <p className="text-[10px] font-black text-slate-900">+39 339 213 8943</p>
+                                </div>
                             </div>
-                            <div className="border-t border-slate-300 pt-2 text-center">
-                                <p className="text-[8px] font-black uppercase text-slate-400 tracking-[0.2em] mb-0.5">Autorizado</p>
-                                <p className="text-[8px] font-bold text-slate-900 uppercase leading-none">{flight.agent?.first_name || 'Admin'}</p>
-                            </div>
-                        </div>
+
                     </div>
 
-                        {/* Internal System Footer */}
-                        <div className="mt-8 flex justify-between items-center border-t border-slate-100 pt-2">
-                            <span className="text-[7px] text-slate-300 font-mono tracking-widest uppercase italic leading-none">DOC OFICIAL v2.2 • ID: {flight.id.slice(0, 8)}</span>
-                            <div className="flex gap-2">
-                                <div className="h-0.5 w-4 bg-slate-900" />
-                                <div className="h-0.5 w-4 bg-slate-100" />
-                            </div>
-                        </div>
 
                     </div>
                 </div>
