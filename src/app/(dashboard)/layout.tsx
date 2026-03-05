@@ -30,24 +30,28 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-page font-sans text-slate-900">
+    <div className="min-h-screen bg-page font-sans text-slate-900 print:min-h-0 print:bg-white">
       
       {/* Sidebar - Fixed Left */}
-      <Sidebar role={role as 'admin' | 'client' | 'agent' | 'usuario' | 'supervisor'} />
+      <div className="print:hidden">
+        <Sidebar role={role as 'admin' | 'client' | 'agent' | 'usuario' | 'supervisor'} />
+      </div>
 
       {/* Main Content Area */}
-      <div className="md:pl-48 flex flex-col min-h-screen transition-all duration-300">
+      <div className="md:pl-48 flex flex-col min-h-screen transition-all duration-300 print:pl-0 print:block print:min-h-0">
         
         {/* Header - Sticky Top */}
-        <Header user={user} role={role as 'admin' | 'client' | 'agent' | 'usuario' | 'supervisor'} />
+        <div className="print:hidden">
+          <Header user={user} role={role as 'admin' | 'client' | 'agent' | 'usuario' | 'supervisor'} />
+        </div>
 
         {/* Dynamic Page Content */}
-        <main className="flex-1 p-4 md:p-5 space-y-4">
+        <main className="flex-1 p-4 md:p-5 space-y-4 print:p-0 print:m-0 print:block">
           {children}
         </main>
 
         {/* Footer */}
-        <footer className="py-6 px-8 border-t border-slate-200/60 dark:border-slate-800 text-center text-sm text-slate-500 bg-transparent">
+        <footer className="py-6 px-8 border-t border-slate-200/60 dark:border-slate-800 text-center text-sm text-slate-500 bg-transparent print:hidden">
           © {new Date().getFullYear()} Chimivuelos S.A.C. - Todos los derechos reservados.
         </footer>
       </div>

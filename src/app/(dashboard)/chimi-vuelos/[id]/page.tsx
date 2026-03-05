@@ -17,8 +17,10 @@ import {
     UserCircle,
     MapPin,
     Hash,
-    User
+    User,
+    Printer
 } from "lucide-react"
+import { FlightSalesNote } from "./FlightSalesNote"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -27,46 +29,12 @@ import {
     getFlightDocumentUrl,
     type FlightDocument,
     type PaymentDetail,
-    type DateHistoryEntry 
+    type DateHistoryEntry,
+    type Flight
 } from "@/app/actions/manage-flights"
 import { cn } from "@/lib/utils"
 
-interface Flight {
-    id: string;
-    pnr: string;
-    status: string;
-    client_id: string;
-    itinerary: string;
-    ticket_type?: string;
-    travel_date?: string;
-    return_date?: string;
-    pax_total?: number;
-    pax_adt?: number;
-    pax_chd?: number;
-    pax_inf?: number;
-    details?: Record<string, boolean>;
-    required_documents?: Record<string, { required: boolean; status: string; extra?: string }>;
-    minor_travel_with?: string;
-    payment_details?: PaymentDetail[];
-    iata_gds?: string;
-    agent?: { first_name: string; last_name: string };
-    profiles?: { 
-        first_name: string; 
-        last_name: string; 
-        email: string;
-        phone: string;
-        document_number: string;
-    };
-    sold_price: number;
-    cost: number;
-    fee_agv: number;
-    on_account: number;
-    balance: number;
-    documents?: FlightDocument[];
-    client_note?: string;
-    internal_note?: string;
-    flight_date_history?: DateHistoryEntry[];
-}
+
 
 const DETAILS_LABELS: Record<string, string> = {
     ticket_one_way: "Pasaje solo ida",
@@ -96,6 +64,7 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
     const { id } = use(params)
     const [flight, setFlight] = useState<Flight | null>(null)
     const [loading, setLoading] = useState(true)
+    const [showSalesNote, setShowSalesNote] = useState(false)
 
     useEffect(() => {
         getFlightFullDetails(id).then(res => {
@@ -177,7 +146,16 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-10">
+                        <div className="flex items-center gap-6">
+                            <div className="flex items-center gap-3">
+                                <Button 
+                                    onClick={() => setShowSalesNote(true)}
+                                    className="bg-slate-800 hover:bg-slate-900 text-white gap-2 font-bold px-5 h-11 rounded-xl shadow-lg shadow-slate-200 transition-all active:scale-95"
+                                >
+                                    <Printer size={18} />
+                                    <span className="hidden sm:inline">Nota de Venta</span>
+                                </Button>
+                            </div>
                             <div className="space-y-1">
                                 <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Pasajero Responsable</span>
                                 <div className="flex items-center gap-3">
@@ -506,6 +484,12 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
                 </CardContent>
             </Card>
 
+            {showSalesNote && (
+                <FlightSalesNote 
+                    flight={flight} 
+                    onClose={() => setShowSalesNote(false)} 
+                />
+            )}
         </div>
     )
 }

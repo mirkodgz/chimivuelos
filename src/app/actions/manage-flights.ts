@@ -44,6 +44,53 @@ export interface PaymentDetail {
     proof_path?: string
 }
 
+export interface Flight {
+    id: string
+    created_at: string
+    updated_at?: string
+    client_id: string
+    agent_id: string
+    pnr: string
+    itinerary: string
+    travel_date: string
+    return_date?: string
+    cost: number
+    sold_price: number
+    on_account: number
+    balance: number
+    fee_agv: number
+    status: string
+    payment_method_it?: string
+    payment_method_pe?: string
+    payment_details?: PaymentDetail[]
+    payment_proof_path?: string
+    documents?: FlightDocument[]
+    details?: Record<string, boolean>
+    exchange_rate?: number
+    ticket_type?: string
+    pax_adt?: number
+    pax_chd?: number
+    pax_inf?: number
+    pax_total?: number
+    iata_gds?: string
+    minor_travel_with?: string
+    required_documents?: Record<string, { required: boolean; status: string; extra?: string }>
+    client_note?: string
+    internal_note?: string
+    flight_date_history?: DateHistoryEntry[]
+    profiles?: {
+        first_name: string | null
+        last_name: string | null
+        email: string | null
+        phone: string | null
+        document_number: string | null
+    } | null
+    agent?: {
+        first_name: string | null
+        last_name: string | null
+    } | null
+}
+
 export async function createFlight(formData: FormData) {
     const supabase = await createClient()
     const adminSupabase = supabaseAdmin
