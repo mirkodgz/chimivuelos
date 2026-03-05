@@ -68,9 +68,12 @@ export function FlightSalesNote({ flight, onClose }: { flight: Flight, onClose: 
                     html, body {
                         margin: 0 !important;
                         padding: 0 !important;
+                        min-width: 210mm !important;
                         height: auto !important;
                         overflow: visible !important;
                         background: white !important;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
                     }
                     .print-portal-root {
                         width: 100% !important;
@@ -81,14 +84,35 @@ export function FlightSalesNote({ flight, onClose }: { flight: Flight, onClose: 
                     #sales-note-wrapper {
                         width: 210mm !important;
                         margin: 0 auto !important;
-                        padding: 10mm !important;
+                        padding: 0 !important;
                         box-shadow: none !important;
                         border: none !important;
                     }
-                    * {
-                        -webkit-print-color-adjust: exact !important;
-                        print-color-adjust: exact !important;
+                    #sales-note {
+                        width: 210mm !important;
+                        padding: 10mm !important;
                     }
+                    
+                    /* FORZAR LAYOUT DESKTOP EN PRINT (Solución para móviles) */
+                    #sales-note .md\\:flex-row { flex-direction: row !important; }
+                    #sales-note .md\\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+                    #sales-note .md\\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+                    #sales-note .md\\:grid-cols-12 { grid-template-columns: repeat(12, minmax(0, 1fr)) !important; }
+                    #sales-note .md\\:col-span-7 { grid-column: span 7 / span 7 !important; }
+                    #sales-note .md\\:col-span-5 { grid-column: span 5 / span 5 !important; }
+                    #sales-note .md\\:text-right { text-align: right !important; }
+                    #sales-note .md\\:items-end { align-items: flex-end !important; }
+                    
+                    /* Asegurar que las secciones horizontales no se apilen */
+                    #sales-note .flex-col.md\\:flex-row { flex-direction: row !important; }
+                    #sales-note .grid-cols-1.md\\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+                    
+                    /* Ajustes de espaciado para que quepa en una página */
+                    #sales-note .p-10 { padding: 1.5rem !important; }
+                    #sales-note .p-6 { padding: 1rem !important; }
+                    #sales-note .gap-8 { gap: 1rem !important; }
+                    #sales-note .mb-8 { margin-bottom: 1.5rem !important; }
+                    #sales-note .mb-6 { margin-bottom: 1rem !important; }
                 }
             `}} />
             <div id="sales-note-wrapper" className="bg-white w-full max-w-[800px] my-auto rounded-lg shadow-2xl flex flex-col print:shadow-none print:rounded-none">
