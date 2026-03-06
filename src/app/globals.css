@@ -150,7 +150,8 @@ body {
 
 /* Custom Animations */
 @keyframes pulse-fast {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -166,7 +167,7 @@ body {
 .bg-sidebar {
   /* Stronger Brand Gradient: Visible Pink to Visible Cyan */
   background: linear-gradient(180deg, #ffcce0 0%, #b0effd 100%);
-  border-right: 1px solid rgba(236, 72, 153, 0.3); 
+  border-right: 1px solid rgba(236, 72, 153, 0.3);
 }
 
 .bg-header {
@@ -179,4 +180,16 @@ body {
   /* Stronger Brand Gradient for Full Page Background */
   background: linear-gradient(135deg, #ffd6e8 0%, #b8f2fe 100%) !important;
   background-attachment: fixed;
+}
+
+/* Remove number input spinners (arrows) */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
 }
