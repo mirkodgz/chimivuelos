@@ -21,6 +21,8 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { StatusHistory } from "@/components/StatusHistory"
+import { OperationalFileTitle } from "@/components/OperationalFileTitle"
 import { 
     getTransferFullDetails, 
     getTransferDocumentUrl,
@@ -77,6 +79,16 @@ export default function TransferDetailsPage({ params }: { params: Promise<{ id: 
         )
     }
 
+    const getStatusLabel = (status: string) => {
+        const s = status.toLowerCase();
+        if (s === 'pending' || s === 'pendiente') return 'Pendiente'
+        if (s === 'in_process' || s === 'processing' || s === 'proceso') return 'En Proceso'
+        if (s === 'completed' || s === 'finalizado') return 'Completado'
+        if (s === 'delivered' || s === 'entregado' || s === 'transit') return 'Entregado'
+        if (s === 'cancelled' || s === 'cancelado') return 'Cancelado'
+        return status.toUpperCase()
+    }
+
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'completed':
@@ -114,13 +126,14 @@ export default function TransferDetailsPage({ params }: { params: Promise<{ id: 
                 
                 {/* Header Section */}
                 <div className="bg-slate-50/50 p-6 md:p-8 border-b border-slate-100">
+                    <OperationalFileTitle />
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                         <div className="flex items-center gap-5">
                             <div>
                                 <div className="flex items-center gap-3 mb-1">
                                     <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Código de Giro</span>
                                     <Badge className={cn("text-[9px] uppercase font-bold py-0 h-5", getStatusColor(transfer.status))}>
-                                        {transfer.status}
+                                        {getStatusLabel(transfer.status)}
                                     </Badge>
                                 </div>
                                 <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{transfer.transfer_code || '---'}</h1>
@@ -330,6 +343,20 @@ export default function TransferDetailsPage({ params }: { params: Promise<{ id: 
                         {/* Sidebar Column */}
                         <div className="lg:col-span-4 bg-slate-50/30 p-6 md:p-8 space-y-12">
                             
+                            {/* Status History (Audit Logs) */}
+                            <StatusHistory 
+                                resourceId={transfer.id} 
+                                resourceType="money_transfers"
+                                statusLabels={{
+                                    scheduled: 'Programado',
+                                    processing: 'Procesando',
+                                    available: 'Para Recojo',
+                                    delivered: 'Entregado',
+                                    completed: 'Completado',
+                                    cancelled: 'Cancelado'
+                                }}
+                            />
+
                             {/* Operational Data */}
                             <section className="space-y-6">
                                 <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
@@ -403,7 +430,7 @@ export default function TransferDetailsPage({ params }: { params: Promise<{ id: 
                                                     </div>
                                                     <div className="min-w-0">
                                                         <p className="text-xs font-bold text-slate-700 truncate">{doc.title}</p>
-                                                        <p className="text-[9px] text-slate-400 font-black tracking-tighter uppercase">{doc.type || 'Anexo'}</p>
+                                                        <p className="text-[9px] text-slate-400 font-black tracking-tighter uppercase shrink-0">{(doc.size / 1024).toFixed(0)} KB</p>
                                                     </div>
                                                 </div>
                                                 <Button 

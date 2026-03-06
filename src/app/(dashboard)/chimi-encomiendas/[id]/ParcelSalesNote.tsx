@@ -130,7 +130,7 @@ export function ParcelSalesNote({ parcel, onClose }: { parcel: Parcel, onClose: 
                                         <p className="text-[10px] font-black text-slate-900 uppercase leading-none">{(parcel.profiles?.first_name || 'CLIENTE').toUpperCase()} {(parcel.profiles?.last_name || '').toUpperCase()}</p>
                                     </div>
                                     <div className="bg-slate-50 px-2 py-0.5 rounded border border-slate-100 flex-1">
-                                        <p className="text-[7px] font-black uppercase text-slate-400 tracking-widest mb-0">Origen de Envío</p>
+                                        <p className="text-[7px] font-black uppercase text-slate-400 tracking-widest mb-0">Dirección de Partida</p>
                                         <p className="text-[10px] font-black text-slate-900 leading-none">{(parcel.origin_address_client || parcel.origin_address || 'Sede Agencia').toUpperCase()}</p>
                                     </div>
                                     <div className="flex gap-1">
@@ -157,7 +157,7 @@ export function ParcelSalesNote({ parcel, onClose }: { parcel: Parcel, onClose: 
                                         <p className="text-[10px] font-black text-slate-900 uppercase leading-none">{parcel.recipient_name.toUpperCase()}</p>
                                     </div>
                                     <div className="bg-slate-50 px-2 py-0.5 rounded border border-slate-100 flex-1">
-                                        <p className="text-[7px] font-black uppercase text-slate-400 tracking-widest mb-0">Dirección de Entrega</p>
+                                        <p className="text-[7px] font-black uppercase text-slate-400 tracking-widest mb-0">Dirección de Llegada</p>
                                         <p className="text-[10px] font-black text-slate-900 leading-none uppercase">{(parcel.destination_address_client || parcel.destination_address || parcel.recipient_address || 'POR DEFINIR').toUpperCase()}</p>
                                     </div>
                                     <div className="flex gap-1">
@@ -166,8 +166,8 @@ export function ParcelSalesNote({ parcel, onClose }: { parcel: Parcel, onClose: 
                                             <p className="text-[10px] font-black text-slate-900 leading-none">{parcel.recipient_phone || '---'}</p>
                                         </div>
                                         <div className="bg-slate-50 px-2 py-0.5 rounded border border-slate-100 flex-1">
-                                            <p className="text-[7px] font-black uppercase text-slate-400 tracking-widest mb-0">F. Entrega</p>
-                                            <p className="text-[10px] font-black text-slate-900 uppercase leading-none">AGENCIA / DOMICILIO</p>
+                                            <p className="text-[7px] font-black uppercase text-slate-400 tracking-widest mb-0">Notas del Envío</p>
+                                            <p className="text-[10px] font-black text-slate-900 uppercase leading-none">{parcel.client_note || '---'}</p>
                                         </div>
                                     </div>
                                 </div>

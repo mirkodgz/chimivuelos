@@ -5,11 +5,13 @@ import { getOtherServiceByCode } from '@/app/actions/manage-other-services'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Search, Loader2, CheckCircle, Clock, AlertTriangle, XCircle, Briefcase, ArrowRight } from "lucide-react"
+import { Search, Loader2, CheckCircle, Clock, AlertTriangle, XCircle, Briefcase } from "lucide-react"
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
+import { StatusHistory } from '@/components/StatusHistory'
 
 interface OtherServiceResult {
+    id: string
     created_at: string
     service_type: string
     total_amount: number
@@ -215,6 +217,22 @@ function OtherServiceTrackingContent() {
                                         </div>
                                      </div>
                                 </div>
+                            </div>
+
+                            {/* Tracking History */}
+                            <div className="bg-white rounded-xl border border-slate-100 p-5 shadow-xs">
+                                <StatusHistory 
+                                    resourceId={result.id} 
+                                    resourceType="other_services"
+                                    createdAt={result.created_at}
+                                    statusLabels={{
+                                        pending: 'Pendiente',
+                                        processing: 'En Proceso',
+                                        completed: 'Completado',
+                                        delivered: 'Entregado',
+                                        cancelled: 'Cancelado'
+                                    }}
+                                />
                             </div>
                         </div>
                     )}

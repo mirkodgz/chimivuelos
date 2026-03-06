@@ -765,7 +765,18 @@ export async function getFlights(params: FetchFlightsParams) {
 
     if (searchTerm) {
         const term = `%${searchTerm.toLowerCase()}%`
-        query = query.or(`pnr.ilike.${term},profiles.first_name.ilike.${term},profiles.last_name.ilike.${term},profiles.email.ilike.${term}`)
+        const { data: matchedProfiles } = await supabase
+            .from('profiles')
+            .select('id')
+            .or(`first_name.ilike.${term},last_name.ilike.${term},email.ilike.${term}`)
+        
+        const profileIds = (matchedProfiles || []).map(p => p.id)
+        
+        if (profileIds.length > 0) {
+            query = query.or(`pnr.ilike.${term},client_id.in.(${profileIds.join(',')}),agent_id.in.(${profileIds.join(',')})`)
+        } else {
+            query = query.ilike('pnr', term)
+        }
     }
 
     const dateField = showDeudaOnly ? 'travel_date' : 'created_at'

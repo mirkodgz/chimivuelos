@@ -1,14 +1,14 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
-import { getParcelByCode, getParcelHistoryPublic } from '@/app/actions/manage-parcels'
+import { getParcelByCode } from '@/app/actions/manage-parcels'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Search, Loader2, CheckCircle, Clock, AlertTriangle, XCircle, Package, Truck, MapPin, Box, History } from "lucide-react"
+import { Search, Loader2, CheckCircle, Clock, AlertTriangle, XCircle, Package, Truck, MapPin, Box } from "lucide-react"
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
-import { cn } from "@/lib/utils"
+import { StatusHistory } from '@/components/StatusHistory'
 
 interface ParcelResult {
     id: string
@@ -31,7 +31,6 @@ function ParcelTrackingContent() {
     const searchParams = useSearchParams()
     const [code, setCode] = useState('')
     const [result, setResult] = useState<ParcelResult | null>(null)
-    const [history, setHistory] = useState<{status: string, created_at: string}[]>([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
     const [searched, setSearched] = useState(false)
@@ -58,11 +57,7 @@ function ParcelTrackingContent() {
             if (res.error) {
                 setError(res.error)
             } else if (res.data) {
-                const parcelData = res.data as ParcelResult
-                setResult(parcelData)
-                // Fetch history
-                const historyData = await getParcelHistoryPublic(parcelData.id)
-                setHistory(historyData)
+                setResult(res.data as ParcelResult)
             }
         } catch {
             setError('Error al conectar con el servidor')
@@ -260,47 +255,20 @@ function ParcelTrackingContent() {
                                             </div>
                                         )}
 
-                                        {/* Status Timeline */}
-                                        <div className="pt-4 border-t border-slate-200">
-                                            <h4 className="text-[10px] font-bold text-chimipink uppercase tracking-wider mb-4 flex items-center gap-1.5">
-                                                <History size={12} strokeWidth={3} /> Historial de Seguimiento
-                                            </h4>
-                                            
-                                            <div className="relative pl-4 space-y-4 before:absolute before:left-[7px] before:top-1.5 before:bottom-1.5 before:w-0.5 before:bg-slate-100">
-                                                {/* Initial Creation */}
-                                                <div className="relative flex items-center gap-3">
-                                                    <div className="absolute -left-[12px] h-2.5 w-2.5 rounded-full border-2 border-white shadow-sm z-10 bg-slate-400" />
-                                                    <div className="flex flex-col">
-                                                        <span className="text-[10px] font-bold text-slate-400 leading-none mb-1">
-                                                            {new Date(result.created_at).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: '2-digit' })}
-                                                        </span>
-                                                        <span className="text-xs font-bold text-slate-600 uppercase tracking-tighter">
-                                                            CREACIÓN DEL ENVÍO
-                                                        </span>
-                                                    </div>
-                                                </div>
-
-                                                {/* History Logs */}
-                                                {history.map((log, idx) => {
-                                                    const info = getStatusInfo(log.status)
-                                                    return (
-                                                        <div key={idx} className="relative flex items-center gap-3">
-                                                            <div className={cn(
-                                                                "absolute -left-[12px] h-2.5 w-2.5 rounded-full border-2 border-white shadow-sm z-10",
-                                                                info.color.replace('text-', 'bg-')
-                                                            )} />
-                                                            <div className="flex flex-col">
-                                                                <span className="text-[10px] font-bold text-slate-400 leading-none mb-1">
-                                                                    {new Date(log.created_at).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: '2-digit' })}
-                                                                </span>
-                                                                <span className={`text-xs font-bold ${info.color} uppercase tracking-tighter`}>
-                                                                    {info.label.toUpperCase()}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    )
-                                                })}
-                                            </div>
+                                        {/* Status Detail Timeline */}
+                                        <div className="pt-2 border-t border-slate-200">
+                                            <StatusHistory 
+                                                resourceId={result.id} 
+                                                resourceType="parcels"
+                                                createdAt={result.created_at}
+                                                statusLabels={{
+                                                    pending: 'Pendiente',
+                                                    warehouse: 'En Almacén',
+                                                    transit: 'En Tránsito',
+                                                    delivered: 'Entregado',
+                                                    cancelled: 'Cancelado'
+                                                }}
+                                            />
                                         </div>
                                     </div>
                                 </div>

@@ -665,13 +665,19 @@ export default function ParcelsPage() {
     // Filter Logic
     const filteredParcels = useMemo(() => {
         return parcels.filter(p => {
-            const lower = searchTerm.toLowerCase()
+            const lower = searchTerm.trim().toLowerCase()
+            const profile = Array.isArray(p.profiles) ? p.profiles[0] : p.profiles
             const matchesSearch = !searchTerm || 
                 p.tracking_code?.toLowerCase().includes(lower) ||
                 p.recipient_name?.toLowerCase().includes(lower) ||
-                `${p.profiles?.first_name} ${p.profiles?.last_name}`.toLowerCase().includes(lower) ||
-                p.profiles?.email?.toLowerCase().includes(lower) ||
-                p.profiles?.document_number?.toLowerCase().includes(lower)
+                `${profile?.first_name} ${profile?.last_name}`.toLowerCase().includes(lower) ||
+                profile?.email?.toLowerCase().includes(lower) ||
+                profile?.document_number?.toLowerCase().includes(lower) ||
+                profile?.first_name?.toLowerCase().includes(lower) ||
+                profile?.last_name?.toLowerCase().includes(lower) ||
+                `${p.agent?.first_name} ${p.agent?.last_name}`.toLowerCase().includes(lower) ||
+                p.agent?.first_name?.toLowerCase().includes(lower) ||
+                p.agent?.last_name?.toLowerCase().includes(lower)
 
             const matchesStatus = statusFilter === 'all' || p.status === statusFilter
 

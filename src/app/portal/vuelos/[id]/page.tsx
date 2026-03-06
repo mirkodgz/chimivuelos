@@ -1,14 +1,14 @@
-import { getFlightById, getServiceHistory } from '@/app/actions/client-portal'
+import { getFlightById } from '@/app/actions/client-portal'
 import { redirect } from 'next/navigation'
-import { Plane, Calendar, FileText, Banknote, Clock, NotebookPen } from 'lucide-react'
+import { Plane, Calendar, FileText, Banknote, NotebookPen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import Image from 'next/image'
 import { FlightDocumentRow } from '../ClientDownloadButton'
 import { FlightRecommendations } from '../components/FlightRecommendations'
 import { FlightFAQ } from '../components/FlightFAQ'
-import { cn } from "@/lib/utils"
 import { FlightMinorsChecklist } from '../components/FlightMinorsChecklist'
+import { StatusHistory } from '@/components/StatusHistory'
 
 const STATUS_LABELS: Record<string, string> = {
     'Programado': 'PROGRAMADO',
@@ -26,35 +26,6 @@ const STATUS_LABELS: Record<string, string> = {
     'REPROGRAMADO POR AEROLÍNEA': 'REPROG. AEROLÍNEA',
     pending: 'PENDIENTE',
     confirmed: 'CONFIRMADO',
-}
-
-const STATUS_COLORS: Record<string, string> = {
-    'Programado': 'bg-sky-500',
-    'En tránsito': 'bg-orange-500',
-    'Reprogramado': 'bg-amber-500',
-    'Cambio de horario': 'bg-amber-600',
-    'Cancelado': 'bg-red-600',
-    'No-show (no se presentó)': 'bg-slate-500',
-    'En migración': 'bg-purple-500',
-    'Deportado': 'bg-red-800',
-    'Finalizado': 'bg-emerald-600',
-    'PROGRAMADO': 'bg-sky-500',
-    'EN TRÁNSITO': 'bg-orange-500',
-    'REPROGRAMADO POR CLIENTE': 'bg-amber-500',
-    'REPROGRAMADO POR AEROLÍNEA': 'bg-amber-600',
-    'CAMBIO DE HORARIO': 'bg-amber-600',
-    'CANCELADO': 'bg-red-600',
-    'NO-SHOW (NO SE PRESENTÓ)': 'bg-slate-500',
-    'EN MIGRACIÓN': 'bg-purple-500',
-    'DEPORTADO': 'bg-red-800',
-    'FINALIZADO': 'bg-emerald-600',
-    pending: 'bg-amber-500',
-    confirmed: 'bg-emerald-600',
-}
-
-interface HistoryLog {
-    status: string
-    created_at: string
 }
 
 const formatCurrency = (amount: number | null | undefined) => {
@@ -99,23 +70,6 @@ export default async function FlightDetailPage({ params }: { params: { id: strin
     if (!flight) {
         redirect('/portal/vuelos')
     }
-
-    const historyLogs = await getServiceHistory(id, 'flights')
-    
-    // Every flight starts as "PROGRAMADO" upon creation.
-    // We add this as the first step, then append all subsequent status updates.
-    const timeline = [
-        { 
-            status: STATUS_LABELS['Programado'] || 'PROGRAMADO', 
-            created_at: flight.created_at, 
-            color: STATUS_COLORS['Programado'] || 'bg-sky-500' 
-        },
-        ...historyLogs.map((log: HistoryLog) => ({
-            status: STATUS_LABELS[log.status] || log.status.toUpperCase(),
-            created_at: log.created_at,
-            color: STATUS_COLORS[log.status] || 'bg-slate-400'
-        }))
-    ]
 
     let flightDetails: Record<string, string | boolean | number> = {}
     try {
@@ -246,29 +200,14 @@ export default async function FlightDetailPage({ params }: { params: { id: strin
                                             </div>
                                         </div>
                                     )}
-                                    {/* Status Timeline */}
+                                    {/* Status History */}
                                     <div>
-                                        <h3 className="text-xs font-bold text-chimipink uppercase tracking-wider mb-4 flex items-center gap-2">
-                                            <Clock size={14} /> Historial de Cambio
-                                        </h3>
-                                        <div className="relative pl-6 space-y-4 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
-                                            {timeline.slice().reverse().map((step, idx) => (
-                                                <div key={idx} className="relative flex items-center gap-4 group">
-                                                    <div className={cn(
-                                                        "absolute -left-[23px] h-3 w-3 rounded-full border-2 border-white shadow-sm z-10",
-                                                        step.color
-                                                    )} />
-                                                    <div className="flex flex-col">
-                                                        <span className="text-[10px] font-bold text-slate-400 leading-none mb-1">
-                                                            {new Date(step.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' })}
-                                                        </span>
-                                                        <span className="text-xs font-black text-slate-700 uppercase tracking-tighter">
-                                                            {step.status}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
+                                        <StatusHistory 
+                                            resourceId={flight.id} 
+                                            resourceType="flights"
+                                            createdAt={flight.created_at}
+                                            statusLabels={STATUS_LABELS}
+                                        />
                                     </div>
                                 </div>
 

@@ -32,7 +32,9 @@ import {
     type DateHistoryEntry,
     type Flight
 } from "@/app/actions/manage-flights"
+import { StatusHistory } from "@/components/StatusHistory"
 import { cn } from "@/lib/utils"
+import { OperationalFileTitle } from "@/components/OperationalFileTitle"
 
 
 
@@ -102,6 +104,18 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
         )
     }
 
+    const getStatusLabel = (status: string) => {
+        const s = status.toLowerCase();
+        if (s === 'programado' || s === 'scheduled') return 'Programado'
+        if (s === 'en tránsito' || s === 'en transito' || s === 'in_transit' || s === 'transit') return 'En Tránsito'
+        if (s === 'en migración' || s === 'en migracion' || s === 'migration') return 'En Migración'
+        if (s === 'finalizado' || s === 'completed' || s === 'finished') return 'Finalizado'
+        if (s === 'entregado' || s === 'delivered') return 'Entregado'
+        if (s === 'cancelado' || s === 'cancelled') return 'Cancelado'
+        if (s === 'deportado') return 'Deportado'
+        return status.toUpperCase()
+    }
+
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'Finalizado': return 'bg-emerald-500 text-white'
@@ -133,13 +147,14 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
                 
                 {/* Header Section - Integrated */}
                 <div className="bg-slate-50/50 p-6 md:p-8 border-b border-slate-100">
+                    <OperationalFileTitle />
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                         <div className="flex items-center gap-5">
                             <div>
                                 <div className="flex items-center gap-3 mb-1">
-                                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Reserva PNR</span>
+                                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Código PNR</span>
                                     <Badge className={cn("text-[9px] uppercase font-bold py-0 h-5", getStatusColor(flight.status))}>
-                                        {flight.status}
+                                        {getStatusLabel(flight.status)}
                                     </Badge>
                                 </div>
                                 <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{flight.pnr || '---'}</h1>
@@ -345,6 +360,25 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
                         {/* Sidebar Column within the Card */}
                         <div className="lg:col-span-4 bg-slate-50/30 p-6 md:p-8 space-y-12">
                             
+                            {/* Status History (Audit Logs) */}
+                            <StatusHistory 
+                                resourceId={flight.id} 
+                                resourceType="flights"
+                                statusLabels={{
+                                    'Programado': 'Programado',
+                                    'scheduled': 'Programado',
+                                    'En tránsito': 'En Tránsito',
+                                    'in_transit': 'En Tránsito',
+                                    'En migración': 'En Migración',
+                                    'Finalizado': 'Finalizado',
+                                    'completed': 'Finalizado',
+                                    'delivered': 'Entregado',
+                                    'Cancelado': 'Cancelado',
+                                    'cancelled': 'Cancelado',
+                                    'Deportado': 'Deportado'
+                                }}
+                            />
+
                             {/* Technical Details - Integrated Sidebar */}
                             <section className="space-y-6">
                                 <div className="flex items-center gap-3 border-b border-slate-100 pb-3">

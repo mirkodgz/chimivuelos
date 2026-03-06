@@ -1,34 +1,16 @@
-import { getTransferById, getServiceHistory } from '@/app/actions/client-portal'
+import { getTransferById } from '@/app/actions/client-portal'
 import { redirect } from 'next/navigation'
-import { Banknote, User, Download, FileText, CheckCircle2, Clock, NotebookPen } from 'lucide-react'
+import { Banknote, User, Download, FileText, CheckCircle2, NotebookPen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { cn } from "@/lib/utils"
-
-const STATUS_LABELS: Record<string, string> = {
-    scheduled: 'PROGRAMADO',
-    delivered: 'ENTREGADO',
-    cancelled: 'CANCELADO'
-}
-
-const STATUS_COLORS: Record<string, string> = {
-    scheduled: 'bg-amber-500',
-    delivered: 'bg-emerald-600',
-    cancelled: 'bg-red-600',
-    available: 'bg-chimiteal',
-    processing: 'bg-sky-500'
-}
+import Image from 'next/image'
+import { StatusHistory } from '@/components/StatusHistory'
 
 const formatCurrency = (amount: number | null | undefined, currency = 'EUR') => {
     return new Intl.NumberFormat('es-ES', { 
         style: 'currency', 
         currency: currency 
     }).format(amount || 0)
-}
-
-interface HistoryLog {
-    status: string
-    created_at: string
 }
 
 interface TransferDocument {
@@ -45,18 +27,6 @@ export default async function TransferDetailPage({ params }: { params: { id: str
     if (!transfer) {
         redirect('/portal/giros')
     }
-
-    const historyLogs = await getServiceHistory(id, 'money_transfers')
-    
-    // Combine creation with audit logs
-    const timeline = [
-        { status: 'CREACIÓN', created_at: transfer.created_at, color: 'bg-slate-500' },
-        ...historyLogs.map((log: HistoryLog) => ({
-            status: STATUS_LABELS[log.status] || log.status.toUpperCase(),
-            created_at: log.created_at,
-            color: STATUS_COLORS[log.status] || 'bg-slate-400'
-        }))
-    ]
 
     return (
         <div className="space-y-6 w-full">
@@ -85,7 +55,7 @@ export default async function TransferDetailPage({ params }: { params: { id: str
                              {/* Header Line */}
                              <div className="flex items-start gap-4">
                                 <div className="bg-white/80 p-3 rounded-xl border border-white/50 text-chimipink shadow-sm">
-                                    <Banknote size={24} />
+                                    <FileText size={24} />
                                 </div>
                                 <div>
                                     <h2 className="text-lg font-bold text-slate-900">Giro de Dinero</h2>
@@ -168,29 +138,20 @@ export default async function TransferDetailPage({ params }: { params: { id: str
                                         </div>
                                     </div>
 
-                                    {/* Status Timeline - Moved here to match Encomiendas structure */}
+                                    {/* Status History */}
                                     <div>
-                                        <h3 className="text-xs font-bold text-chimipink uppercase tracking-wider mb-4 flex items-center gap-2">
-                                            <Clock size={14} /> Historial de Cambio
-                                        </h3>
-                                        <div className="relative pl-6 space-y-4 mb-6 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100">
-                                            {timeline.map((step, idx) => (
-                                                <div key={idx} className="relative flex items-center gap-4 group">
-                                                    <div className={cn(
-                                                        "absolute -left-[23px] h-3 w-3 rounded-full border-2 border-white shadow-sm z-10",
-                                                        step.color
-                                                    )} />
-                                                    <div className="flex flex-col">
-                                                        <span className="text-[10px] font-bold text-slate-400 leading-none mb-1">
-                                                            {new Date(step.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' })}
-                                                        </span>
-                                                        <span className="text-xs font-black text-slate-700 uppercase tracking-tighter">
-                                                            {step.status}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
+                                        <StatusHistory 
+                                            resourceId={transfer.id} 
+                                            resourceType="money_transfers"
+                                            createdAt={transfer.created_at}
+                                            statusLabels={{
+                                                scheduled: 'PROGRAMADO',
+                                                delivered: 'ENTREGADO',
+                                                cancelled: 'CANCELADO',
+                                                available: 'DISPONIBLE',
+                                                processing: 'EN PROCESO'
+                                            }}
+                                        />
                                     </div>
                                 </div>
 
@@ -263,9 +224,11 @@ export default async function TransferDetailPage({ params }: { params: { id: str
                         {/* Right Content (Image) */}
                         <div className="w-full lg:w-1/3 flex items-center justify-center lg:justify-end">
                              <div className="relative w-full max-w-[200px] md:max-w-[350px] aspect-4/5 lg:mr-8 transition-transform hover:scale-105 duration-500">
-                                <img 
+                                <Image 
                                     src="/img-giro-detail.webp" 
                                     alt="Detalle de Giro" 
+                                    width={350}
+                                    height={438}
                                     className="object-contain w-full h-full drop-shadow-2xl"
                                 />
                              </div>

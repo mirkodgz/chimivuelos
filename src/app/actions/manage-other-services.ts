@@ -698,6 +698,7 @@ export async function getOtherServiceByCode(code: string) {
     const { data, error } = await supabase
         .from('other_services')
         .select(`
+            id,
             created_at,
             tracking_code,
             service_type,
@@ -721,6 +722,7 @@ export async function getOtherServiceByCode(code: string) {
     return {
         success: true,
         data: {
+            id: data.id,
             created_at: data.created_at,
             code: data.tracking_code,
             service_type: data.service_type === "Otros servicios" ? data.service_type_other : data.service_type,

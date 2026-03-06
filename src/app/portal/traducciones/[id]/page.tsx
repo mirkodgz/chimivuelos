@@ -1,18 +1,12 @@
-import { getTranslationById, getServiceHistory } from '@/app/actions/client-portal'
+import { getTranslationById } from '@/app/actions/client-portal'
 import { redirect } from 'next/navigation'
-import { Languages, FileText, Banknote, Clock, MapPin, User, ArrowLeft, CheckCircle2, NotebookPen } from 'lucide-react'
+import { Languages, FileText, Banknote, MapPin, User, ArrowLeft, Info, NotebookPen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
+import Image from 'next/image'
 import { ServiceDocumentRow } from '../../components/ServiceDocumentRow'
 import { cn } from "@/lib/utils"
-
-const STATUS_LABELS: Record<string, string> = {
-    pending: 'PENDIENTE',
-    in_progress: 'EN PROCESO',
-    completed: 'LISTO / COMPLETADO',
-    delivered: 'ENTREGADO',
-    cancelled: 'CANCELADO'
-}
+import { StatusHistory } from '@/components/StatusHistory'
 
 const STATUS_COLORS: Record<string, string> = {
     pending: 'bg-amber-100 text-amber-700 border-amber-200',
@@ -33,27 +27,6 @@ export default async function TranslationDetailPage({ params }: { params: { id: 
     if (!translation) {
         redirect('/portal/traducciones')
     }
-
-    const historyLogs = await getServiceHistory(id, 'translations', translation.tracking_code)
-    
-    const timeline = [
-        { status: 'CREACIÓN', created_at: translation.created_at, color: 'bg-blue-500' },
-        ...historyLogs.map((log) => {
-            const statusKey = (log.status || '').toLowerCase();
-            let color = 'bg-slate-400';
-            if (statusKey === 'completed') color = 'bg-emerald-500';
-            else if (statusKey === 'delivered') color = 'bg-blue-600';
-            else if (statusKey === 'cancelled') color = 'bg-rose-500';
-            else if (statusKey === 'in_progress') color = 'bg-sky-500';
-            else if (statusKey === 'pending') color = 'bg-amber-500';
-
-            return {
-                status: STATUS_LABELS[statusKey] || log.status.toUpperCase(),
-                created_at: log.created_at,
-                color: color
-            }
-        })
-    ]
 
     return (
         <div className="space-y-6 w-full">
@@ -97,7 +70,12 @@ export default async function TranslationDetailPage({ params }: { params: { id: 
                                             "text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-tighter border",
                                             STATUS_COLORS[translation.status]
                                         )}>
-                                            {STATUS_LABELS[translation.status]}
+                                            {/* Using a placeholder for STATUS_LABELS as it was removed */}
+                                            {translation.status === 'pending' && 'PENDIENTE'}
+                                            {translation.status === 'in_progress' && 'EN PROCESO'}
+                                            {translation.status === 'completed' && 'LISTO / COMPLETADO'}
+                                            {translation.status === 'delivered' && 'ENTREGADO'}
+                                            {translation.status === 'cancelled' && 'CANCELADO'}
                                         </span>
                                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                                             REGISTRADO EL {new Date(translation.created_at).toLocaleDateString()}
@@ -129,7 +107,7 @@ export default async function TranslationDetailPage({ params }: { params: { id: 
 
                                     <div>
                                         <h3 className="text-xs font-bold text-chimiteal uppercase tracking-wider mb-2 flex items-center gap-2">
-                                            <CheckCircle2 size={14} /> Tipo de Trabajo
+                                            <Info size={14} /> Tipo de Trabajo
                                         </h3>
                                         <div className="flex flex-wrap gap-2">
                                             {translation.work_types?.map((type: string, i: number) => (
@@ -210,6 +188,19 @@ export default async function TranslationDetailPage({ params }: { params: { id: 
                             </div>
                         </div>
 
+                        {/* Right Content (Image) */}
+                        <div className="w-full lg:w-1/3 flex items-center justify-center lg:justify-end">
+                             <div className="relative w-full max-w-[200px] md:max-w-[350px] aspect-4/5 lg:mr-8 transition-transform hover:scale-105 duration-500">
+                                <Image 
+                                    src="/img-translation-detail.webp" 
+                                    alt="Detalle de Traducción" 
+                                    width={350}
+                                    height={438}
+                                    className="object-contain w-full h-full drop-shadow-2xl"
+                                />
+                             </div>
+                        </div>
+
                         {/* Right Content (Financial & Documents) */}
                         <div className="lg:w-80 space-y-6">
                             {/* Financial Summary - Simplified and Consistent */}
@@ -268,28 +259,21 @@ export default async function TranslationDetailPage({ params }: { params: { id: 
                 {/* 2. Timeline and Bottom Info */}
                 <div className="grid grid-cols-1 lg:grid-cols-2">
                     <div className="p-6 lg:border-r border-white/30">
-                        <h3 className="text-xs font-bold text-chimiteal uppercase tracking-wider mb-6 flex items-center gap-2">
-                            <Clock size={14} /> Historial de Tracking
-                        </h3>
-                        
-                        <div className="relative pl-6 space-y-6 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-0.5 before:bg-white/30">
-                            {timeline.reverse().map((step, idx) => (
-                                <div key={idx} className="relative flex items-center justify-between group">
-                                    <div className={cn(
-                                        "absolute -left-[23px] h-3 w-3 rounded-full border-2 border-white shadow-sm z-10 transition-transform group-hover:scale-125",
-                                        step.color
-                                    )} />
-                                    <div>
-                                        <p className="text-[10px] font-bold text-slate-400 leading-none mb-1">
-                                            {new Date(step.created_at).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                                        </p>
-                                        <span className="text-xs font-black text-slate-700 uppercase tracking-tighter">
-                                            {step.status}
-                                        </span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                            {/* Status History */}
+                            <div>
+                                <StatusHistory 
+                                    resourceId={translation.id} 
+                                    resourceType="translations"
+                                    createdAt={translation.created_at}
+                                    statusLabels={{
+                                        pending: 'PENDIENTE',
+                                        in_progress: 'EN PROCESO',
+                                        completed: 'LISTO / COMPLETADO',
+                                        delivered: 'ENTREGADO',
+                                        cancelled: 'CANCELADO'
+                                    }}
+                                />
+                            </div>
                     </div>
 
                     <div className="p-6 flex flex-col justify-center bg-white/10">

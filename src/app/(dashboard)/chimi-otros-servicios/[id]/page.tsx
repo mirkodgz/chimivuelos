@@ -19,6 +19,8 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { StatusHistory } from "@/components/StatusHistory"
+import { OperationalFileTitle } from "@/components/OperationalFileTitle"
 import { 
     getOtherServiceFullDetails, 
     getOtherServiceDocumentUrl,
@@ -85,13 +87,13 @@ export default function OtherServiceDetailsPage({ params }: { params: Promise<{ 
     }
 
     const getStatusLabel = (status: string) => {
-        switch (status) {
-            case 'pending': return 'Pendiente'
-            case 'in_process': return 'En Proceso'
-            case 'completed': return 'Completado'
-            case 'cancelled': return 'Cancelado'
-            default: return status
-        }
+        const s = status.toLowerCase();
+        if (s === 'pending' || s === 'pendiente') return 'Pendiente'
+        if (s === 'in_process' || s === 'processing') return 'En Proceso'
+        if (s === 'completed' || s === 'finalizado') return 'Completado'
+        if (s === 'delivered' || s === 'entregado') return 'Entregado'
+        if (s === 'cancelled' || s === 'cancelado') return 'Cancelado'
+        return status.toUpperCase()
     }
 
     return (
@@ -110,6 +112,7 @@ export default function OtherServiceDetailsPage({ params }: { params: Promise<{ 
                 
                 {/* Header Section */}
                 <div className="bg-slate-50/50 p-6 md:p-8 border-b border-slate-100">
+                    <OperationalFileTitle />
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                         <div className="flex items-center gap-5">
                             <div>
@@ -286,6 +289,21 @@ export default function OtherServiceDetailsPage({ params }: { params: Promise<{ 
                         {/* Sidebar Column */}
                         <div className="lg:col-span-4 bg-slate-50/30 p-6 md:p-8 space-y-12">
                             
+                            {/* Status History (Audit Logs) */}
+                            <StatusHistory 
+                                resourceId={service.id} 
+                                resourceType="other_services"
+                                statusLabels={{
+                                    pending: 'Pendiente',
+                                    in_process: 'En Proceso',
+                                    processing: 'En Proceso',
+                                    completed: 'Completado',
+                                    delivered: 'Entregado',
+                                    entregado: 'Entregado',
+                                    cancelled: 'Cancelado'
+                                }}
+                            />
+
                             {/* Management Info */}
                             <section className="space-y-6">
                                 <div className="flex items-center gap-3 border-b border-slate-100 pb-3">

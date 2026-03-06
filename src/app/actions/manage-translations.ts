@@ -593,6 +593,7 @@ export async function getTranslationByCode(code: string) {
     const { data, error } = await supabase
         .from('translations')
         .select(`
+            id,
             created_at,
             tracking_code,
             total_amount,
@@ -614,6 +615,7 @@ export async function getTranslationByCode(code: string) {
     return {
         success: true,
         data: {
+            id: data.id,
             created_at: data.created_at,
             code: data.tracking_code,
             total_amount: data.total_amount,

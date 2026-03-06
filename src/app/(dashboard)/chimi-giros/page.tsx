@@ -769,13 +769,19 @@ export default function MoneyTransfersPage() {
     const filteredTransfers = useMemo(() => {
         return transfers.filter(t => {
             // Search
-            const lower = searchTerm.toLowerCase()
+            const lower = searchTerm.trim().toLowerCase()
+            const profile = Array.isArray(t.profiles) ? t.profiles[0] : t.profiles
             const matchesSearch = !searchTerm || 
                 t.transfer_code?.toLowerCase().includes(lower) ||
                 t.beneficiary_name?.toLowerCase().includes(lower) ||
-                `${t.profiles?.first_name} ${t.profiles?.last_name}`.toLowerCase().includes(lower) ||
-                t.profiles?.email?.toLowerCase().includes(lower) ||
-                t.profiles?.document_number?.toLowerCase().includes(lower)
+                `${profile?.first_name} ${profile?.last_name}`.toLowerCase().includes(lower) ||
+                profile?.email?.toLowerCase().includes(lower) ||
+                profile?.document_number?.toLowerCase().includes(lower) ||
+                profile?.first_name?.toLowerCase().includes(lower) ||
+                profile?.last_name?.toLowerCase().includes(lower) ||
+                `${t.agent?.first_name} ${t.agent?.last_name}`.toLowerCase().includes(lower) ||
+                t.agent?.first_name?.toLowerCase().includes(lower) ||
+                t.agent?.last_name?.toLowerCase().includes(lower)
 
             // Status
             const matchesStatus = statusFilter === 'all' || t.status === statusFilter

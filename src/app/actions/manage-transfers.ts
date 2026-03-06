@@ -713,6 +713,7 @@ export async function getTransferByCode(code: string) {
     const { data, error } = await supabase
         .from('money_transfers')
         .select(`
+            id,
             created_at,
             transfer_mode,
             amount_sent,
@@ -738,6 +739,7 @@ export async function getTransferByCode(code: string) {
     return {
         success: true,
         data: {
+            id: data.id,
             created_at: data.created_at,
             transfer_mode: data.transfer_mode,
             amount_sent: data.amount_sent,

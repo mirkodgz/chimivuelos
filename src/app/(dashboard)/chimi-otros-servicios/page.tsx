@@ -702,13 +702,19 @@ export default function OtherServicesPage() {
     }
 
     const filteredServices = services.filter(s => {
-        const lower = searchTerm.toLowerCase()
+        const lower = searchTerm.trim().toLowerCase()
+        const profile = Array.isArray(s.profiles) ? s.profiles[0] : s.profiles
         const matchesSearch = !searchTerm || 
             s.tracking_code?.toLowerCase().includes(lower) ||
             s.service_type?.toLowerCase().includes(lower) ||
-            `${s.profiles?.first_name} ${s.profiles?.last_name}`.toLowerCase().includes(lower) ||
-            s.profiles?.email?.toLowerCase().includes(lower) ||
-            s.profiles?.document_number?.toLowerCase().includes(lower) ||
+            `${profile?.first_name} ${profile?.last_name}`.toLowerCase().includes(lower) ||
+            profile?.email?.toLowerCase().includes(lower) ||
+            profile?.document_number?.toLowerCase().includes(lower) ||
+            profile?.first_name?.toLowerCase().includes(lower) ||
+            profile?.last_name?.toLowerCase().includes(lower) ||
+            `${s.agent?.first_name} ${s.agent?.last_name}`.toLowerCase().includes(lower) ||
+            s.agent?.first_name?.toLowerCase().includes(lower) ||
+            s.agent?.last_name?.toLowerCase().includes(lower) ||
             s.recipient_name?.toLowerCase().includes(lower)
         
         const matchesStatus = statusFilter === 'all' || s.status === statusFilter

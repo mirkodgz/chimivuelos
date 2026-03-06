@@ -16,6 +16,8 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { StatusHistory } from "@/components/StatusHistory"
+import { OperationalFileTitle } from "@/components/OperationalFileTitle"
 import { 
     getParcelFullDetails, 
     getParcelDocumentUrl,
@@ -83,14 +85,13 @@ export default function ParcelDetailsPage({ params }: { params: Promise<{ id: st
     }
 
     const getStatusLabel = (status: string) => {
-        switch (status) {
-            case 'pending': return 'Pendiente'
-            case 'in_transit': return 'En Tránsito'
-            case 'delivered': return 'Entregado'
-            case 'cancelled': return 'Cancelado'
-            case 'returned': return 'Devuelto'
-            default: return status
-        }
+        const s = status.toLowerCase();
+        if (s === 'pending' || s === 'pendiente') return 'Pendiente'
+        if (s === 'in_transit' || s === 'in_process' || s === 'transito' || s === 'transit') return 'En Tránsito'
+        if (s === 'delivered' || s === 'entregado') return 'Entregado'
+        if (s === 'cancelled' || s === 'cancelado') return 'Cancelado'
+        if (s === 'returned' || s === 'devuelto') return 'Devuelto'
+        return status.toUpperCase()
     }
 
     return (
@@ -109,6 +110,7 @@ export default function ParcelDetailsPage({ params }: { params: Promise<{ id: st
                 
                 {/* Header Section */}
                 <div className="bg-slate-50/50 p-6 md:p-8 border-b border-slate-100">
+                    <OperationalFileTitle />
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                         <div className="flex items-center gap-5">
                             <div>
@@ -275,6 +277,22 @@ export default function ParcelDetailsPage({ params }: { params: Promise<{ id: st
                         {/* Sidebar Column */}
                         <div className="lg:col-span-4 bg-slate-50/30 p-6 md:p-8 space-y-12">
                             
+                            {/* Status History (Audit Logs) */}
+                            <StatusHistory 
+                                resourceId={parcel.id} 
+                                resourceType="parcels"
+                                statusLabels={{
+                                    pending: 'Pendiente',
+                                    in_transit: 'En Tránsito',
+                                    transit: 'En Tránsito',
+                                    in_process: 'En Tránsito',
+                                    delivered: 'Entregado',
+                                    entregado: 'Entregado',
+                                    returned: 'Devuelto',
+                                    cancelled: 'Cancelado'
+                                }}
+                            />
+
                             {/* Operational & Agent */}
                             <section className="space-y-6">
                                 <div className="flex items-center gap-3 border-b border-slate-100 pb-3">

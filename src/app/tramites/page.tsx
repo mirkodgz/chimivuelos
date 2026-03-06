@@ -5,11 +5,13 @@ import { getTranslationByCode } from '@/app/actions/manage-translations'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Search, Loader2, CheckCircle, Clock, AlertTriangle, XCircle, FileText, ArrowRight } from "lucide-react"
+import { Search, Loader2, CheckCircle, Clock, AlertTriangle, XCircle } from "lucide-react"
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
+import { StatusHistory } from '@/components/StatusHistory'
 
 interface TranslationResult {
+    id: string
     created_at: string
     total_amount: number
     on_account: number
@@ -205,6 +207,22 @@ function TranslationTrackingContent() {
                                         </div>
                                      </div>
                                 </div>
+                            </div>
+
+                            {/* Tracking History */}
+                            <div className="bg-white rounded-xl border border-slate-100 p-5 shadow-xs">
+                                <StatusHistory 
+                                    resourceId={result.id} 
+                                    resourceType="translations"
+                                    createdAt={result.created_at}
+                                    statusLabels={{
+                                        pending: 'Pendiente',
+                                        processing: 'En Proceso',
+                                        completed: 'Completado',
+                                        delivered: 'Entregado',
+                                        cancelled: 'Cancelado'
+                                    }}
+                                />
                             </div>
                         </div>
                     )}
