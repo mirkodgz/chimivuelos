@@ -1473,11 +1473,12 @@ export default function OtherServicesPage() {
                                                                 <Input 
                                                                     name="payment_method_it" 
                                                                     value={formData.payment_method_it} 
+                                                                    disabled={!!formData.payment_method_pe}
                                                                     onChange={(e) => { setFormData(prev => ({ ...prev, payment_method_it: e.target.value })); setShowMetodoITList(true); }}
                                                                     onFocus={() => setShowMetodoITList(true)}
                                                                     onBlur={() => setTimeout(() => setShowMetodoITList(false), 200)}
-                                                                    placeholder="Buscar método..."
-                                                                    className="bg-blue-50/50 border-blue-200 h-10 text-sm focus:ring-blue-500 pr-8 font-medium"
+                                                                    placeholder={formData.payment_method_pe ? "Bloqueado por Método PE" : "Buscar método..."}
+                                                                    className="bg-blue-50/50 border-blue-200 h-10 text-sm focus:ring-blue-500 pr-8 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                                                                 />
                                                                 {formData.payment_method_it ? (
                                                                     <button type="button" onClick={() => setFormData(p => ({ ...p, payment_method_it: '' }))} className="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 rounded-full p-0.5"><X size={14} strokeWidth={3} /></button>
@@ -1504,11 +1505,12 @@ export default function OtherServicesPage() {
                                                                 <Input 
                                                                     name="payment_method_pe" 
                                                                     value={formData.payment_method_pe} 
+                                                                    disabled={!!formData.payment_method_it}
                                                                     onChange={(e) => { setFormData(prev => ({ ...prev, payment_method_pe: e.target.value })); setShowMetodoPEList(true); }}
                                                                     onFocus={() => setShowMetodoPEList(true)}
                                                                     onBlur={() => setTimeout(() => setShowMetodoPEList(false), 200)}
-                                                                    placeholder="Buscar método..."
-                                                                    className="bg-rose-50/50 border-rose-200 h-10 text-sm focus:ring-rose-500 pr-8 font-medium"
+                                                                    placeholder={formData.payment_method_it ? "Bloqueado por Método IT" : "Buscar método..."}
+                                                                    className="bg-rose-50/50 border-rose-200 h-10 text-sm focus:ring-rose-500 pr-8 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                                                                 />
                                                                 {formData.payment_method_pe ? (
                                                                     <button type="button" onClick={() => setFormData(p => ({ ...p, payment_method_pe: '' }))} className="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 rounded-full p-0.5"><X size={14} strokeWidth={3} /></button>

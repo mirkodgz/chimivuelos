@@ -1277,6 +1277,7 @@ export default function ParcelsPage() {
                                                         <Input 
                                                             name="payment_method_it" 
                                                             value={formData.payment_method_it} 
+                                                            disabled={!!formData.payment_method_pe}
                                                             onChange={(e) => {
                                                                 const { value } = e.target
                                                                 setFormData(prev => ({ ...prev, payment_method_it: value }))
@@ -1284,9 +1285,9 @@ export default function ParcelsPage() {
                                                             }}
                                                             onFocus={() => setShowMetodoITList(true)}
                                                             onBlur={() => setTimeout(() => setShowMetodoITList(false), 200)}
-                                                            placeholder="Buscar método..."
+                                                            placeholder={formData.payment_method_pe ? "Bloqueado por Método PE" : "Buscar método..."}
                                                             autoComplete="off"
-                                                            className="bg-blue-50/50 border-blue-200 focus:ring-blue-500 pr-8 h-10 text-sm"
+                                                            className="bg-blue-50/50 border-blue-200 focus:ring-blue-500 pr-8 h-10 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                                                         />
                                                         {formData.payment_method_it ? (
                                                             <button 
@@ -1323,6 +1324,7 @@ export default function ParcelsPage() {
                                                         <Input 
                                                             name="payment_method_pe" 
                                                             value={formData.payment_method_pe} 
+                                                            disabled={!!formData.payment_method_it}
                                                             onChange={(e) => {
                                                                 const { value } = e.target
                                                                 setFormData(prev => ({ ...prev, payment_method_pe: value }))
@@ -1330,9 +1332,9 @@ export default function ParcelsPage() {
                                                             }}
                                                             onFocus={() => setShowMetodoPEList(true)}
                                                             onBlur={() => setTimeout(() => setShowMetodoPEList(false), 200)}
-                                                            placeholder="Buscar método..."
+                                                            placeholder={formData.payment_method_it ? "Bloqueado por Método IT" : "Buscar método..."}
                                                             autoComplete="off"
-                                                            className="bg-rose-50/50 border-rose-200 focus:ring-rose-500 pr-8 h-10 text-sm"
+                                                            className="bg-rose-50/50 border-rose-200 focus:ring-rose-500 pr-8 h-10 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                                                         />
                                                         {formData.payment_method_pe ? (
                                                             <button 

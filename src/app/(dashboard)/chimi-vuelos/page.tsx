@@ -2330,8 +2330,9 @@ export default function FlightsPage() {
                                                                                 </Label>
                                                                                 <div className="relative">
                                                                                     <Input 
-                                                                                        className="h-8 text-xs bg-blue-50/50 border-blue-200 pr-8"
+                                                                                        className="h-8 text-xs bg-blue-50/50 border-blue-200 pr-8 disabled:opacity-50 disabled:cursor-not-allowed"
                                                                                         value={editPaymentData.metodo_it}
+                                                                                        disabled={!!editPaymentData.metodo_pe}
                                                                                         onChange={(e) => {
                                                                                             const val = e.target.value
                                                                                             setEditPaymentData(prev => prev ? {...prev, metodo_it: val} : null)
@@ -2339,7 +2340,7 @@ export default function FlightsPage() {
                                                                                         }}
                                                                                         onFocus={() => setShowEditMetodoITList(true)}
                                                                                         onBlur={() => setTimeout(() => setShowEditMetodoITList(false), 200)}
-                                                                                        placeholder="Buscar método..."
+                                                                                        placeholder={editPaymentData.metodo_pe ? "Bloqueado..." : "Buscar método..."}
                                                                                     />
                                                                                     {editPaymentData.metodo_it && (
                                                                                         <button 
@@ -2372,8 +2373,9 @@ export default function FlightsPage() {
                                                                                 </Label>
                                                                                 <div className="relative">
                                                                                     <Input 
-                                                                                        className="h-8 text-xs bg-rose-50/50 border-rose-200 pr-8"
+                                                                                        className="h-8 text-xs bg-rose-50/50 border-rose-200 pr-8 disabled:opacity-50 disabled:cursor-not-allowed"
                                                                                         value={editPaymentData.metodo_pe}
+                                                                                        disabled={!!editPaymentData.metodo_it}
                                                                                         onChange={(e) => {
                                                                                             const val = e.target.value
                                                                                             setEditPaymentData(prev => prev ? {...prev, metodo_pe: val} : null)
@@ -2381,7 +2383,7 @@ export default function FlightsPage() {
                                                                                         }}
                                                                                         onFocus={() => setShowEditMetodoPEList(true)}
                                                                                         onBlur={() => setTimeout(() => setShowEditMetodoPEList(false), 200)}
-                                                                                        placeholder="Buscar método..."
+                                                                                        placeholder={editPaymentData.metodo_it ? "Bloqueado..." : "Buscar método..."}
                                                                                     />
                                                                                     {editPaymentData.metodo_pe && (
                                                                                         <button 
@@ -2727,15 +2729,16 @@ export default function FlightsPage() {
                                                         <Input 
                                                             name="payment_method_it" 
                                                             value={formData.payment_method_it} 
+                                                            disabled={!!formData.payment_method_pe}
                                                             onChange={(e) => {
                                                                 handleInputChange(e)
                                                                 setShowMetodoITList(true)
                                                             }}
                                                             onFocus={() => setShowMetodoITList(true)}
                                                             onBlur={() => setTimeout(() => setShowMetodoITList(false), 200)}
-                                                            placeholder="Buscar método..."
+                                                            placeholder={formData.payment_method_pe ? "Bloqueado por Método PE" : "Buscar método..."}
                                                             autoComplete="off"
-                                                            className="bg-blue-50/50 border-blue-200 focus:ring-blue-500 pr-8"
+                                                            className="bg-blue-50/50 border-blue-200 focus:ring-blue-500 pr-8 disabled:opacity-50 disabled:cursor-not-allowed"
                                                         />
                                                         {formData.payment_method_it && (
                                                             <button 
@@ -2770,15 +2773,16 @@ export default function FlightsPage() {
                                                         <Input 
                                                             name="payment_method_pe" 
                                                             value={formData.payment_method_pe} 
+                                                            disabled={!!formData.payment_method_it}
                                                             onChange={(e) => {
                                                                 handleInputChange(e)
                                                                 setShowMetodoPEList(true)
                                                             }}
                                                             onFocus={() => setShowMetodoPEList(true)}
                                                             onBlur={() => setTimeout(() => setShowMetodoPEList(false), 200)}
-                                                            placeholder="Buscar método..."
+                                                            placeholder={formData.payment_method_it ? "Bloqueado por Método IT" : "Buscar método..."}
                                                             autoComplete="off"
-                                                            className="bg-rose-50/50 border-rose-200 focus:ring-rose-500 pr-8"
+                                                            className="bg-rose-50/50 border-rose-200 focus:ring-rose-500 pr-8 disabled:opacity-50 disabled:cursor-not-allowed"
                                                         />
                                                         {formData.payment_method_pe && (
                                                             <button 

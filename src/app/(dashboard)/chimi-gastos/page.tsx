@@ -751,12 +751,13 @@ export default function GastosPage() {
                                         <div className="relative">
                                             <Input 
                                                 value={formData.metodo_it} 
+                                                disabled={!!formData.metodo_pe}
                                                 onChange={e => { setFormData(p => ({ ...p, metodo_it: e.target.value })); setShowMetodoITList(true); }}
                                                 onFocus={() => setShowMetodoITList(true)}
                                                 onBlur={() => setTimeout(() => setShowMetodoITList(false), 200)}
-                                                placeholder="Buscar método..."
+                                                placeholder={formData.metodo_pe ? "Bloqueado por Método PE" : "Buscar método..."}
                                                 autoComplete="off"
-                                                className="bg-blue-50/50 border-blue-200 focus:ring-blue-500 pr-8 h-10 text-sm"
+                                                className="bg-blue-50/50 border-blue-200 focus:ring-blue-500 pr-8 h-10 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                                             />
                                             {formData.metodo_it && (
                                                 <button type="button" onClick={() => setFormData(p => ({ ...p, metodo_it: '' }))} className="absolute right-2 top-1/2 -translate-y-1/2 text-red-400"><X size={14} strokeWidth={3}/></button>
@@ -777,12 +778,13 @@ export default function GastosPage() {
                                         <div className="relative">
                                             <Input 
                                                 value={formData.metodo_pe} 
+                                                disabled={!!formData.metodo_it}
                                                 onChange={e => { setFormData(p => ({ ...p, metodo_pe: e.target.value })); setShowMetodoPEList(true); }}
                                                 onFocus={() => setShowMetodoPEList(true)}
                                                 onBlur={() => setTimeout(() => setShowMetodoPEList(false), 200)}
-                                                placeholder="Buscar método..."
+                                                placeholder={formData.metodo_it ? "Bloqueado por Método IT" : "Buscar método..."}
                                                 autoComplete="off"
-                                                className="bg-rose-50/50 border-rose-200 focus:ring-rose-500 pr-8 h-10 text-sm"
+                                                className="bg-rose-50/50 border-rose-200 focus:ring-rose-500 pr-8 h-10 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                                             />
                                             {formData.metodo_pe && (
                                                 <button type="button" onClick={() => setFormData(p => ({ ...p, metodo_pe: '' }))} className="absolute right-2 top-1/2 -translate-y-1/2 text-red-400"><X size={14} strokeWidth={3}/></button>
