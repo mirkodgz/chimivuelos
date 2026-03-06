@@ -18,7 +18,8 @@ import {
     Download,
     Pencil,
     ClipboardList,
-    Paperclip
+    Paperclip,
+    Users
 } from 'lucide-react'
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -42,7 +43,7 @@ import { toast } from "sonner"
 const EXPENSE_CATEGORIES = [
     { label: "1. Operación viajes", value: "operacion_viajes", motifs: ["Billetes", "Penalidades", "Proveedores", "Seguros", "Vuelo cancelado por operador"] },
     { label: "2. Oficina / sede", value: "oficina_sede", motifs: ["Alquiler", "Luz", "Agua", "Internet", "Limpieza"] },
-    { label: "3. Pago a personal", value: "pago_personal", motifs: ["Sueldos", "Comisiones", "Bonos", "Aportes"] },
+    { label: "3. Pago a personal", value: "pago_personal", motifs: ["Sueldos", "Comisiones", "Bonos", "Aportes", "Adelanto de sueldo", "Préstamo", "Otros"] },
     { label: "4. Tecnología", value: "tecnologia", motifs: ["Software", "Sabre", "Equipos", "Hosting"] },
     { label: "5. Marketing", value: "marketing", motifs: ["Publicidad", "Impresiones", "Diseño"] },
     { label: "6. Financieros", value: "financieros", motifs: ["Comisiones bancarias", "POS", "Transferencias"] },
@@ -102,7 +103,9 @@ export default function GastosPage() {
         amount_eur: '',
         provider_name: '',
         linked_client_name: '',
-        reference_number: ''
+        reference_number: '',
+        recipient_agent_id: '',
+        recipient_agent_name: ''
     })
 
     const [proofFile, setProofFile] = useState<File | null>(null)
@@ -119,6 +122,11 @@ export default function GastosPage() {
     const [searchResults, setSearchResults] = useState<SearchResult[]>([])
     const [isSearching, setIsSearching] = useState(false)
     const [recordSearch, setRecordSearch] = useState('')
+
+    // Agents Logic
+    const [agents, setAgents] = useState<{id: string, first_name: string, last_name: string}[]>([])
+    const [showAgentList, setShowAgentList] = useState(false)
+    const [agentSearch, setAgentSearch] = useState('')
 
     const fetchUserData = useCallback(async () => {
         const supabase = createClient()
@@ -140,14 +148,16 @@ export default function GastosPage() {
     const fetchData = useCallback(async () => {
         setIsLoading(true)
         try {
-            const [expData, itMethods, peMethods] = await Promise.all([
+            const [expData, itMethods, peMethods, profilesRes] = await Promise.all([
                 getExpenses(),
                 getPaymentMethodsIT(),
-                getPaymentMethodsPE()
+                getPaymentMethodsPE(),
+                createClient().from('profiles').select('id, first_name, last_name').neq('role', 'client')
             ])
             setExpenses(expData)
             setPaymentMethodsIT(itMethods)
             setPaymentMethodsPE(peMethods)
+            if (profilesRes.data) setAgents(profilesRes.data)
             await fetchUserData()
         } catch {
             toast.error("Error al cargar los datos")
@@ -170,6 +180,13 @@ export default function GastosPage() {
             setFormData(prev => ({ ...prev, amount_eur: (qty / rate).toFixed(2) }))
         }
     }, [formData.original_amount, formData.exchange_rate, formData.currency])
+
+    const filteredAgents = useMemo(() => {
+        if (!agentSearch) return agents;
+        return agents.filter(a => 
+            `${a.first_name} ${a.last_name}`.toLowerCase().includes(agentSearch.toLowerCase())
+        );
+    }, [agents, agentSearch]);
 
     // Search Records Logic
     useEffect(() => {
@@ -212,9 +229,12 @@ export default function GastosPage() {
             amount_eur: '',
             provider_name: '',
             linked_client_name: '',
-            reference_number: ''
+            reference_number: '',
+            recipient_agent_id: '',
+            recipient_agent_name: ''
         })
         setRecordSearch('')
+        setAgentSearch('')
         setProofFile(null)
         setExistingProof(null)
         setNumDocs(0)
@@ -245,9 +265,12 @@ export default function GastosPage() {
             amount_eur: item.amount_eur.toString(),
             provider_name: item.provider_name || '',
             linked_client_name: item.linked_client_name || '',
-            reference_number: item.reference_number || ''
+            reference_number: item.reference_number || '',
+            recipient_agent_id: item.recipient_agent_id || '',
+            recipient_agent_name: item.recipient_agent ? `${item.recipient_agent.first_name} ${item.recipient_agent.last_name}` : ''
         })
         setRecordSearch(item.reference_number || '')
+        setAgentSearch(item.recipient_agent ? `${item.recipient_agent.first_name} ${item.recipient_agent.last_name}` : '')
         setExistingProof(item.proof_path || null)
         setExistingAttachments(item.additional_files || [])
         setIsDialogOpen(true)
@@ -297,6 +320,7 @@ export default function GastosPage() {
             sd.append('provider_name', formData.provider_name)
             sd.append('linked_client_name', formData.linked_client_name)
             sd.append('reference_number', formData.reference_number)
+            sd.append('recipient_agent_id', formData.recipient_agent_id)
 
             if (proofFile) sd.append('proof_file', proofFile)
             
@@ -405,6 +429,7 @@ export default function GastosPage() {
                                 <th className="p-4 text-nowrap">CATEGORÍA</th>
                                 <th className="p-4 text-nowrap">MOTIVO</th>
                                 <th className="p-4">DESCRIPCIÓN</th>
+                                <th className="p-4 text-nowrap">BENEFICIARIO</th>
                                 <th className="p-4 text-nowrap">VINCULACIÓN</th>
                                 <th className="p-4 text-nowrap">MONTO (€)</th>
                                 <th className="p-4 text-nowrap">SEDE</th>
@@ -437,6 +462,15 @@ export default function GastosPage() {
                                         </td>
                                         <td className="p-4 py-3">
                                             <span className="font-bold text-slate-700 line-clamp-1 max-w-[200px]">{item.description}</span>
+                                        </td>
+                                        <td className="p-4 py-3">
+                                            {item.recipient_agent ? (
+                                                <span className="text-xs font-bold text-slate-700 uppercase">
+                                                    {item.recipient_agent.first_name} {item.recipient_agent.last_name}
+                                                </span>
+                                            ) : (
+                                                <span className="text-[10px] text-slate-300 italic">--</span>
+                                            )}
                                         </td>
                                         <td className="p-4 py-3">
                                             {item.connected_record_id || item.reference_number ? (
@@ -559,7 +593,66 @@ export default function GastosPage() {
 
 
 
-                        {/* SECTION: VINCULACIÓN */}
+                        {/* SECTION: PAGO A PERSONAL (RECIPIENT AGENT) */}
+                        {formData.category === 'pago_personal' && (
+                            <div className="space-y-4 border border-chimipink/20 p-4 rounded-md bg-pink-50/30">
+                                <Label className="font-bold text-slate-700 text-sm flex items-center gap-2">
+                                    <Users className="h-4 w-4 shrink-0 text-chimipink" /> Personal Beneficiario
+                                </Label>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2 relative">
+                                        <Label className="text-xs font-bold text-slate-500 uppercase tracking-tight">Buscar Agente / Personal</Label>
+                                        <div className="relative">
+                                            <Input 
+                                                placeholder="Nombre del agente..."
+                                                value={agentSearch}
+                                                onChange={e => {
+                                                    setAgentSearch(e.target.value);
+                                                    setShowAgentList(true);
+                                                    if (!e.target.value) {
+                                                        setFormData(p => ({ ...p, recipient_agent_id: '', recipient_agent_name: '' }));
+                                                    }
+                                                }}
+                                                onFocus={() => setShowAgentList(true)}
+                                                onBlur={() => setTimeout(() => setShowAgentList(false), 200)}
+                                                className="h-10 text-sm border-slate-200 focus:ring-chimipink bg-white pr-8"
+                                            />
+                                            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                        </div>
+                                        {showAgentList && filteredAgents.length > 0 && (
+                                            <div className="absolute top-full z-20 w-full bg-white border border-slate-200 shadow-xl rounded-md mt-1 max-h-40 overflow-y-auto font-medium">
+                                                {filteredAgents.map((agent) => (
+                                                    <div 
+                                                        key={agent.id} 
+                                                        className="p-2.5 hover:bg-slate-50 cursor-pointer text-sm border-b last:border-0 flex items-center gap-2 uppercase"
+                                                        onClick={() => {
+                                                            setFormData(p => ({ 
+                                                                ...p, 
+                                                                recipient_agent_id: agent.id,
+                                                                recipient_agent_name: `${agent.first_name} ${agent.last_name}`
+                                                            }));
+                                                            setAgentSearch(`${agent.first_name} ${agent.last_name}`);
+                                                            setShowAgentList(false);
+                                                        }}
+                                                    >
+                                                        <div className="h-6 w-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500">
+                                                            {agent.first_name[0]}{agent.last_name[0]}
+                                                        </div>
+                                                        <span className="font-bold text-slate-700">{agent.first_name} {agent.last_name}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-bold text-slate-500 uppercase tracking-tight">Personal Seleccionado</Label>
+                                        <div className="h-10 bg-white border border-slate-100 rounded-md flex items-center px-3 text-xs font-black text-chimipink uppercase">
+                                            {formData.recipient_agent_name || 'Ninguno seleccionado'}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         <div className="space-y-4 border p-4 rounded-md bg-slate-50">
                             <Label className="font-bold text-slate-700 text-sm flex items-center gap-2">
                                 <ExternalLink className="h-4 w-4 shrink-0 text-chimicyan" /> Vinculación Operativa

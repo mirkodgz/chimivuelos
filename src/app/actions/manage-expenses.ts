@@ -39,7 +39,14 @@ export interface CorporateExpense {
         size: number
         storage: 'r2' | 'images'
     }[]
+    recipient_agent_id?: string
     agent?: {
+        id: string
+        first_name: string
+        last_name: string
+    }
+    recipient_agent?: {
+        id: string
         first_name: string
         last_name: string
     }
@@ -58,7 +65,11 @@ export async function getExpenses() {
     }
 
     if (data && data.length > 0) {
-        const agentIds = [...new Set(data.map(d => d.agent_id).filter(Boolean))] as string[]
+        const agentIds = [...new Set([
+            ...data.map(d => d.agent_id),
+            ...data.map(d => d.recipient_agent_id)
+        ].filter(Boolean))] as string[]
+
         if (agentIds.length > 0) {
             const { data: agents } = await supabase.from('profiles').select('id, first_name, last_name').in('id', agentIds)
             if (agents) {
@@ -66,6 +77,9 @@ export async function getExpenses() {
                 data.forEach(d => {
                     if (d.agent_id && agentMap[d.agent_id]) {
                         d.agent = agentMap[d.agent_id]
+                    }
+                    if (d.recipient_agent_id && agentMap[d.recipient_agent_id]) {
+                        d.recipient_agent = agentMap[d.recipient_agent_id]
                     }
                 })
             }
@@ -112,6 +126,7 @@ export async function createExpense(formData: FormData) {
 
     const insertData = {
         agent_id: user.id,
+        recipient_agent_id: formData.get('recipient_agent_id') as string || null,
         expense_date: formData.get('expense_date') as string,
         category,
         sub_category: formData.get('sub_category') as string,
@@ -242,6 +257,7 @@ export async function updateExpense(formData: FormData) {
     }
 
     const updateData = {
+        recipient_agent_id: formData.get('recipient_agent_id') as string || null,
         expense_date: formData.get('expense_date') as string,
         category,
         sub_category: formData.get('sub_category') as string,
