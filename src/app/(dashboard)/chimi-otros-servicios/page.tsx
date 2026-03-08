@@ -39,7 +39,8 @@ import {
     Briefcase,
     User,
     MapPin,
-    ArrowRight
+    ArrowRight,
+    Plane
 } from 'lucide-react'
 import { 
     getOtherServices, 
@@ -589,7 +590,9 @@ export default function OtherServicesPage() {
             sede_it: "",
             sede_pe: "",
             payment_method_it: "",
-            payment_method_pe: ""
+            payment_method_pe: "",
+            flight_pnr: "",
+            connected_flight_id: ""
         }))
         setPaymentProofFile(null)
         setShowPaymentFields(false)
@@ -1082,183 +1085,204 @@ export default function OtherServicesPage() {
                                         )}
 
                                         {/* Additional fields for specific service types */}
-                                        {(formData.service_type === "Reprogramación de vuelo" || formData.service_type === "Agregar Equipaje") && (
-                                            <div className="space-y-4 pt-4 border-t border-slate-100 col-span-full animate-in fade-in slide-in-from-top-2 duration-300">
-                                                {formData.service_type === "Agregar Equipaje" && (
-                                                    <div className="space-y-3 p-1">
-                                                        <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                                            Seleccionar Opción de Equipaje
-                                                        </Label>
-                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                            {["1 PC 23 kg", "2 PC 23 kg"].map((opt) => (
-                                                                <div 
-                                                                    key={opt}
-                                                                    className={cn(
-                                                                        "flex items-center gap-3 px-4 py-3 rounded-lg border transition-all cursor-pointer group",
-                                                                        luggageOption.includes(opt)
-                                                                            ? "border-chimipink bg-white ring-1 ring-chimipink/20" 
-                                                                            : "border-slate-200 bg-white hover:border-slate-300"
-                                                                    )}
-                                                                    onClick={(e) => {
-                                                                        e.preventDefault();
-                                                                        toggleLuggage(opt);
-                                                                    }}
-                                                                >
-                                                                    <div className={cn(
-                                                                        "h-4 w-4 rounded border flex items-center justify-center transition-colors",
-                                                                        luggageOption.includes(opt)
-                                                                            ? "bg-chimipink border-chimipink text-white"
-                                                                            : "border-slate-300 bg-slate-50"
-                                                                    )}>
-                                                                        {luggageOption.includes(opt) && <Check className="h-2 w-2" strokeWidth={5} />}
-                                                                    </div>
-                                                                    <span className={cn(
-                                                                        "flex-1 text-xs font-bold select-none transition-colors",
-                                                                        luggageOption.includes(opt) ? "text-chimipink" : "text-slate-600"
-                                                                    )}>
-                                                                        {opt}
-                                                                    </span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <div className="space-y-2 relative">
-                                                        <Label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                                                            <Search className="h-3 w-3 text-chimipink" />
-                                                            VINCULAR VUELO (PNR)
-                                                        </Label>
-                                                        <div className="relative">
-                                                            <Input
-                                                                placeholder="Escribe el PNR..."
-                                                                value={flightSearchQuery}
-                                                                onChange={(e) => {
-                                                                    setFlightSearchQuery(e.target.value)
-                                                                    setShowFlightSearch(true)
+                                        <div className="space-y-4 pt-4 border-t border-slate-100 col-span-full animate-in fade-in slide-in-from-top-2 duration-300">
+                                            {formData.service_type === "Agregar Equipaje" && (
+                                                <div className="space-y-3 p-1">
+                                                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                                        Seleccionar Opción de Equipaje
+                                                    </Label>
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                        {["1 PC 23 kg", "2 PC 23 kg"].map((opt) => (
+                                                            <div 
+                                                                key={opt}
+                                                                className={cn(
+                                                                    "flex items-center gap-3 px-4 py-3 rounded-lg border transition-all cursor-pointer group",
+                                                                    luggageOption.includes(opt)
+                                                                        ? "border-chimipink bg-white ring-1 ring-chimipink/20" 
+                                                                        : "border-slate-200 bg-white hover:border-slate-300"
+                                                                )}
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    toggleLuggage(opt);
                                                                 }}
-                                                                onFocus={() => setShowFlightSearch(true)}
-                                                                className="h-10 text-sm border-slate-200 focus:ring-chimipink"
-                                                            />
-                                                            {isSearchingFlights && (
-                                                                <div className="absolute right-3 top-2.5">
-                                                                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-chimipink border-t-transparent"></div>
+                                                            >
+                                                                <div className={cn(
+                                                                    "h-4 w-4 rounded border flex items-center justify-center transition-colors",
+                                                                    luggageOption.includes(opt)
+                                                                        ? "bg-chimipink border-chimipink text-white"
+                                                                        : "border-slate-300 bg-slate-50"
+                                                                )}>
+                                                                    {luggageOption.includes(opt) && <Check className="h-2 w-2" strokeWidth={5} />}
                                                                 </div>
-                                                            )}
-                                                        </div>
-
-                                                        {showFlightSearch && flightSearchResults.length > 0 && (
-                                                            <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl max-h-60 overflow-y-auto overflow-x-hidden animate-in fade-in zoom-in-95">
-                                                                {flightSearchResults.map((f) => (
-                                                                    <div
-                                                                        key={f.id}
-                                                                        className="p-3 hover:bg-slate-50 cursor-pointer border-b last:border-0 transition-colors"
-                                                                        onClick={() => {
-                                                                            setFormData(prev => ({
-                                                                                ...prev,
-                                                                                connected_flight_id: f.id,
-                                                                                flight_pnr: f.display_code,
-                                                                                flight_status: f.status || '',
-                                                                                current_flight_date: f.travel_date || '',
-                                                                                recipient_name: f.client_name,
-                                                                                recipient_phone: f.client_phone || ''
-                                                                            }))
-                                                                            setFlightSearchQuery(f.display_code)
-                                                                            setShowFlightSearch(false)
-                                                                            setFlightSearchResults([])
-                                                                        }}
-                                                                    >
-                                                                        <div className="flex flex-col">
-                                                                            <span className="text-sm font-bold text-slate-800">{f.display_code}</span>
-                                                                            <span className="text-[10px] text-slate-500 uppercase tracking-wider">{f.client_name}</span>
-                                                                        </div>
-                                                                    </div>
-                                                                ))}
+                                                                <span className={cn(
+                                                                    "flex-1 text-xs font-bold select-none transition-colors",
+                                                                    luggageOption.includes(opt) ? "text-chimipink" : "text-slate-600"
+                                                                )}>
+                                                                    {opt}
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="space-y-2 relative">
+                                                    <Label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                                                        <Search className="h-3 w-3 text-chimipink" />
+                                                        VINCULAR VUELO (PNR)
+                                                    </Label>
+                                                    <div className="relative">
+                                                        <Input
+                                                            placeholder="Escribe el PNR..."
+                                                            value={flightSearchQuery}
+                                                            onChange={(e) => {
+                                                                setFlightSearchQuery(e.target.value)
+                                                                setShowFlightSearch(true)
+                                                            }}
+                                                            onFocus={() => setShowFlightSearch(true)}
+                                                            className="h-10 text-sm border-slate-200 focus:ring-chimipink pr-8"
+                                                        />
+                                                        {flightSearchQuery && !isSearchingFlights && (
+                                                            <button 
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setFlightSearchQuery('')
+                                                                    setFormData(prev => ({ 
+                                                                        ...prev, 
+                                                                        connected_flight_id: '',
+                                                                        flight_pnr: '',
+                                                                        flight_status: '',
+                                                                        current_flight_date: '',
+                                                                        recipient_name: prev.recipient_name,
+                                                                        recipient_phone: prev.recipient_phone,
+                                                                    }))
+                                                                    setShowFlightSearch(false)
+                                                                }}
+                                                                className="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 rounded-full p-0.5 transition-colors"
+                                                            >
+                                                                <X size={14} strokeWidth={3} />
+                                                            </button>
+                                                        )}
+                                                        {isSearchingFlights && (
+                                                            <div className="absolute right-3 top-2.5">
+                                                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-chimipink border-t-transparent"></div>
                                                             </div>
                                                         )}
                                                     </div>
 
-                                                    {formData.service_type === "Reprogramación de vuelo" && (
-                                                        <>
-                                                            <div className="space-y-2">
-                                                                <Label className="text-xs font-black text-slate-700">FECHA DE VUELO</Label>
-                                                                <Input
-                                                                    type="date"
-                                                                    value={formData.current_flight_date}
-                                                                    onChange={(e) => setFormData(p => ({ ...p, current_flight_date: e.target.value }))}
-                                                                    className="h-10 text-sm border-slate-200 focus:ring-chimipink shadow-inner font-bold text-chimipink"
-                                                                />
-                                                            </div>
-
-                                                            <div className="space-y-2">
-                                                                <Label className="text-xs font-black text-slate-700">ESTADO DEL VUELO</Label>
-                                                                <div className="relative group/status">
-                                                                    <select
-                                                                        value={formData.flight_status}
-                                                                        onChange={(e) => setFormData(prev => ({ ...prev, flight_status: e.target.value }))}
-                                                                        className={cn(
-                                                                            "flex h-10 w-full appearance-none rounded-xl px-4 py-2 text-[11px] font-black transition-all cursor-pointer shadow-sm border-0 focus:ring-4 focus:ring-offset-2 pr-10",
-                                                                            formData.flight_status === 'Finalizado' 
-                                                                                ? 'bg-emerald-500 text-white focus:ring-emerald-200' 
-                                                                                : formData.flight_status === 'Cancelado' || formData.flight_status === 'Deportado'
-                                                                                ? 'bg-rose-500 text-white focus:ring-rose-200'
-                                                                                : formData.flight_status === 'En tránsito' || formData.flight_status === 'En migración'
-                                                                                ? 'bg-blue-500 text-white focus:ring-blue-200'
-                                                                                : formData.flight_status === 'No-show (no se presentó)'
-                                                                                ? 'bg-slate-600 text-white focus:ring-slate-300'
-                                                                                : formData.flight_status === 'Programado'
-                                                                                ? 'bg-sky-500 text-white focus:ring-sky-200'
-                                                                                : formData.flight_status === 'Reprogramado'
-                                                                                ? 'bg-orange-500 text-white focus:ring-orange-200'
-                                                                                : formData.flight_status === 'Cambio de horario'
-                                                                                ? 'bg-yellow-500 text-white focus:ring-yellow-200'
-                                                                                : formData.flight_status === ''
-                                                                                ? 'bg-slate-100 text-slate-400 font-bold border border-slate-200'
-                                                                                : 'bg-amber-500 text-white focus:ring-amber-200'
-                                                                        )}
-                                                                    >
-                                                                        <option value="" className="bg-white text-slate-400">Seleccionar estado...</option>
-                                                                        {FLIGHT_STATUSES.map(s => (
-                                                                            <option key={s} value={s} className="bg-white text-slate-700 font-bold">{s}</option>
-                                                                        ))}
-                                                                    </select>
-                                                                    <div className={cn(
-                                                                        "absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none transition-colors",
-                                                                        formData.flight_status === "" ? "text-slate-400" : "text-white/80"
-                                                                    )}>
-                                                                        <ChevronDown size={14} strokeWidth={3} />
+                                                    {showFlightSearch && flightSearchResults.length > 0 && (
+                                                        <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl max-h-60 overflow-y-auto overflow-x-hidden animate-in fade-in zoom-in-95">
+                                                            {flightSearchResults.map((f) => (
+                                                                <div
+                                                                    key={f.id}
+                                                                    className="p-3 hover:bg-slate-50 cursor-pointer border-b last:border-0 transition-colors"
+                                                                    onClick={() => {
+                                                                        setFormData(prev => ({
+                                                                            ...prev,
+                                                                            connected_flight_id: f.id,
+                                                                            flight_pnr: f.display_code,
+                                                                            flight_status: f.status || '',
+                                                                            current_flight_date: f.travel_date || '',
+                                                                            recipient_name: f.client_name,
+                                                                            recipient_phone: f.client_phone || ''
+                                                                        }))
+                                                                        setFlightSearchQuery(f.display_code)
+                                                                        setShowFlightSearch(false)
+                                                                        setFlightSearchResults([])
+                                                                    }}
+                                                                >
+                                                                    <div className="flex flex-col">
+                                                                        <span className="text-sm font-bold text-slate-800">{f.display_code}</span>
+                                                                        <span className="text-[10px] text-slate-500 uppercase tracking-wider">{f.client_name}</span>
                                                                     </div>
-                                                                </div>
-                                                            </div>
-                                                        </>
-                                                    )}
-                                                </div>
-
-                                                {formData.service_type === "Reprogramación de vuelo" && formData.flight_date_history && formData.flight_date_history.length > 0 && (
-                                                    <div className="mt-4 p-3 bg-slate-50/50 rounded-lg border border-slate-100 col-span-full">
-                                                        <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-2 px-1">
-                                                            <RefreshCw className="h-3 w-3" />
-                                                            Historial de Reprogramación
-                                                        </h4>
-                                                        <div className="space-y-1.5">
-                                                            {[...formData.flight_date_history].reverse().map((h, i) => (
-                                                                <div key={i} className="flex flex-col px-2 py-1.5 bg-white/50 rounded-md border border-slate-50">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <div className="h-1 w-1 rounded-full bg-slate-400" />
-                                                                        <span className="text-[10px] font-extrabold text-slate-700">FECHA ANTERIOR: {h.date ? new Date(h.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-'}</span>
-                                                                    </div>
-                                                                    {h.changed_by && (
-                                                                        <span className="text-[8.5px] text-slate-400 italic font-medium ml-3">
-                                                                            Modificado por: {h.changed_by.split('@')[0]}
-                                                                        </span>
-                                                                    )}
                                                                 </div>
                                                             ))}
                                                         </div>
-                                                    </div>
+                                                    )}
+                                                </div>
+
+                                                {formData.service_type === "Reprogramación de vuelo" && (
+                                                    <>
+                                                        <div className="space-y-2">
+                                                            <Label className="text-xs font-black text-slate-700">FECHA DE VUELO</Label>
+                                                            <Input
+                                                                type="date"
+                                                                value={formData.current_flight_date}
+                                                                onChange={(e) => setFormData(p => ({ ...p, current_flight_date: e.target.value }))}
+                                                                className="h-10 text-sm border-slate-200 focus:ring-chimipink shadow-inner font-bold text-chimipink"
+                                                            />
+                                                        </div>
+
+                                                        <div className="space-y-2">
+                                                            <Label className="text-xs font-black text-slate-700">ESTADO DEL VUELO</Label>
+                                                            <div className="relative group/status">
+                                                                <select
+                                                                    value={formData.flight_status}
+                                                                    onChange={(e) => setFormData(prev => ({ ...prev, flight_status: e.target.value }))}
+                                                                    className={cn(
+                                                                        "flex h-10 w-full appearance-none rounded-xl px-4 py-2 text-[11px] font-black transition-all cursor-pointer shadow-sm border-0 focus:ring-4 focus:ring-offset-2 pr-10",
+                                                                        formData.flight_status === 'Finalizado' 
+                                                                            ? 'bg-emerald-500 text-white focus:ring-emerald-200' 
+                                                                            : formData.flight_status === 'Cancelado' || formData.flight_status === 'Deportado'
+                                                                            ? 'bg-rose-500 text-white focus:ring-rose-200'
+                                                                            : formData.flight_status === 'En tránsito' || formData.flight_status === 'En migración'
+                                                                            ? 'bg-blue-500 text-white focus:ring-blue-200'
+                                                                            : formData.flight_status === 'No-show (no se presentó)'
+                                                                            ? 'bg-slate-600 text-white focus:ring-slate-300'
+                                                                            : formData.flight_status === 'Programado'
+                                                                            ? 'bg-sky-500 text-white focus:ring-sky-200'
+                                                                            : formData.flight_status === 'Reprogramado'
+                                                                            ? 'bg-orange-500 text-white focus:ring-orange-200'
+                                                                            : formData.flight_status === 'Cambio de horario'
+                                                                            ? 'bg-yellow-500 text-white focus:ring-yellow-200'
+                                                                            : formData.flight_status === ''
+                                                                            ? 'bg-slate-100 text-slate-400 font-bold border border-slate-200'
+                                                                            : 'bg-amber-500 text-white focus:ring-amber-200'
+                                                                    )}
+                                                                >
+                                                                    <option value="" className="bg-white text-slate-400">Seleccionar estado...</option>
+                                                                    {FLIGHT_STATUSES.map(s => (
+                                                                        <option key={s} value={s} className="bg-white text-slate-700 font-bold">{s}</option>
+                                                                    ))}
+                                                                </select>
+                                                                <div className={cn(
+                                                                    "absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none transition-colors",
+                                                                    formData.flight_status === "" ? "text-slate-400" : "text-white/80"
+                                                                )}>
+                                                                    <ChevronDown size={14} strokeWidth={3} />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </>
                                                 )}
                                             </div>
-                                        )}
+
+                                            {formData.service_type === "Reprogramación de vuelo" && formData.flight_date_history && formData.flight_date_history.length > 0 && (
+                                                <div className="mt-4 p-3 bg-slate-50/50 rounded-lg border border-slate-100 col-span-full">
+                                                    <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-2 px-1">
+                                                        <RefreshCw className="h-3 w-3" />
+                                                        Historial de Reprogramación
+                                                    </h4>
+                                                    <div className="space-y-1.5">
+                                                        {[...formData.flight_date_history].reverse().map((h, i) => (
+                                                            <div key={i} className="flex flex-col px-2 py-1.5 bg-white/50 rounded-md border border-slate-50">
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="h-1 w-1 rounded-full bg-slate-400" />
+                                                                    <span className="text-[10px] font-extrabold text-slate-700">FECHA ANTERIOR: {h.date ? new Date(h.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-'}</span>
+                                                                </div>
+                                                                {h.changed_by && (
+                                                                    <span className="text-[8.5px] text-slate-400 italic font-medium ml-3">
+                                                                        Modificado por: {h.changed_by.split('@')[0]}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="pt-4 border-t border-slate-100 col-span-full">
 
                                         {!(formData.service_type === "Reprogramación de vuelo" || formData.service_type === "Agregar Equipaje") && (
                                             <div className="grid gap-2 relative">
@@ -1340,8 +1364,9 @@ export default function OtherServicesPage() {
 
                                 </div>
                             </div>
+                        </div>
 
-                                    {/* REGISTRO DE PAGO */}
+                        {/* REGISTRO DE PAGO */}
                                     <div className="space-y-4 pt-4 border-t border-slate-200">
                                         {tempPayments.length > 0 && (
                                             <div className="space-y-3 px-1 pb-2">
@@ -1557,6 +1582,23 @@ export default function OtherServicesPage() {
                                                                 ))}
                                                             </div>
                                                         </div>
+
+                                                        {/* PNR Search Field - Moved here to be always available */}
+                                                        <div className="grid gap-2 relative">
+                                                            <Label className="text-xs flex items-center gap-1.5 font-bold text-slate-700">
+                                                                <Plane size={12} className="text-slate-400" /> PNR de Vuelo
+                                                            </Label>
+                                                            <Input 
+                                                                name="flight_pnr" 
+                                                                value={formData.flight_pnr} 
+                                                                onChange={handleInputChange} 
+                                                                placeholder="Código PNR (opcional)"
+                                                                className="bg-white border-slate-200 h-10 text-sm focus:ring-slate-500"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-4">
                                                         <div className="space-y-1.5">
                                                             <Label className="text-xs font-bold text-slate-700">Cantidad</Label>
                                                             <Input 
@@ -1568,9 +1610,6 @@ export default function OtherServicesPage() {
                                                                 placeholder="0.00" 
                                                             />
                                                         </div>
-                                                    </div>
-
-                                                    <div className="grid grid-cols-2 gap-4">
                                                         <div className="space-y-1.5">
                                                             <Label className="text-xs font-bold text-slate-700">Tipo de Cambio (Base EUR)</Label>
                                                             <Input 
@@ -1584,7 +1623,10 @@ export default function OtherServicesPage() {
                                                                 placeholder="1.0000"
                                                             />
                                                         </div>
-                                                        <div className="space-y-1.5">
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="space-y-1.5 col-span-2">
                                                             <Label className="text-xs font-bold text-emerald-700">Equivalente EUR (€)</Label>
                                                             <div className="h-10 px-3 flex items-center bg-emerald-50 rounded-md border border-emerald-100 font-black text-emerald-600 text-lg">
                                                                 {formData.payment_total || '0.00'}

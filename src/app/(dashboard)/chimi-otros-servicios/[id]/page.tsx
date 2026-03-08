@@ -170,9 +170,9 @@ export default function OtherServiceDetailsPage({ params }: { params: Promise<{ 
                                             </p>
                                         </div>
 
-                                        {service.flight_pnr && (
-                                            <div className="pt-4 border-t border-slate-50">
-                                                <span className="text-[10px] uppercase font-bold text-slate-400 block mb-2">Conexión con Vuelo</span>
+                                        <div className="pt-4 border-t border-slate-50">
+                                            <span className="text-[10px] uppercase font-bold text-slate-400 block mb-2">Conexión con Vuelo</span>
+                                            {service.flight_pnr ? (
                                                 <div className="flex items-center gap-3 p-3 bg-blue-50/50 rounded-xl border border-blue-100 w-fit">
                                                     <Plane className="h-4 w-4 text-blue-500" />
                                                     <div>
@@ -182,8 +182,13 @@ export default function OtherServiceDetailsPage({ params }: { params: Promise<{ 
                                                         )}
                                                     </div>
                                                 </div>
-                                            </div>
-                                        )}
+                                            ) : (
+                                                <div className="flex items-center gap-2 p-2 px-3 bg-slate-50 rounded-lg border border-slate-100 w-fit">
+                                                    <Plane className="h-3.5 w-3.5 text-slate-400" />
+                                                    <span className="text-xs font-medium text-slate-500 italic">Sin vinculación</span>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </section>
 

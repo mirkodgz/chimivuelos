@@ -184,7 +184,11 @@ export function GiroSalesNote({ transfer, onClose }: { transfer: MoneyTransfer, 
                                     </div>
                                     <div className="bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
                                         <p className="text-[7px] font-black uppercase text-slate-400 tracking-widest mb-0">Banco / Entidad</p>
-                                        <p className="text-[10px] font-black text-slate-900 uppercase leading-none">{transfer.beneficiary_bank || 'RECOJO EN AGENCIA'}</p>
+                                        <p className="text-[10px] font-black text-slate-900 uppercase leading-none">
+                                            {transfer.beneficiary_payment_method === 'contado' 
+                                                ? (transfer.beneficiary_pickup_sede ? `RECOJO EN AGENCIA ${transfer.beneficiary_pickup_sede}` : 'RECOJO EN AGENCIA')
+                                                : (transfer.beneficiary_bank || '---')}
+                                        </p>
                                     </div>
                                     <div className="flex gap-1">
                                         <div className="bg-slate-50 px-2 py-0.5 rounded border border-slate-100 flex-1">
