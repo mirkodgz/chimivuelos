@@ -37,20 +37,6 @@ export interface PaymentDetail {
     proof_path?: string
 }
 
-export interface ExpenseDetail {
-    description: string
-    amount: number
-    currency: string
-    category: string
-    sede_it?: string
-    sede_pe?: string
-    metodo_it?: string
-    metodo_pe?: string
-    tipo_cambio?: number
-    total_formatted?: string
-    created_at?: string
-    proof_path?: string
-}
 
 export interface MoneyTransfer {
     id: string
@@ -78,7 +64,6 @@ export interface MoneyTransfer {
     internal_note?: string
     status: 'scheduled' | 'delivered' | 'cancelled' | 'available' | 'processing' | 'completed'
     payment_details?: PaymentDetail[]
-    expense_details?: ExpenseDetail[]
     agent_id?: string
     documents?: TransferDocument[]
     total_expenses?: number
@@ -153,24 +138,6 @@ export async function createTransfer(formData: FormData) {
             }
         }
 
-        // Handle Expense Details
-        const expense_details: ExpenseDetail[] = []
-        const expensesStr = formData.get('expense_details') as string
-        if (expensesStr) {
-            try {
-                const expenses = JSON.parse(expensesStr) as ExpenseDetail[]
-                for (let i = 0; i < expenses.length; i++) {
-                    const tempFile = formData.get(`expense_proof_${i}`) as File
-                    if (tempFile && tempFile.size > 0) {
-                        const uploadResult = await uploadClientFile(tempFile, client_id)
-                        expenses[i].proof_path = uploadResult.path
-                    }
-                }
-                expense_details.push(...expenses)
-            } catch (e) {
-                console.error('Error parsing expense_details:', e)
-            }
-        }
 
         const on_account = payment_details.reduce((sum, p) => sum + (parseFloat(p.cantidad) || 0), 0)
         
@@ -184,8 +151,6 @@ export async function createTransfer(formData: FormData) {
         }
 
         const balance = totalAmountEur - on_account
-        const total_expenses = expense_details.reduce((sum, e) => sum + (e.amount || 0), 0)
-        const net_profit = commissionEur - total_expenses
 
         // Handle Documents
         const documents: TransferDocument[] = []
@@ -232,10 +197,9 @@ export async function createTransfer(formData: FormData) {
             client_note,
             internal_note,
             payment_details: payment_details as unknown,
-            expense_details: expense_details as unknown,
             documents: documents as unknown,
-            total_expenses,
-            net_profit,
+            total_expenses: 0,
+            net_profit: commissionEur,
             agent_id: user.id
         }
 
@@ -359,24 +323,6 @@ export async function updateTransfer(formData: FormData) {
             }
         }
 
-        // Handle Expense Details
-        let finalExpenseDetails = (existingTransfer.expense_details as unknown as ExpenseDetail[]) || []
-        const expensesStr = formData.get('expense_details') as string
-        if (expensesStr) {
-            try {
-                const parsedExpenses = JSON.parse(expensesStr) as ExpenseDetail[]
-                for (let i = 0; i < parsedExpenses.length; i++) {
-                    const tempFile = formData.get(`expense_proof_${i}`) as File
-                    if (tempFile && tempFile.size > 0) {
-                        const uploadResult = await uploadClientFile(tempFile, client_id)
-                        parsedExpenses[i].proof_path = uploadResult.path
-                    }
-                }
-                finalExpenseDetails = parsedExpenses
-            } catch (e) {
-                console.error('Error parsing expense_details:', e)
-            }
-        }
 
         const on_account = finalPaymentDetails.reduce((sum: number, p: PaymentDetail) => sum + (parseFloat(String(p.cantidad).replace(',', '.')) || 0), 0)
         
@@ -390,8 +336,6 @@ export async function updateTransfer(formData: FormData) {
         }
 
         const balance = totalAmountEur - on_account
-        const total_expenses = finalExpenseDetails.reduce((sum: number, e: ExpenseDetail) => sum + (parseFloat(String(e.amount).replace(',', '.')) || 0), 0)
-        const net_profit = commissionEur - total_expenses
 
         // Build new documents array (Start with existing ones)
         const currentDocuments: TransferDocument[] = (existingTransfer.documents as unknown as TransferDocument[]) || []
@@ -439,10 +383,9 @@ export async function updateTransfer(formData: FormData) {
             client_note,
             internal_note,
             payment_details: finalPaymentDetails as PaymentDetail[],
-            expense_details: finalExpenseDetails as ExpenseDetail[],
             documents: currentDocuments as TransferDocument[],
-            total_expenses,
-            net_profit,
+            total_expenses: 0,
+            net_profit: commissionEur,
             agent_id: agent_id || (existingTransfer.agent_id || user.id)
         }
 

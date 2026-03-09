@@ -14,7 +14,6 @@ import {
     Hash,
     User,
     ArrowRightLeft,
-    Banknote,
     NotebookPen,
     Printer
 } from "lucide-react"
@@ -28,7 +27,6 @@ import {
     getTransferDocumentUrl,
     type TransferDocument,
     type PaymentDetail,
-    type ExpenseDetail,
     type MoneyTransfer
 } from "@/app/actions/manage-transfers"
 import { cn } from "@/lib/utils"
@@ -297,46 +295,6 @@ export default function TransferDetailsPage({ params }: { params: Promise<{ id: 
                                     </div>
                                 </section>
 
-                                {/* Expenses History */}
-                                <section className="space-y-6">
-                                    <div className="flex items-center gap-3">
-                                        <Banknote className="h-4 w-4 text-rose-500" />
-                                        <h3 className="text-[11px] font-black uppercase text-slate-800 tracking-widest">Gastos Operativos</h3>
-                                    </div>
-                                    <div className="space-y-4">
-                                        {transfer.expense_details && transfer.expense_details.length > 0 ? (
-                                            transfer.expense_details.map((expense: ExpenseDetail, idx: number) => (
-                                                <div key={idx} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-xs relative overflow-hidden group">
-                                                    <div className="absolute top-0 left-0 w-1 h-full bg-rose-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                    <div className="flex justify-between items-center text-[9px] text-slate-400 font-black uppercase tracking-widest border-b border-slate-50 pb-2 mb-2">
-                                                        <span>Gasto #{idx + 1}</span>
-                                                        <span>{expense.created_at ? new Date(expense.created_at).toLocaleDateString() : 'N/D'}</span>
-                                                    </div>
-                                                    <div className="flex justify-between items-end">
-                                                        <div className="min-w-0">
-                                                            <p className="text-[10px] font-bold text-slate-700 truncate capitalize">{expense.category.replace('_', ' ')}</p>
-                                                            <p className="text-[9px] text-slate-400 italic truncate">{expense.description || 'Sin descripción'}</p>
-                                                        </div>
-                                                        <div className="text-right">
-                                                            <p className="text-sm font-black text-rose-600 leading-none">€ {expense.amount.toFixed(2)}</p>
-                                                            <p className="text-[9px] text-slate-400 font-medium mt-1">{expense.currency} {parseFloat(expense.total_formatted?.replace(/[^\d.]/g, '') || expense.amount.toString()).toFixed(2)}</p>
-                                                        </div>
-                                                    </div>
-                                                    {expense.proof_path && (
-                                                        <button 
-                                                            onClick={() => handleDownload(expense.proof_path!, expense.proof_path!.startsWith('clients/') ? 'r2' : 'images')}
-                                                            className="mt-3 w-full h-7 text-[9px] font-black text-rose-400 bg-rose-50/50 hover:bg-rose-50 rounded-lg flex items-center justify-center gap-2 border border-rose-100/30 tracking-widest"
-                                                        >
-                                                            <Download className="h-2.5 w-2.5" /> COMPROBANTE
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            ))
-                                        ) : (
-                                            <p className="text-xs text-slate-400 italic py-4">No hay gastos registrados.</p>
-                                        )}
-                                    </div>
-                                </section>
                             </div>
                         </div>
 

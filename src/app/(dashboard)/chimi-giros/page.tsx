@@ -66,20 +66,6 @@ interface PaymentDetail {
     proof_path?: string
 }
 
-interface ExpenseDetail {
-    description: string
-    amount: number
-    currency: string
-    category: string
-    sede_it?: string
-    sede_pe?: string
-    metodo_it?: string
-    metodo_pe?: string
-    total_formatted?: string
-    tipo_cambio?: number
-    created_at?: string
-    proof_path?: string
-}
 
 const SEDE_IT_OPTIONS = ["turro milano", "corsico milano", "roma", "lima"]
 const CURRENCY_OPTIONS = ["EUR", "PEN", "USD"]
@@ -204,38 +190,19 @@ export default function MoneyTransfersPage() {
         payment_method_pe: "",
         payment_quantity: "",
         payment_exchange_rate: "1.0",
-        payment_currency: "EUR",
-        // Multi-expense temp fields
-        expense_sede_it: "",
-        expense_sede_pe: "",
-        expense_method_it: "",
-        expense_method_pe: "",
-        expense_quantity: "",
-        expense_exchange_rate: "1.0",
-        expense_currency: "EUR",
-        expense_total: "",
-        expense_category: "Comisión Bancaria",
-        expense_description: ""
+        payment_currency: "EUR"
     })
 
     // Additional multi-item states
     const [tempPayments, setTempPayments] = useState<PaymentDetail[]>([])
-    const [tempExpenses, setTempExpenses] = useState<ExpenseDetail[]>([])
     const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null)
-    const [expenseProofFile, setExpenseProofFile] = useState<File | null>(null)
     const [tempPaymentProofs, setTempPaymentProofs] = useState<(File | null)[]>([])
-    const [tempExpenseProofs, setTempExpenseProofs] = useState<(File | null)[]>([])
     const [showPaymentFields, setShowPaymentFields] = useState(false)
-    const [showExpenseFields, setShowExpenseFields] = useState(false)
     
     // Dropdown visibility states
     const [showSedeITList, setShowSedeITList] = useState(false)
     const [showMetodoITList, setShowMetodoITList] = useState(false)
     const [showMetodoPEList, setShowMetodoPEList] = useState(false)
-
-    const [showExSedeITList, setShowExSedeITList] = useState(false)
-    const [showExMetodoITList, setShowExMetodoITList] = useState(false)
-    const [showExMetodoPEList, setShowExMetodoPEList] = useState(false)
     const [showBankList, setShowBankList] = useState(false)
     const [showSedePickupList, setShowSedePickupList] = useState(false)
 
@@ -302,7 +269,7 @@ export default function MoneyTransfersPage() {
         const { name, value } = e.target
         
         // Restriction for numeric fields (Decimals allowed)
-        if (['amount_sent', 'exchange_rate', 'commission', 'commission_percentage', 'payment_quantity', 'payment_exchange_rate', 'expense_quantity', 'expense_exchange_rate'].includes(name)) {
+        if (['amount_sent', 'exchange_rate', 'commission', 'commission_percentage', 'payment_quantity', 'payment_exchange_rate'].includes(name)) {
              if (!/^\d*\.?\d*$/.test(value)) return
         }
 
@@ -362,24 +329,6 @@ export default function MoneyTransfersPage() {
                 newData.payment_total = result.toFixed(2)
             }
 
-            // Recalculate temp expense conversion (Same as payment)
-            if (['expense_quantity', 'expense_exchange_rate', 'expense_currency'].includes(name)) {
-                const qty = parseFloat(newData.expense_quantity) || 0
-                const rate = parseFloat(newData.expense_exchange_rate) || 1.0
-                const curr = newData.expense_currency
-
-                let result = 0
-                if (curr === 'EUR') {
-                    result = qty
-                    newData.expense_exchange_rate = '1.0'
-                } else if (curr === 'PEN') {
-                    result = rate !== 0 ? qty / rate : 0
-                } else {
-                    result = qty * rate
-                }
-                newData.expense_total = result.toFixed(2)
-            }
-
             return newData
         })
     }
@@ -427,51 +376,7 @@ export default function MoneyTransfersPage() {
         setTempPaymentProofs(newProofs)
     }
 
-    const handleAddExpense = () => {
-        if (!formData.expense_quantity || parseFloat(formData.expense_quantity) === 0) return
-        
-        const eCurrency = formData.expense_currency || 'EUR'
-        const symbol = eCurrency === 'EUR' ? '€' : eCurrency === 'PEN' ? 'S/' : '$'
-        
-        const eurAmount = formData.expense_total || formData.expense_quantity
 
-        const newExpense: ExpenseDetail = {
-            description: formData.expense_description || formData.expense_category,
-            amount: parseFloat(eurAmount),
-            currency: eCurrency,
-            category: formData.expense_category,
-            created_at: new Date().toISOString(),
-            sede_it: formData.expense_sede_it,
-            sede_pe: formData.expense_sede_pe,
-            metodo_it: formData.expense_method_it,
-            metodo_pe: formData.expense_method_pe,
-            tipo_cambio: parseFloat(formData.expense_exchange_rate) || 1.0,
-            total_formatted: `${symbol} ${parseFloat(formData.expense_quantity).toFixed(2)}`
-        }
-
-        setTempExpenses(prev => [...prev, newExpense])
-        setTempExpenseProofs(prev => [...prev, expenseProofFile])
-        
-        setFormData(prev => ({
-            ...prev,
-            expense_sede_it: "",
-            expense_sede_pe: "",
-            expense_method_it: "",
-            expense_method_pe: "",
-            expense_quantity: "",
-            expense_total: "",
-            expense_exchange_rate: "1.0",
-            expense_currency: "EUR",
-            expense_description: ""
-        }))
-        setExpenseProofFile(null)
-        setShowExpenseFields(false)
-    }
-
-    const handleRemoveExpense = (index: number) => {
-        setTempExpenses(prev => prev.filter((_, i) => i !== index))
-        setTempExpenseProofs(prev => prev.filter((_, i) => i !== index))
-    }
 
     const handleNumDocsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = parseInt(e.target.value) || 0
@@ -531,17 +436,7 @@ export default function MoneyTransfersPage() {
             payment_quantity: "",
             payment_exchange_rate: "1.0",
             payment_currency: "EUR",
-            payment_total: "",
-            expense_sede_it: "",
-            expense_sede_pe: "",
-            expense_method_it: "",
-            expense_method_pe: "",
-            expense_quantity: "",
-            expense_exchange_rate: "1.0",
-            expense_currency: "EUR",
-            expense_total: "",
-            expense_category: "Comisión Bancaria",
-            expense_description: ""
+            payment_total: ""
         })
         setSearchClientTerm("")
         setSelectedTransferId(null)
@@ -549,13 +444,9 @@ export default function MoneyTransfersPage() {
         setDocumentInputs([])
         setExistingDocuments([])
         setTempPayments([])
-        setTempExpenses([])
         setTempPaymentProofs([])
-        setTempExpenseProofs([])
         setPaymentProofFile(null)
-        setExpenseProofFile(null)
         setShowPaymentFields(false)
-        setShowExpenseFields(false)
     }
 
     const handleEdit = (transfer: MoneyTransfer) => {
@@ -585,17 +476,12 @@ export default function MoneyTransfersPage() {
             status: transfer.status,
             client_note: transfer.client_note || "",
             internal_note: transfer.internal_note || "",
-            sede_it: "", sede_pe: "", payment_method_it: "", payment_method_pe: "", payment_quantity: "", payment_exchange_rate: "1.0", payment_currency: "EUR", payment_total: "",
-            expense_sede_it: "", expense_sede_pe: "", expense_method_it: "", expense_method_pe: "", expense_quantity: "", expense_exchange_rate: "1.0", expense_currency: "EUR", expense_total: "", expense_category: "Comisión Bancaria", expense_description: ""
+            sede_it: "", sede_pe: "", payment_method_it: "", payment_method_pe: "", payment_quantity: "", payment_exchange_rate: "1.0", payment_currency: "EUR", payment_total: ""
         })
         setSearchClientTerm(`${transfer.profiles?.first_name} ${transfer.profiles?.last_name}`)
-        setExistingDocuments(transfer.documents || [])
         const pDetails = transfer.payment_details || []
         setTempPayments(pDetails)
         setTempPaymentProofs(new Array(pDetails.length).fill(null))
-        const eDetails = transfer.expense_details || []
-        setTempExpenses(eDetails)
-        setTempExpenseProofs(new Array(eDetails.length).fill(null))
         setIsDialogOpen(true)
     }
 
@@ -641,26 +527,8 @@ export default function MoneyTransfersPage() {
             })
         }
 
-        const finalExpenses = [...tempExpenses]
-        if (showExpenseFields && formData.expense_quantity && parseFloat(formData.expense_quantity) > 0) {
-            finalExpenses.push({
-                description: formData.expense_description || formData.expense_category,
-                amount: parseFloat(formData.expense_total) || 0,
-                currency: formData.expense_currency,
-                category: formData.expense_category,
-                sede_it: formData.expense_sede_it,
-                sede_pe: formData.expense_sede_pe,
-                metodo_it: formData.expense_method_it,
-                metodo_pe: formData.expense_method_pe,
-                total_formatted: `${formData.expense_currency === 'EUR' ? '€' : 'S/'} ${formData.expense_quantity}`,
-                tipo_cambio: parseFloat(formData.expense_exchange_rate) || 1.0,
-                created_at: new Date().toISOString()
-            })
-        }
-
-        // Add Multi-Payments and Expenses
+        // Add Multi-Payments
         submission.append('payment_details', JSON.stringify(finalPayments))
-        submission.append('expense_details', JSON.stringify(finalExpenses))
 
         // Add Payment Proofs
         tempPaymentProofs.forEach((file, index) => {
@@ -671,17 +539,6 @@ export default function MoneyTransfersPage() {
         // Add pending payment proof if it exists
         if (showPaymentFields && paymentProofFile) {
             submission.append(`payment_proof_${finalPayments.length - 1}`, paymentProofFile)
-        }
-
-        // Add Expense Proofs
-        tempExpenseProofs.forEach((file, index) => {
-            if (file) {
-                submission.append(`expense_proof_${index}`, file)
-            }
-        })
-        // Add pending expense proof if it exists
-        if (showExpenseFields && expenseProofFile) {
-            submission.append(`expense_proof_${finalExpenses.length - 1}`, expenseProofFile)
         }
 
         // Add Documents
@@ -1613,331 +1470,7 @@ export default function MoneyTransfersPage() {
                                         <span className={`text-sm font-bold ${parseFloat(financials.balance) > 0 ? 'text-chimipink' : 'text-chimiteal'}`}>€ {financials.balance}</span>
                                     </div>
                                 </div>
-
-                                {/* NUEVO GASTO Section */}
-                                <div className="space-y-4 border p-5 rounded-xl bg-slate-50/50 border-slate-200 shadow-sm min-w-0 font-sans">
-                                    <div className="flex items-center justify-between gap-2">
-                                        <h3 className="font-bold text-slate-800 text-[11px] uppercase tracking-wider flex items-center gap-2 truncate">
-                                            <NotebookPen className="h-4 w-4 shrink-0 text-chimipink" /> REGISTRAR GASTO
-                                        </h3>
-                                        <div className="flex items-center gap-2">
-                                            {showExpenseFields ? (
-                                                <div className="flex items-center gap-2">
-                                                    <button 
-                                                        type="button"
-                                                        onClick={() => setShowExpenseFields(false)}
-                                                        className="text-red-400 hover:text-red-600 transition-colors p-1"
-                                                        title="Cerrar"
-                                                    >
-                                                        <X size={20} />
-                                                    </button>
-                                                    <button 
-                                                        type="button" 
-                                                        onClick={handleAddExpense}
-                                                        className="text-chimiteal hover:text-teal-600 transition-colors p-1"
-                                                        title="Añadir Gasto"
-                                                    >
-                                                        <Check size={20} className="h-5 w-5" />
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                 <Button 
-                                                    type="button" 
-                                                    variant="outline" 
-                                                    size="sm"
-                                                     onClick={() => {
-                                                         const sent = parseFloat(formData.amount_sent) || 0
-                                                         const received = parseFloat(formData.amount_received) || 0
-                                                         const targetEur = formData.transfer_mode === 'eur_to_pen' ? sent : received
-                                                         const paidEur = tempExpenses.reduce((sum, e) => sum + (e.amount || 0), 0)
-                                                         const balEur = targetEur - paidEur
-                                                         
-                                                         setFormData(prev => ({
-                                                             ...prev,
-                                                             expense_currency: "EUR",
-                                                             expense_exchange_rate: "1.00",
-                                                             expense_quantity: balEur > 0 ? balEur.toFixed(2) : "",
-                                                             expense_total: balEur > 0 ? balEur.toFixed(2) : "",
-                                                             expense_sede_it: prev.expense_sede_it || "turro milano"
-                                                         }))
-                                                         setShowExpenseFields(true)
-                                                     }}
-                                                     className="bg-white text-chimiteal border-slate-200 hover:bg-slate-50 h-7 text-[10px] uppercase font-bold shadow-sm"
-                                                 >
-                                                     + Registrar Gasto
-                                                 </Button>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* History of Expenses */}
-                                    <div className="space-y-3">
-                                        {tempExpenses.length > 0 && (
-                                            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
-                                                {tempExpenses.map((ex, idx) => (
-                                                    <div key={idx} className="group relative bg-white border border-slate-200 rounded-xl p-3 shadow-sm hover:shadow-md transition-all border-l-4 border-l-chimipink">
-                                                        <div className="flex justify-between items-center">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="grid gap-0.5">
-                                                                     <span className="font-bold text-slate-700 flex items-center gap-2 text-xs">
-                                                                         <span className="w-5 h-5 flex items-center justify-center bg-pink-50 text-chimipink rounded-full text-[10px] shrink-0 font-black">
-                                                                             {idx + 1}
-                                                                         </span>
-                                                                         {ex.metodo_it || ex.metodo_pe || 'Otros'}
-                                                                     </span>
-                                                                    <span className="text-[10px] text-slate-400 flex items-center gap-1 font-medium italic">
-                                                                        <Calendar className="h-2.5 w-2.5" /> {ex.created_at ? new Date(ex.created_at).toLocaleDateString() : 'Pendiente'} • <Building2 className="h-2.5 w-2.5" /> {ex.sede_it || ex.sede_pe || 'S/D'}
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="text-right">
-                                                                    <span className="font-bold text-chimipink text-sm leading-none block">€ {parseFloat(ex.amount.toString() || '0').toFixed(2)}</span>
-                                                                    <div className="flex items-center gap-1.5 mt-1 justify-end">
-                                                                        <span className={cn(
-                                                                            "text-[8px] font-bold px-1 rounded uppercase",
-                                                                            ex.currency === 'PEN' ? "bg-rose-50 text-rose-500" : 
-                                                                            ex.currency === 'USD' ? "bg-blue-50 text-blue-500" : 
-                                                                            "bg-slate-100 text-slate-500"
-                                                                        )}>
-                                                                            {ex.currency || 'EUR'}
-                                                                        </span>
-                                                                        <span className="text-[9px] text-slate-400 font-medium">
-                                                                            {ex.total_formatted || `${ex.currency === 'PEN' ? 'S/' : ex.currency === 'USD' ? '$' : '€'} ${parseFloat(ex.amount.toString()).toFixed(2)}`} • TC: {(ex.tipo_cambio || 1).toFixed(4)}
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                                {ex.proof_path && (
-                                                                    <Button variant="ghost" size="sm" onClick={() => handleDownload(ex.proof_path!)} className="h-7 w-7 p-0 text-chimiteal hover:bg-teal-50">
-                                                                        <Download className="h-3.5 w-3.5" />
-                                                                    </Button>
-                                                                )}
-                                                                <button 
-                                                                    type="button"
-                                                                    onClick={() => handleRemoveExpense(idx)}
-                                                                    className="text-slate-300 hover:text-red-500 transition-colors p-1"
-                                                                >
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {showExpenseFields && (
-                                         <div className="grid grid-cols-1 gap-4 animate-in fade-in slide-in-from-top-2 border-t pt-4 border-chimipink/20">
-
-                                            <div className="grid gap-2 relative">
-                                                <Label className="text-xs flex items-center gap-1.5 font-bold text-slate-700 uppercase">🏢 Sedes</Label>
-                                                <div className="relative">
-                                                    <Input 
-                                                        name="expense_sede_it" 
-                                                        value={formData.expense_sede_it} 
-                                                        onChange={(e) => {
-                                                            handleInputChange(e)
-                                                            setShowExSedeITList(true)
-                                                        }}
-                                                        onFocus={() => setShowExSedeITList(true)}
-                                                        onBlur={() => setTimeout(() => setShowExSedeITList(false), 200)}
-                                                        placeholder="Buscar sede..." 
-                                                        autoComplete="off"
-                                                        className="h-10 text-sm border-slate-200 focus:ring-chimipink pr-8" 
-                                                    />
-                                                    {formData.expense_sede_it ? (
-                                                        <button 
-                                                            type="button" 
-                                                            onClick={() => setFormData(p => ({ ...p, expense_sede_it: '' }))}
-                                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 rounded-full p-0.5 transition-colors"
-                                                        >
-                                                            <X size={14} strokeWidth={3} />
-                                                        </button>
-                                                    ) : (
-                                                        <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                                                    )}
-                                                </div>
-                                                {showExSedeITList && (
-                                                    <div className="absolute top-full z-50 w-full bg-white border border-slate-200 shadow-xl rounded-md mt-1 max-h-40 overflow-y-auto">
-                                                        {SEDE_IT_OPTIONS.filter(opt => opt.toLowerCase().includes(formData.expense_sede_it.toLowerCase())).map((opt, idx) => (
-                                                            <div key={idx} className="p-2.5 hover:bg-slate-50 cursor-pointer text-sm border-b last:border-0" onClick={() => {
-                                                                setFormData(p => ({ ...p, expense_sede_it: opt }))
-                                                                setShowExSedeITList(false)
-                                                            }}>{opt}</div>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                {/* Métodos */}
-                                                <div className="grid gap-2 relative">
-                                                    <Label className="text-xs flex items-center gap-1.5 font-bold text-blue-700 uppercase">
-                                                        <Image src="https://flagcdn.com/w20/it.png" width={16} height={12} alt="italia" className="rounded-sm inline-block shadow-sm" />
-                                                        Método IT
-                                                    </Label>
-                                                    <div className="relative">
-                                                        <Input 
-                                                            name="expense_method_it" 
-                                                            value={formData.expense_method_it} 
-                                                            disabled={!!formData.expense_method_pe}
-                                                            onChange={(e) => {
-                                                                handleInputChange(e)
-                                                                setShowExMetodoITList(true)
-                                                            }}
-                                                            onFocus={() => setShowExMetodoITList(true)}
-                                                            onBlur={() => setTimeout(() => setShowExMetodoITList(false), 200)}
-                                                            placeholder={formData.expense_method_pe ? "Bloqueado por Método PE" : "Buscar método..."}
-                                                            autoComplete="off"
-                                                            className="bg-blue-50/50 border-blue-200 focus:ring-blue-500 pr-8 h-10 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                                                        />
-                                                        {formData.expense_method_it && (
-                                                            <button 
-                                                                type="button" 
-                                                                onClick={() => setFormData(p => ({ ...p, expense_method_it: '' }))}
-                                                                className="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 rounded-full p-0.5 transition-colors"
-                                                            >
-                                                                <X size={14} strokeWidth={3} />
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                    {showExMetodoITList && (
-                                                        <div className="absolute top-full z-50 w-full bg-white border border-slate-200 shadow-xl rounded-md mt-1 max-h-40 overflow-y-auto">
-                                                            {paymentMethodsIT
-                                                                .map(m => m.name)
-                                                                .filter(opt => opt.toLowerCase().includes(formData.expense_method_it.toLowerCase()))
-                                                                .map((opt, idx) => (
-                                                                <div key={idx} className="p-2.5 hover:bg-slate-50 cursor-pointer text-sm border-b last:border-0" onClick={() => {
-                                                                    setFormData(p => ({ ...p, expense_method_it: opt }))
-                                                                    setShowExMetodoITList(false)
-                                                                }}>{opt}</div>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <div className="grid gap-2 relative">
-                                                    <Label className="text-xs flex items-center gap-1.5 font-bold text-rose-700 uppercase">
-                                                        <Image src="https://flagcdn.com/w20/pe.png" width={16} height={12} alt="peru" className="rounded-sm inline-block shadow-sm" />
-                                                        Método PE
-                                                    </Label>
-                                                    <div className="relative">
-                                                        <Input 
-                                                            name="expense_method_pe" 
-                                                            value={formData.expense_method_pe} 
-                                                            disabled={!!formData.expense_method_it}
-                                                            onChange={(e) => {
-                                                                handleInputChange(e)
-                                                                setShowExMetodoPEList(true)
-                                                            }}
-                                                            onFocus={() => setShowExMetodoPEList(true)}
-                                                            onBlur={() => setTimeout(() => setShowExMetodoPEList(false), 200)}
-                                                            placeholder={formData.expense_method_it ? "Bloqueado por Método IT" : "Buscar método..."}
-                                                            autoComplete="off"
-                                                            className="bg-rose-50/50 border-rose-200 focus:ring-rose-500 pr-8 h-10 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                                                        />
-                                                        {formData.expense_method_pe && (
-                                                            <button 
-                                                                type="button" 
-                                                                onClick={() => setFormData(p => ({ ...p, expense_method_pe: '' }))}
-                                                                className="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 rounded-full p-0.5 transition-colors"
-                                                            >
-                                                                <X size={14} strokeWidth={3} />
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                    {showExMetodoPEList && (
-                                                        <div className="absolute top-full z-50 w-full bg-white border border-slate-200 shadow-xl rounded-md mt-1 max-h-40 overflow-y-auto">
-                                                            {paymentMethodsPE
-                                                                .map(m => m.name)
-                                                                .filter(opt => opt.toLowerCase().includes(formData.expense_method_pe.toLowerCase()))
-                                                                .map((opt, idx) => (
-                                                                <div key={idx} className="p-2.5 hover:bg-slate-50 cursor-pointer text-sm border-b last:border-0" onClick={() => {
-                                                                    setFormData(p => ({ ...p, expense_method_pe: opt }))
-                                                                    setShowExMetodoPEList(false)
-                                                                }}>{opt}</div>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                                <div className="grid gap-1.5">
-                                                    <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Moneda de Gasto</Label>
-                                                    <div className="grid grid-cols-3 gap-1">
-                                                        {CURRENCY_OPTIONS.map(curr => (
-                                                            <Button
-                                                                key={curr}
-                                                                type="button"
-                                                                variant={formData.expense_currency === curr ? 'primary' : 'outline'}
-                                                                className={`h-9 text-[10px] font-bold transition-all ${formData.expense_currency === curr ? 'bg-chimipink text-white shadow-md' : 'bg-white'}`}
-                                                                onClick={() => setFormData(p => ({ ...p, expense_currency: curr }))}
-                                                            >
-                                                                {curr}
-                                                            </Button>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                                <div className="grid gap-1.5">
-                                                    <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Cantidad (EUR €)</Label>
-                                                    <Input 
-                                                        type="number" 
-                                                        name="expense_quantity" 
-                                                        value={formData.expense_quantity} 
-                                                        onChange={handleInputChange} 
-                                                        className="h-9 text-sm font-bold border-slate-200 focus:ring-chimipink" 
-                                                        placeholder="0.00" 
-                                                    />
-                                                </div>
-                                                <div className="grid gap-1.5">
-                                                    <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-tight text-right">Tipo de Cambio</Label>
-                                                    <Input 
-                                                        name="expense_exchange_rate" 
-                                                        type="number" 
-                                                        step="0.0001" 
-                                                        value={formData.expense_exchange_rate} 
-                                                        onChange={handleInputChange} 
-                                                        disabled={formData.expense_currency === 'EUR'} 
-                                                        className="h-9 text-right text-xs bg-white font-medium border-slate-200" 
-                                                        placeholder="1.0000"
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                 <div className="grid gap-1.5">
-                                                     <Label className="text-[10px] font-bold text-chimipink uppercase tracking-tight">Monto a Pagar (€)</Label>
-                                                     <Input name="expense_total" value={formData.expense_total} readOnly className="h-9 text-right bg-pink-50 text-chimipink font-bold border-pink-100 text-sm" />
-                                                 </div>
-                                                <div className="grid gap-1.5">
-                                                    <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Foto de Comprobante (Opcional)</Label>
-                                                    <Input 
-                                                        type="file" 
-                                                        accept="image/*" 
-                                                        className="h-9 text-[10px] cursor-pointer file:bg-pink-50 file:text-chimipink file:border-0 file:rounded file:px-2 file:py-1 file:mr-2 file:text-[10px] file:font-bold" 
-                                                        onChange={(e) => setExpenseProofFile(e.target.files?.[0] || null)}
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                     {/* Expense Footer */}
-                                     <div className="flex flex-col items-center pt-3 border-t border-slate-100 italic">
-                                         <span className="text-[10px] uppercase font-bold text-slate-400">Saldo Pendiente</span>
-                                         {(() => {
-                                             const sent = parseFloat(formData.amount_sent) || 0
-                                             const received = parseFloat(formData.amount_received) || 0
-                                             const targetEur = formData.transfer_mode === 'eur_to_pen' ? sent : received
-                                             const totalEx = tempExpenses.reduce((sum, e) => sum + (e.amount || 0), 0)
-                                             const draft = showExpenseFields ? (parseFloat(formData.expense_total) || 0) : 0
-                                             const bal = targetEur - (totalEx + draft)
-                                             return <span className={`text-sm font-bold ${bal > 0 ? 'text-chimipink' : 'text-chimiteal'}`}>€ {bal.toFixed(2)}</span>
-                                         })()}
-                                     </div>
                                 </div>
-                            </div>
 
                             {/* DOCUMENT UPLOAD (Simplified like flights) */}
                             <div className="border border-slate-200 rounded-md p-4 bg-slate-50 space-y-4">
