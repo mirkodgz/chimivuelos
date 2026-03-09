@@ -420,10 +420,10 @@ export default function FlightsPage() {
         payment_exchange_rate: '1.0',
         payment_total: '',
         ticket_type: '',
-        pax_adt: '1',
+        pax_adt: '0',
         pax_chd: '0',
         pax_inf: '0',
-        pax_total: '1',
+        pax_total: '0',
         iata_gds: 'sabre suema',
         minor_travel_with: '',
         client_note: '',
@@ -683,10 +683,10 @@ export default function FlightsPage() {
             payment_exchange_rate: '1.0',
             payment_total: '',
             ticket_type: '',
-            pax_adt: '1',
+            pax_adt: '0',
             pax_chd: '0',
             pax_inf: '0',
-            pax_total: '1',
+            pax_total: '0',
             iata_gds: 'sabre suema',
             minor_travel_with: '',
             client_note: '',
@@ -785,10 +785,10 @@ export default function FlightsPage() {
             payment_exchange_rate: (flight.exchange_rate || 1.0).toString(),
             payment_total: '',
             ticket_type: flight.ticket_type || '',
-            pax_adt: (flight.pax_adt || 1).toString(),
+            pax_adt: (flight.pax_adt || 0).toString(),
             pax_chd: (flight.pax_chd || 0).toString(),
             pax_inf: (flight.pax_inf || 0).toString(),
-            pax_total: (flight.pax_total || 1).toString(),
+            pax_total: (flight.pax_total || 0).toString(),
             iata_gds: flight.iata_gds || 'sabre suema',
             minor_travel_with: flight.minor_travel_with || '',
             client_note: flight.client_note || '',
@@ -1741,44 +1741,38 @@ export default function FlightsPage() {
                                 <div className="grid grid-cols-3 gap-4 text-center">
                                     <div className="grid gap-1.5">
                                         <Label className="text-[10px] font-bold text-slate-500 uppercase flex items-center justify-center gap-1">👤 ADT</Label>
-                                        <select 
+                                        <Input 
+                                            type="number"
                                             name="pax_adt" 
+                                            min="0"
                                             value={formData.pax_adt} 
                                             onChange={handleInputChange} 
-                                            className="h-9 w-full text-center font-bold border border-slate-200 rounded-md focus:ring-2 focus:ring-chimiteal/20 focus:outline-none bg-white text-sm appearance-none cursor-pointer hover:border-slate-300 transition-colors"
-                                        >
-                                            {[1, 2, 3, 4, 5].map(n => (
-                                                <option key={n} value={n}>{n}</option>
-                                            ))}
-                                        </select>
+                                            className="h-9 w-full text-center font-bold border border-slate-200 rounded-md focus:ring-2 focus:ring-chimiteal/20 focus:outline-none bg-white text-sm transition-colors"
+                                        />
                                         <span className="text-[9px] text-slate-400">Adultos</span>
                                     </div>
                                     <div className="grid gap-1.5">
                                         <Label className="text-[10px] font-bold text-slate-500 uppercase flex items-center justify-center gap-1">🧒 CHD</Label>
-                                        <select 
+                                        <Input 
+                                            type="number"
                                             name="pax_chd" 
+                                            min="0"
                                             value={formData.pax_chd} 
                                             onChange={handleInputChange} 
-                                            className="h-9 w-full text-center font-bold border border-slate-200 rounded-md focus:ring-2 focus:ring-chimiteal/20 focus:outline-none bg-white text-sm appearance-none cursor-pointer hover:border-slate-300 transition-colors"
-                                        >
-                                            {[0, 1, 2, 3, 4, 5].map(n => (
-                                                <option key={n} value={n}>{n}</option>
-                                            ))}
-                                        </select>
+                                            className="h-9 w-full text-center font-bold border border-slate-200 rounded-md focus:ring-2 focus:ring-chimiteal/20 focus:outline-none bg-white text-sm transition-colors"
+                                        />
                                         <span className="text-[9px] text-slate-400">Niños</span>
                                     </div>
                                     <div className="grid gap-1.5">
                                         <Label className="text-[10px] font-bold text-slate-500 uppercase flex items-center justify-center gap-1">👶 INF</Label>
-                                        <select 
+                                        <Input 
+                                            type="number"
                                             name="pax_inf" 
+                                            min="0"
                                             value={formData.pax_inf} 
                                             onChange={handleInputChange} 
-                                            className="h-9 w-full text-center font-bold border border-slate-200 rounded-md focus:ring-2 focus:ring-chimiteal/20 focus:outline-none bg-white text-sm appearance-none cursor-pointer hover:border-slate-300 transition-colors"
-                                        >
-                                            {[0, 1, 2, 3, 4, 5].map(n => (
-                                                <option key={n} value={n}>{n}</option>
-                                            ))}
-                                        </select>
+                                            className="h-9 w-full text-center font-bold border border-slate-200 rounded-md focus:ring-2 focus:ring-chimiteal/20 focus:outline-none bg-white text-sm transition-colors"
+                                        />
                                         <span className="text-[9px] text-slate-400">Bebés</span>
                                     </div>
                                 </div>

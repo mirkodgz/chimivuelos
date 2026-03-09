@@ -260,6 +260,7 @@ export async function createFlight(formData: FormData) {
             required_documents,
             client_note,
             internal_note,
+            documents,
             created_at: new Date().toISOString()
         }
 
