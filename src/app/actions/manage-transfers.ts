@@ -712,16 +712,13 @@ function maskAccount(account: string) {
     return '****' + account.slice(-4)
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function getSenderName(profiles: any) {
+function getSenderName(profiles: { first_name: string | null; last_name: string | null } | { first_name: string | null; last_name: string | null }[] | null) {
     if (!profiles) return '***'
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const p = profiles as any
-    if (Array.isArray(p)) {
-        const profile = p[0]
+    if (Array.isArray(profiles)) {
+        const profile = profiles[0]
         return profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : '***'
     } else {
-        return `${p.first_name || ''} ${p.last_name || ''}`.trim() || '***'
+        return `${profiles.first_name || ''} ${profiles.last_name || ''}`.trim() || '***'
     }
 }
 
@@ -760,7 +757,7 @@ export async function getTransferFullDetails(id: string) {
                 .single()
             
             if (agentData) {
-                (transfer as any).agent = agentData
+                (transfer as unknown as MoneyTransfer).agent = agentData
             }
         }
 

@@ -37,9 +37,6 @@ import {
     RefreshCw,
     Building2,
     Briefcase,
-    User,
-    MapPin,
-    ArrowRight,
     Plane
 } from 'lucide-react'
 import { 
@@ -92,12 +89,6 @@ interface OtherService {
     service_type_other?: string
     note?: string
     internal_note?: string
-    recipient_name?: string
-    recipient_phone?: string
-    origin_address?: string
-    origin_address_client?: string
-    destination_address?: string
-    destination_address_client?: string
     documents?: ServiceDocument[]
     total_amount: number
     on_account: number
@@ -111,6 +102,13 @@ interface OtherService {
     flight_status?: string
     flight_date_history?: { date: string, changed_at: string, changed_by: string }[]
     flight_return_date_history?: { date: string, changed_at: string, changed_by: string }[]
+    hotel_location?: string
+    hotel_days?: number
+    hotel_checkin?: string
+    hotel_checkout?: string
+    hotel_persons?: number
+    hotel_guest_names?: string
+    internal_cost?: number
     profiles?: {
         first_name: string | null
         last_name: string | null
@@ -185,8 +183,6 @@ export default function OtherServicesPage() {
     const [isLoading, setIsLoading] = useState(false)
     const [searchClientTerm, setSearchClientTerm] = useState('')
     const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false)
-    const [showOriginList, setShowOriginList] = useState(false)
-    const [showDestinationList, setShowDestinationList] = useState(false)
     const [showFlightSearch, setShowFlightSearch] = useState(false)
     const [flightSearchQuery, setFlightSearchQuery] = useState('')
     const [flightSearchResults, setFlightSearchResults] = useState<{id: string, display_code: string, client_name: string, client_phone?: string, status?: string, travel_date?: string, return_date?: string}[]>([])
@@ -267,12 +263,6 @@ export default function OtherServicesPage() {
         service_type_other: "",
         note: "",
         internal_note: "",
-        recipient_name: "",
-        recipient_phone: "",
-        origin_address: "",
-        origin_address_client: "",
-        destination_address: "",
-        destination_address_client: "",
         connected_flight_id: "",
         flight_pnr: "",
         current_flight_date: "",
@@ -285,6 +275,13 @@ export default function OtherServicesPage() {
         balance: "0.00",
         tracking_code: "",
         status: "pending" as OtherService['status'],
+        hotel_location: "",
+        hotel_days: 0,
+        hotel_checkin: "",
+        hotel_checkout: "",
+        hotel_persons: 0,
+        hotel_guest_names: "",
+        internal_cost: "0.00",
         sede_it: "",
         sede_pe: "",
         payment_method_it: "",
@@ -321,12 +318,14 @@ export default function OtherServicesPage() {
         }
 
         const totalCost = parseFloat(formData.total_amount) || 0
+        const internalCost = parseFloat(formData.internal_cost) || 0
         return {
             on_account: totalOnAccount.toFixed(2),
             balance: (totalCost - totalOnAccount).toFixed(2),
-            total_sum: totalOnAccount.toFixed(2)
+            total_sum: totalOnAccount.toFixed(2),
+            profit: (totalCost - internalCost).toFixed(2)
         }
-    }, [tempPayments, showPaymentFields, formData.payment_quantity, formData.payment_total, formData.total_amount])
+    }, [tempPayments, showPaymentFields, formData.payment_quantity, formData.payment_total, formData.total_amount, formData.internal_cost])
 
     // financials useMemo stays (line 293-307)
 
@@ -402,6 +401,21 @@ export default function OtherServicesPage() {
                 }
                 newData.payment_total = result.toFixed(2)
             }
+
+            // --- HOTEL LOGIC: AUTO-CALCULATE DAYS ---
+            if (name === 'hotel_checkin' || name === 'hotel_checkout') {
+                const checkin = name === 'hotel_checkin' ? value : newData.hotel_checkin
+                const checkout = name === 'hotel_checkout' ? value : newData.hotel_checkout
+                
+                if (checkin && checkout) {
+                    const start = new Date(checkin)
+                    const end = new Date(checkout)
+                    const diffTime = end.getTime() - start.getTime()
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+                    newData.hotel_days = diffDays > 0 ? diffDays : 0
+                }
+            }
+
             return newData
         })
     }
@@ -439,12 +453,6 @@ export default function OtherServicesPage() {
             service_type_other: "",
             note: "",
             internal_note: "",
-            recipient_name: "",
-            recipient_phone: "",
-            origin_address: "",
-            origin_address_client: "",
-            destination_address: "",
-            destination_address_client: "",
             connected_flight_id: "",
             flight_pnr: "",
             current_flight_date: "",
@@ -456,7 +464,14 @@ export default function OtherServicesPage() {
             on_account: "0.00",
             balance: "0.00",
             tracking_code: "",
-            status: "pending",
+            status: "pending" as OtherService['status'],
+            hotel_location: "",
+            hotel_days: 0,
+            hotel_checkin: "",
+            hotel_checkout: "",
+            hotel_persons: 0,
+            hotel_guest_names: "",
+            internal_cost: "0.00",
             sede_it: "",
             sede_pe: "",
             payment_method_it: "",
@@ -484,7 +499,6 @@ export default function OtherServicesPage() {
     const handleEdit = (serv: OtherService) => {
         setSelectedId(serv.id)
         setFormData({
-            ...formData,
             client_id: serv.client_id,
             client_email: serv.profiles?.email || "",
             client_phone: serv.profiles?.phone || "",
@@ -492,12 +506,6 @@ export default function OtherServicesPage() {
             service_type_other: serv.service_type_other || "",
             note: serv.note || "",
             internal_note: serv.internal_note || "",
-            recipient_name: serv.recipient_name || "",
-            recipient_phone: serv.recipient_phone || "",
-            origin_address: serv.origin_address || "",
-            origin_address_client: serv.origin_address_client || "",
-            destination_address: serv.destination_address || "",
-            destination_address_client: serv.destination_address_client || "",
             connected_flight_id: serv.connected_flight_id || "",
             flight_pnr: serv.flight_pnr || "",
             current_flight_date: serv.current_flight_date || "",
@@ -510,6 +518,13 @@ export default function OtherServicesPage() {
             balance: serv.balance.toFixed(2),
             tracking_code: serv.tracking_code || "",
             status: serv.status,
+            hotel_location: serv.hotel_location || "",
+            hotel_days: serv.hotel_days || 0,
+            hotel_checkin: serv.hotel_checkin || "",
+            hotel_checkout: serv.hotel_checkout || "",
+            hotel_persons: serv.hotel_persons || 0,
+            hotel_guest_names: serv.hotel_guest_names || "",
+            internal_cost: (serv.internal_cost || 0).toFixed(2),
             sede_it: "",
             sede_pe: "",
             payment_method_it: "",
@@ -599,9 +614,7 @@ export default function OtherServicesPage() {
             sede_it: "",
             sede_pe: "",
             payment_method_it: "",
-            payment_method_pe: "",
-            flight_pnr: "",
-            connected_flight_id: ""
+            payment_method_pe: ""
         }))
         setPaymentProofFile(null)
         setShowPaymentFields(false)
@@ -641,6 +654,8 @@ export default function OtherServicesPage() {
                 payload.append(key, financials.balance)
             } else if (key === 'internal_note' && formData.service_type === "Agregar Equipaje") {
                 payload.append(key, luggageOption)
+            } else if (['hotel_location', 'hotel_days', 'hotel_checkin', 'hotel_checkout', 'hotel_persons', 'hotel_guest_names', 'internal_cost'].includes(key)) {
+                payload.append(key, value as string)
             } else {
                 payload.append(key, value as string)
             }
@@ -724,10 +739,8 @@ export default function OtherServicesPage() {
             profile?.document_number?.toLowerCase().includes(lower) ||
             profile?.first_name?.toLowerCase().includes(lower) ||
             profile?.last_name?.toLowerCase().includes(lower) ||
-            `${s.agent?.first_name} ${s.agent?.last_name}`.toLowerCase().includes(lower) ||
-            s.agent?.first_name?.toLowerCase().includes(lower) ||
             s.agent?.last_name?.toLowerCase().includes(lower) ||
-            s.recipient_name?.toLowerCase().includes(lower)
+            `${s.agent?.first_name} ${s.agent?.last_name}`.toLowerCase().includes(lower)
         
         const matchesStatus = statusFilter === 'all' || s.status === statusFilter
         
@@ -952,42 +965,7 @@ export default function OtherServicesPage() {
                                             )}
                                         </div>
 
-                                        {formData.service_type === "Otros servicios" && (
-                                            <div className="space-y-2">
-                                                <Label className="text-xs font-bold text-slate-500 uppercase">Especifique el Servicio</Label>
-                                                <Input 
-                                                    name="service_type_other" 
-                                                    value={formData.service_type_other}
-                                                    onChange={handleInputChange}
-                                                    className="h-10 bg-white"
-                                                    placeholder="Especifique otro..."
-                                                />
-                                            </div>
-                                        )}
-
-
-
                                     </div>
-
-                                    {/* Datos del Destinatario - Hidden for Flight Reprogramming */}
-                                    {!(formData.service_type === "Reprogramación de vuelo por Agente" || formData.service_type === "Reprogramación de vuelo por Aerolínea") && (
-                                        <div className="space-y-3 border p-4 rounded-md bg-white mt-4 animate-in fade-in slide-in-from-top-2">
-                                            <h3 className="font-bold text-slate-700 text-sm flex items-center gap-2 mb-2">
-                                                <User className="h-4 w-4 text-violet-500" />
-                                                Datos del Destinatario
-                                            </h3>
-                                            
-                                            <div className="grid gap-2 mb-2">
-                                                <Label className="text-[10px] text-slate-400 font-semibold uppercase">Nombre Completo</Label>
-                                                <Input name="recipient_name" value={formData.recipient_name} onChange={handleInputChange} className="h-10 text-sm bg-slate-50 border-slate-200" autoComplete="off" />
-                                            </div>
-
-                                            <div className="grid gap-2">
-                                                <Label className="text-[10px] text-slate-400 font-semibold uppercase">Teléfono</Label>
-                                                <Input name="recipient_phone" value={formData.recipient_phone} onChange={handleInputChange} className="h-10 text-sm bg-slate-50 border-slate-200" autoComplete="off" />
-                                            </div>
-                                        </div>
-                                    )}
 
                                     {/* Costos section */}
                                     <div className="border-t border-slate-200 pt-3 mt-4">
@@ -996,7 +974,18 @@ export default function OtherServicesPage() {
                                         </h4>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div className="grid gap-2">
-                                                <Label className="text-xs font-bold text-slate-500">Total a Pagar (€)</Label>
+                                                <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Costo (€)</Label>
+                                                <Input 
+                                                    name="internal_cost" 
+                                                    type="number" 
+                                                    step="0.01" 
+                                                    value={formData.internal_cost} 
+                                                    onChange={handleInputChange} 
+                                                    className="bg-slate-50 border-slate-200 h-10 text-sm focus:ring-chimipink font-bold" 
+                                                />
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total a Pagar (€)</Label>
                                                 <Input 
                                                     name="total_amount" 
                                                     type="number" 
@@ -1023,75 +1012,28 @@ export default function OtherServicesPage() {
                                                 € {financials.balance}
                                             </div>
                                         </div>
+                                        <div className="grid gap-2 mt-2">
+                                            <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">FEE</Label>
+                                            <div className={cn(
+                                                "h-10 px-3 flex items-center border border-slate-200 rounded-md bg-white font-black",
+                                                Number(financials.profit) >= 0 ? "text-emerald-600" : "text-chimipink"
+                                            )}>
+                                                € {financials.profit}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
                                 {/* Column 2: Files & Payments (Right) */}
                                 <div className="space-y-4 flex flex-col h-full">
 
-                                    {/* Logistics (Right) */}
-                                    <div className="space-y-4 border p-4 rounded-md bg-white flex flex-col">
+                                    <div className="space-y-4 border p-4 rounded-md bg-white flex flex-col h-full">
                                         <h3 className="font-bold text-slate-700 text-sm flex items-center gap-2 mb-2">
-                                            <MapPin className="h-4 w-4 text-chimiteal" />
-                                            {(formData.service_type === "Reprogramación de vuelo por Agente" || formData.service_type === "Reprogramación de vuelo por Aerolínea" || formData.service_type === "Agregar Equipaje") ? "Detalles del Vuelo" : "Logística de Entrega"}
+                                            <Plane className="h-4 w-4 text-chimipink" />
+                                            Detallado del Servicio
                                         </h3>
 
                                         <div className="space-y-4 flex-1">
-                                        {!(formData.service_type === "Reprogramación de vuelo por Agente" || formData.service_type === "Reprogramación de vuelo por Aerolínea" || formData.service_type === "Agregar Equipaje") && (
-                                            <>
-                                                <div className="grid gap-2 relative">
-                                                    <Label className="text-xs font-bold text-slate-700">Dirección de Partida</Label>
-                                                    <div className="relative">
-                                                        <Input 
-                                                            name="origin_address"
-                                                            value={formData.origin_address}
-                                                            onChange={(e) => { handleInputChange(e); setShowOriginList(true); }}
-                                                            onFocus={() => setShowOriginList(true)}
-                                                            onBlur={() => setTimeout(() => setShowOriginList(false), 200)}
-                                                            placeholder="Buscar oficina..."
-                                                            autoComplete="off"
-                                                            className="bg-slate-50 border-slate-200 h-10 pr-8"
-                                                        />
-                                                        {formData.origin_address ? (
-                                                            <button 
-                                                                type="button"
-                                                                onClick={() => setFormData(prev => ({ ...prev, origin_address: '' }))}
-                                                                className="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 rounded-full p-0.5 transition-colors"
-                                                            >
-                                                                <X size={14} strokeWidth={3} />
-                                                            </button>
-                                                        ) : (
-                                                            <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
-                                                        )}
-                                                    </div>
-                                                    {showOriginList && (
-                                                        <div className="absolute top-full z-50 w-full bg-white border border-slate-200 shadow-xl rounded-md mt-1 max-h-40 overflow-y-auto">
-                                                            {[...SEDE_IT_OPTIONS, "Dirección de cliente"].filter(opt => opt.toLowerCase().includes(formData.origin_address.toLowerCase())).map((opt, idx) => (
-                                                                <div key={idx} className="p-2.5 hover:bg-slate-50 cursor-pointer text-sm border-b last:border-0" onClick={() => {
-                                                                    setFormData(p => ({ ...p, origin_address: opt }))
-                                                                    setShowFlightSearch(false)
-                                                                }}>
-                                                                    {opt === "Dirección de cliente" ? "✓ Dirección de cliente" : opt}
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                {formData.origin_address === 'Dirección de cliente' && (
-                                                    <div className="grid gap-2 animate-in fade-in slide-in-from-top-2 col-span-1 sm:col-span-2">
-                                                        <Label className="text-xs font-bold text-chimipink uppercase tracking-tight italic">Ingrese la dirección exacta de recogida</Label>
-                                                        <textarea 
-                                                            name="origin_address_client"
-                                                            value={formData.origin_address_client}
-                                                            onChange={handleInputChange}
-                                                            className="min-h-[60px] w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:ring-chimipink focus:border-chimipink outline-none shadow-sm"
-                                                            placeholder="Calle, número, piso, referencia..."
-                                                        />
-                                                    </div>
-                                                )}
-                                            </>
-                                        )}
 
                                         {/* Additional fields for specific service types */}
                                         <div className="space-y-4 pt-4 border-t border-slate-100 col-span-full animate-in fade-in slide-in-from-top-2 duration-300">
@@ -1134,6 +1076,84 @@ export default function OtherServicesPage() {
                                                     </div>
                                                 </div>
                                             )}
+
+                                            {formData.service_type === "Reserva de hotel" && (
+                                                <div className="space-y-4 p-4 bg-slate-50/50 rounded-xl border border-slate-200 animate-in fade-in zoom-in-95">
+                                                    <h4 className="font-black text-[10px] text-slate-500 uppercase tracking-widest flex items-center gap-2 mb-2">
+                                                        <Building2 className="h-4 w-4 text-chimipink" /> Detalles de Alojamiento
+                                                    </h4>
+                                                    
+                                                    <div className="grid grid-cols-1 gap-4">
+                                                        <div className="grid gap-2">
+                                                            <Label className="text-xs font-bold text-slate-500 uppercase">Ubicación / Lugar de Llegada</Label>
+                                                            <Input 
+                                                                name="hotel_location"
+                                                                value={formData.hotel_location}
+                                                                onChange={handleInputChange}
+                                                                placeholder="Ej: Madrid City Center, Roma..."
+                                                                className="h-10 text-xs bg-white border-slate-200"
+                                                            />
+                                                        </div>
+
+                                                        <div className="grid grid-cols-2 gap-3">
+                                                            <div className="grid gap-2">
+                                                                <Label className="text-xs font-bold text-slate-500 uppercase">Desde (Check-in)</Label>
+                                                                <Input 
+                                                                    name="hotel_checkin"
+                                                                    type="date"
+                                                                    value={formData.hotel_checkin}
+                                                                    onChange={handleInputChange}
+                                                                    className="h-10 text-xs bg-white border-slate-200"
+                                                                />
+                                                            </div>
+                                                            <div className="grid gap-2">
+                                                                <Label className="text-xs font-bold text-slate-500 uppercase">Hasta (Check-out)</Label>
+                                                                <Input 
+                                                                    name="hotel_checkout"
+                                                                    type="date"
+                                                                    value={formData.hotel_checkout}
+                                                                    onChange={handleInputChange}
+                                                                    className="h-10 text-xs bg-white border-slate-200"
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="grid grid-cols-2 gap-3">
+                                                            <div className="grid gap-2">
+                                                                <Label className="text-xs font-bold text-slate-500 uppercase">Cantidad de Días</Label>
+                                                                <Input 
+                                                                    name="hotel_days"
+                                                                    type="number"
+                                                                    value={formData.hotel_days}
+                                                                    onChange={handleInputChange}
+                                                                    className="h-10 text-xs bg-white border-slate-200 font-bold"
+                                                                />
+                                                            </div>
+                                                            <div className="grid gap-2">
+                                                                <Label className="text-xs font-bold text-slate-500 uppercase">Cant. Personas</Label>
+                                                                <Input 
+                                                                    name="hotel_persons"
+                                                                    type="number"
+                                                                    value={formData.hotel_persons}
+                                                                    onChange={handleInputChange}
+                                                                    className="h-10 text-xs bg-white border-slate-200 font-bold"
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="grid gap-2">
+                                                            <Label className="text-xs font-bold text-slate-500 uppercase">Nombres de Huéspedes</Label>
+                                                            <textarea 
+                                                                name="hotel_guest_names"
+                                                                value={formData.hotel_guest_names}
+                                                                onChange={handleInputChange}
+                                                                placeholder="Nombre completo de los pasajeros a hospedarse..."
+                                                                className="min-h-[80px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-xs focus:ring-chimipink outline-none shadow-sm"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
                                             <div className="space-y-4 px-1">
                                                 <div className="space-y-2 relative">
                                                     <Label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
@@ -1156,15 +1176,13 @@ export default function OtherServicesPage() {
                                                                 type="button"
                                                                 onClick={() => {
                                                                     setFlightSearchQuery('')
-                                                                    setFormData(prev => ({ 
-                                                                        ...prev, 
-                                                                        connected_flight_id: '',
-                                                                        flight_pnr: '',
-                                                                        flight_status: '',
-                                                                        current_flight_date: '',
-                                                                        recipient_name: prev.recipient_name,
-                                                                        recipient_phone: prev.recipient_phone,
-                                                                    }))
+                                                                        setFormData(prev => ({ 
+                                                                            ...prev, 
+                                                                            connected_flight_id: '',
+                                                                            flight_pnr: '',
+                                                                            flight_status: '',
+                                                                            current_flight_date: '',
+                                                                        }))
                                                                     setShowFlightSearch(false)
                                                                 }}
                                                                 className="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 rounded-full p-0.5 transition-colors"
@@ -1193,8 +1211,6 @@ export default function OtherServicesPage() {
                                                                             flight_status: f.status || '',
                                                                             current_flight_date: f.travel_date || '',
                                                                             current_return_date: f.return_date || '',
-                                                                            recipient_name: f.client_name,
-                                                                            recipient_phone: f.client_phone || ''
                                                                         }))
                                                                         setFlightSearchQuery(f.display_code)
                                                                         setShowFlightSearch(false)
@@ -1324,60 +1340,7 @@ export default function OtherServicesPage() {
                                             )}
                                         </div>
 
-                                        <div className="pt-4 border-t border-slate-100 col-span-full">
-
-                                        {!(formData.service_type === "Reprogramación de vuelo por Agente" || formData.service_type === "Reprogramación de vuelo por Aerolínea" || formData.service_type === "Agregar Equipaje") && (
-                                            <div className="grid gap-2 relative">
-                                                <Label className="text-xs font-bold text-slate-700">Llegada / Recojo</Label>
-                                                <div className="relative">
-                                                    <Input 
-                                                        name="destination_address"
-                                                        value={formData.destination_address}
-                                                        onChange={(e) => { handleInputChange(e); setShowDestinationList(true); }}
-                                                        onFocus={() => setShowDestinationList(true)}
-                                                        onBlur={() => setTimeout(() => setShowDestinationList(false), 200)}
-                                                        placeholder="Sede o Dirección..."
-                                                        autoComplete="off"
-                                                        className="bg-slate-50 border-slate-200 h-10 pr-8"
-                                                    />
-                                                    {formData.destination_address ? (
-                                                        <button 
-                                                            type="button"
-                                                            onClick={() => setFormData(prev => ({ ...prev, destination_address: '' }))}
-                                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 rounded-full p-0.5 transition-colors"
-                                                        >
-                                                            <X size={14} strokeWidth={3} />
-                                                        </button>
-                                                    ) : (
-                                                        <ArrowRight className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
-                                                    )}
-                                                </div>
-                                                {showDestinationList && (
-                                                    <div className="absolute top-full z-50 w-full bg-white border border-slate-200 shadow-xl rounded-md mt-1 max-h-40 overflow-y-auto">
-                                                        {[...SEDE_IT_OPTIONS, "Dirección de cliente"].filter(o => o.toLowerCase().includes(formData.destination_address.toLowerCase())).map(o => (
-                                                            <div key={o} className="p-2.5 hover:bg-slate-50 cursor-pointer text-sm border-b last:border-0" onClick={() => setFormData(p => ({ ...p, destination_address: o }))}>
-                                                                {o === "Dirección de cliente" ? "✓ Dirección de cliente" : o}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-
-                                        {formData.destination_address === 'Dirección de cliente' && (
-                                            <div className="grid gap-2 animate-in fade-in slide-in-from-top-2">
-                                                <Label className="text-xs font-bold text-chimipink uppercase tracking-tight italic">Ingrese la dirección exacta del cliente</Label>
-                                                <textarea 
-                                                    name="destination_address_client"
-                                                    value={formData.destination_address_client}
-                                                    onChange={handleInputChange}
-                                                    className="min-h-[100px] w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:ring-chimipink focus:border-chimipink outline-none shadow-sm"
-                                                    placeholder="Calle, número, piso, referencia..."
-                                                />
-                                            </div>
-                                        )}
-
-                                            <div className="space-y-4 pt-4 border-t border-slate-100">
+                                            <div className="space-y-4 pt-6 mt-6 border-t border-slate-100">
                                                 <div className="space-y-3">
                                                     <Label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5"><NotebookPen className="h-4 w-4 text-chimiteal" /> Nota Cliente</Label>
                                                     <textarea 
@@ -1406,9 +1369,8 @@ export default function OtherServicesPage() {
 
                                 </div>
                             </div>
-                        </div>
 
-                        {/* REGISTRO DE PAGO */}
+                            {/* REGISTRO DE PAGO */}
                                     <div className="space-y-4 pt-4 border-t border-slate-200">
                                         {tempPayments.length > 0 && (
                                             <div className="space-y-3 px-1 pb-2">

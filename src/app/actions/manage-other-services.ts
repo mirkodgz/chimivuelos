@@ -61,6 +61,13 @@ export interface OtherService {
     origin_address_client: string
     destination_address: string
     destination_address_client: string
+    hotel_location?: string
+    hotel_days?: number
+    hotel_checkin?: string
+    hotel_checkout?: string
+    hotel_persons?: number
+    hotel_guest_names?: string
+    internal_cost?: number
     connected_flight_id: string | null
     flight_pnr: string | null
     current_flight_date: string | null
@@ -228,6 +235,13 @@ export async function createOtherService(formData: FormData) {
         total_amount,
         on_account,
         balance: total_amount - on_account,
+        hotel_location: formData.get('hotel_location') as string,
+        hotel_days: parseInt(formData.get('hotel_days') as string) || 0,
+        hotel_checkin: formData.get('hotel_checkin') as string,
+        hotel_checkout: formData.get('hotel_checkout') as string,
+        hotel_persons: parseInt(formData.get('hotel_persons') as string) || 0,
+        hotel_guest_names: formData.get('hotel_guest_names') as string,
+        internal_cost: parseFloat(String(formData.get('internal_cost')).replace(',', '.')) || 0,
         payment_details,
         status
     }
@@ -474,6 +488,13 @@ export async function updateOtherService(formData: FormData) {
             total_amount,
             on_account,
             balance: total_amount - on_account,
+            hotel_location: formData.get('hotel_location') as string,
+            hotel_days: parseInt(formData.get('hotel_days') as string) || 0,
+            hotel_checkin: formData.get('hotel_checkin') as string,
+            hotel_checkout: formData.get('hotel_checkout') as string,
+            hotel_persons: parseInt(formData.get('hotel_persons') as string) || 0,
+            hotel_guest_names: formData.get('hotel_guest_names') as string,
+            internal_cost: parseFloat(String(formData.get('internal_cost')).replace(',', '.')) || 0,
             payment_details,
             status
         }
