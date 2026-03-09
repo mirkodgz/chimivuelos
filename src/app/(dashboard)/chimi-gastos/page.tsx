@@ -949,8 +949,12 @@ export default function GastosPage() {
                                                 <span className="text-[10px] font-bold text-emerald-700 truncate flex-1">Comprobante guardado</span>
                                                 <div className="flex gap-1">
                                                     <Button type="button" variant="ghost" size="sm" onClick={async () => {
-                                                        const url = await getExpenseDocumentUrl(existingProof)
-                                                        window.open(url, '_blank')
+                                                        const result = await getExpenseDocumentUrl(existingProof)
+                                                        if (result && typeof result === 'object' && 'url' in result && result.url) {
+                                                            window.open(result.url as string, '_blank')
+                                                        } else {
+                                                            alert('Error al abrir el documento')
+                                                        }
                                                     }} className="h-6 w-6 p-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-100">
                                                         <Download size={14} />
                                                     </Button>
@@ -991,8 +995,12 @@ export default function GastosPage() {
                                             </div>
                                                 <div className="flex gap-1">
                                                     <Button type="button" variant="ghost" size="sm" className="h-8 w-8 text-blue-500 hover:bg-blue-50" onClick={async () => {
-                                                        const url = await getExpenseDocumentUrl(file.path)
-                                                        window.open(url, '_blank')
+                                                        const result = await getExpenseDocumentUrl(file.path)
+                                                        if (result && typeof result === 'object' && 'url' in result && result.url) {
+                                                            window.open(result.url as string, '_blank')
+                                                        } else {
+                                                            alert('Error al abrir el documento')
+                                                        }
                                                     }}>
                                                         <Download className="h-4 w-4" />
                                                     </Button>

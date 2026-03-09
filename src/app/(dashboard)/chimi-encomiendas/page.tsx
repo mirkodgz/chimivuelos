@@ -645,9 +645,9 @@ export default function ParcelsPage() {
     }
 
     const handleDownload = async (doc: ParcelDocument) => {
-        const url = await getParcelDocumentUrl(doc.path, doc.storage || 'r2')
-        if (typeof url === 'string') {
-             window.open(url, '_blank')
+        const result = await getParcelDocumentUrl(doc.path, doc.storage || 'r2')
+        if (result && 'url' in result && typeof result.url === 'string') {
+             window.open(result.url, '_blank')
         } else {
             alert('Error al obtener URL del documento')
         }

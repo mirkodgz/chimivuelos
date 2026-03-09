@@ -828,9 +828,9 @@ export default function MoneyTransfersPage() {
 
     // Docs Helpers
     const handleDownload = async (path: string, storage: 'r2' | 'images' = 'r2') => {
-        const url = await getTransferDocumentUrl(path, storage)
-        if (typeof url === 'string') {
-             window.open(url, '_blank')
+        const result = await getTransferDocumentUrl(path, storage)
+        if (result && 'url' in result && typeof result.url === 'string') {
+             window.open(result.url, '_blank')
         } else {
             alert('Error al obtener URL del documento')
         }

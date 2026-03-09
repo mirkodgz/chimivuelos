@@ -306,6 +306,12 @@ export async function updateExpense(formData: FormData) {
 }
 
 export async function getExpenseDocumentUrl(path: string) {
-    const { getFileUrl } = await import('@/lib/storage')
-    return await getFileUrl(path)
+    try {
+        const { getFileUrl } = await import('@/lib/storage')
+        const url = await getFileUrl(path)
+        return { url }
+    } catch (error) {
+        console.error('Error in getExpenseDocumentUrl:', error)
+        return { error: 'Failed' }
+    }
 }
