@@ -11,6 +11,9 @@ export interface Message {
     created_at: string
     sender_id: string
     isOptimistic?: boolean
+    sender?: {
+        first_name: string
+    }
 }
 
 export interface Conversation {
@@ -182,7 +185,10 @@ export async function getAdminConversationDetails(conversationId: string) {
                 content,
                 sender_id,
                 is_admin,
-                created_at
+                created_at,
+                sender:sender_id (
+                    first_name
+                )
             )
         `)
         .eq('id', conversationId)

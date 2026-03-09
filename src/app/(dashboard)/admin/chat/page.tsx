@@ -127,9 +127,21 @@ export default function AdminChatPage() {
           table: "messages",
           filter: `conversation_id=eq.${selectedConvId}`,
         },
-        (payload) => {
+        async (payload) => {
           const newMsg = payload.new as Message;
           if (!mounted) return;
+
+          // Fetch sender name for admin messages in real-time
+          if (newMsg.is_admin && !newMsg.sender) {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("first_name")
+              .eq("id", newMsg.sender_id)
+              .single();
+            if (profile) {
+              newMsg.sender = profile;
+            }
+          }
 
           setMessages((prev) => {
             if (prev.some((m) => m.id === newMsg.id)) return prev;
@@ -374,6 +386,11 @@ export default function AdminChatPage() {
                         : "bg-white text-slate-700 border border-slate-200 rounded-bl-none"
                     }`}
                   >
+                    {msg.is_admin && msg.sender?.first_name && (
+                      <span className="block text-[8px] font-black mb-1 text-pink-100/90 uppercase tracking-widest italic">
+                        {msg.sender.first_name}
+                      </span>
+                    )}
                     <p className="leading-relaxed">{msg.content}</p>
                     <div
                       className={`flex items-center justify-end gap-1 mt-1 text-[10px] ${msg.is_admin ? "text-pink-100" : "text-slate-400"}`}
