@@ -133,7 +133,8 @@ interface ClientProfile {
 }
 
 const SERVICE_OPTIONS = [
-    "Reprogramación de vuelo",
+    "Reprogramación de vuelo por Agente",
+    "Reprogramación de vuelo por Aerolínea",
     "Agregar Equipaje",
     "Cartas de invitación",
     "Seguros de viaje",
@@ -969,7 +970,7 @@ export default function OtherServicesPage() {
                                     </div>
 
                                     {/* Datos del Destinatario - Hidden for Flight Reprogramming */}
-                                    {formData.service_type !== "Reprogramación de vuelo" && (
+                                    {!(formData.service_type === "Reprogramación de vuelo por Agente" || formData.service_type === "Reprogramación de vuelo por Aerolínea") && (
                                         <div className="space-y-3 border p-4 rounded-md bg-white mt-4 animate-in fade-in slide-in-from-top-2">
                                             <h3 className="font-bold text-slate-700 text-sm flex items-center gap-2 mb-2">
                                                 <User className="h-4 w-4 text-violet-500" />
@@ -1032,11 +1033,11 @@ export default function OtherServicesPage() {
                                     <div className="space-y-4 border p-4 rounded-md bg-white flex flex-col">
                                         <h3 className="font-bold text-slate-700 text-sm flex items-center gap-2 mb-2">
                                             <MapPin className="h-4 w-4 text-chimiteal" />
-                                            {(formData.service_type === "Reprogramación de vuelo" || formData.service_type === "Agregar Equipaje") ? "Detalles del Vuelo" : "Logística de Entrega"}
+                                            {(formData.service_type === "Reprogramación de vuelo por Agente" || formData.service_type === "Reprogramación de vuelo por Aerolínea" || formData.service_type === "Agregar Equipaje") ? "Detalles del Vuelo" : "Logística de Entrega"}
                                         </h3>
 
                                         <div className="space-y-4 flex-1">
-                                        {!(formData.service_type === "Reprogramación de vuelo" || formData.service_type === "Agregar Equipaje") && (
+                                        {!(formData.service_type === "Reprogramación de vuelo por Agente" || formData.service_type === "Reprogramación de vuelo por Aerolínea" || formData.service_type === "Agregar Equipaje") && (
                                             <>
                                                 <div className="grid gap-2 relative">
                                                     <Label className="text-xs font-bold text-slate-700">Dirección de Partida</Label>
@@ -1210,7 +1211,7 @@ export default function OtherServicesPage() {
                                                     )}
                                                 </div>
 
-                                                {formData.service_type === "Reprogramación de vuelo" && (
+                                                {(formData.service_type === "Reprogramación de vuelo por Agente" || formData.service_type === "Reprogramación de vuelo por Aerolínea") && (
                                                     <div className="grid grid-cols-2 gap-4 mt-2">
                                                         <div className="space-y-2">
                                                             <Label className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">Fecha de Viaje</Label>
@@ -1275,7 +1276,7 @@ export default function OtherServicesPage() {
                                                 )}
                                             </div>
 
-                                            {formData.service_type === "Reprogramación de vuelo" && ((formData.flight_date_history && formData.flight_date_history.length > 0) || (formData.flight_return_date_history && formData.flight_return_date_history.length > 0)) && (
+                                            {(formData.service_type === "Reprogramación de vuelo por Agente" || formData.service_type === "Reprogramación de vuelo por Aerolínea") && ((formData.flight_date_history && formData.flight_date_history.length > 0) || (formData.flight_return_date_history && formData.flight_return_date_history.length > 0)) && (
                                                 <div className="mt-4 p-3 bg-slate-50/50 rounded-lg border border-slate-100 col-span-full">
                                                     <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-2 px-1">
                                                         <RefreshCw className="h-3 w-3" />
@@ -1325,7 +1326,7 @@ export default function OtherServicesPage() {
 
                                         <div className="pt-4 border-t border-slate-100 col-span-full">
 
-                                        {!(formData.service_type === "Reprogramación de vuelo" || formData.service_type === "Agregar Equipaje") && (
+                                        {!(formData.service_type === "Reprogramación de vuelo por Agente" || formData.service_type === "Reprogramación de vuelo por Aerolínea" || formData.service_type === "Agregar Equipaje") && (
                                             <div className="grid gap-2 relative">
                                                 <Label className="text-xs font-bold text-slate-700">Llegada / Recojo</Label>
                                                 <div className="relative">
