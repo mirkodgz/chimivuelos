@@ -107,8 +107,10 @@ interface OtherService {
     connected_flight_id?: string
     flight_pnr?: string
     current_flight_date?: string
+    current_return_date?: string
     flight_status?: string
     flight_date_history?: { date: string, changed_at: string, changed_by: string }[]
+    flight_return_date_history?: { date: string, changed_at: string, changed_by: string }[]
     profiles?: {
         first_name: string | null
         last_name: string | null
@@ -186,7 +188,7 @@ export default function OtherServicesPage() {
     const [showDestinationList, setShowDestinationList] = useState(false)
     const [showFlightSearch, setShowFlightSearch] = useState(false)
     const [flightSearchQuery, setFlightSearchQuery] = useState('')
-    const [flightSearchResults, setFlightSearchResults] = useState<{id: string, display_code: string, client_name: string, client_phone?: string, status?: string, travel_date?: string}[]>([])
+    const [flightSearchResults, setFlightSearchResults] = useState<{id: string, display_code: string, client_name: string, client_phone?: string, status?: string, travel_date?: string, return_date?: string}[]>([])
     const [isSearchingFlights, setIsSearchingFlights] = useState(false)
     const [luggageOption, setLuggageOption] = useState<string>("")
 
@@ -273,8 +275,10 @@ export default function OtherServicesPage() {
         connected_flight_id: "",
         flight_pnr: "",
         current_flight_date: "",
+        current_return_date: "",
         flight_status: "",
         flight_date_history: [] as { date: string, changed_at: string, changed_by: string }[],
+        flight_return_date_history: [] as { date: string, changed_at: string, changed_by: string }[],
         total_amount: "0.00",
         on_account: "0.00",
         balance: "0.00",
@@ -443,8 +447,10 @@ export default function OtherServicesPage() {
             connected_flight_id: "",
             flight_pnr: "",
             current_flight_date: "",
+            current_return_date: "",
             flight_status: "",
             flight_date_history: [] as { date: string, changed_at: string, changed_by: string }[],
+            flight_return_date_history: [] as { date: string, changed_at: string, changed_by: string }[],
             total_amount: "0.00",
             on_account: "0.00",
             balance: "0.00",
@@ -494,8 +500,10 @@ export default function OtherServicesPage() {
             connected_flight_id: serv.connected_flight_id || "",
             flight_pnr: serv.flight_pnr || "",
             current_flight_date: serv.current_flight_date || "",
+            current_return_date: serv.current_return_date || "",
             flight_status: serv.flight_status || "",
-            flight_date_history: serv.flight_date_history || [],
+            flight_date_history: (serv.flight_date_history as { date: string, changed_at: string, changed_by: string }[]) || [],
+            flight_return_date_history: (serv.flight_return_date_history as { date: string, changed_at: string, changed_by: string }[]) || [],
             total_amount: serv.total_amount.toFixed(2),
             on_account: serv.on_account.toFixed(2),
             balance: serv.balance.toFixed(2),
@@ -686,7 +694,7 @@ export default function OtherServicesPage() {
 
         const result = selectedId ? await updateOtherService(payload) : await createOtherService(payload)
 
-        if (result.error) alert(result.error)
+        if (result?.error) alert(result.error)
         else {
             setIsDialogOpen(false)
             resetForm()
@@ -985,7 +993,7 @@ export default function OtherServicesPage() {
                                         <h4 className="font-semibold text-slate-700 text-xs mb-2 uppercase flex items-center gap-2">
                                             <Wallet className="h-3 w-3 text-chimipink" /> Costos
                                         </h4>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div className="grid gap-2">
                                                 <Label className="text-xs font-bold text-slate-500">Total a Pagar (€)</Label>
                                                 <Input 
@@ -1125,11 +1133,11 @@ export default function OtherServicesPage() {
                                                     </div>
                                                 </div>
                                             )}
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="space-y-4 px-1">
                                                 <div className="space-y-2 relative">
                                                     <Label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                                                         <Search className="h-3 w-3 text-chimipink" />
-                                                        VINCULAR VUELO (PNR)
+                                                        VINCULAR VUELO
                                                     </Label>
                                                     <div className="relative">
                                                         <Input
@@ -1140,7 +1148,7 @@ export default function OtherServicesPage() {
                                                                 setShowFlightSearch(true)
                                                             }}
                                                             onFocus={() => setShowFlightSearch(true)}
-                                                            className="h-10 text-sm border-slate-200 focus:ring-chimipink pr-8"
+                                                            className="h-10 text-sm border-slate-200 focus:ring-chimipink pr-10"
                                                         />
                                                         {flightSearchQuery && !isSearchingFlights && (
                                                             <button 
@@ -1183,6 +1191,7 @@ export default function OtherServicesPage() {
                                                                             flight_pnr: f.display_code,
                                                                             flight_status: f.status || '',
                                                                             current_flight_date: f.travel_date || '',
+                                                                            current_return_date: f.return_date || '',
                                                                             recipient_name: f.client_name,
                                                                             recipient_phone: f.client_phone || ''
                                                                         }))
@@ -1202,25 +1211,34 @@ export default function OtherServicesPage() {
                                                 </div>
 
                                                 {formData.service_type === "Reprogramación de vuelo" && (
-                                                    <>
+                                                    <div className="grid grid-cols-2 gap-4 mt-2">
                                                         <div className="space-y-2">
-                                                            <Label className="text-xs font-black text-slate-700">FECHA DE VUELO</Label>
+                                                            <Label className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">Fecha de Viaje</Label>
                                                             <Input
                                                                 type="date"
                                                                 value={formData.current_flight_date}
                                                                 onChange={(e) => setFormData(p => ({ ...p, current_flight_date: e.target.value }))}
-                                                                className="h-10 text-sm border-slate-200 focus:ring-chimipink shadow-inner font-bold text-chimipink"
+                                                                className="h-10 text-sm border-slate-200 focus:ring-chimipink rounded-lg bg-white"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <Label className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">Fecha de Regreso</Label>
+                                                            <Input
+                                                                type="date"
+                                                                value={formData.current_return_date}
+                                                                onChange={(e) => setFormData(p => ({ ...p, current_return_date: e.target.value }))}
+                                                                className="h-10 text-sm border-slate-200 focus:ring-chimipink rounded-lg bg-white font-bold text-chimipink"
                                                             />
                                                         </div>
 
-                                                        <div className="space-y-2">
-                                                            <Label className="text-xs font-black text-slate-700">ESTADO DEL VUELO</Label>
-                                                            <div className="relative group/status">
+                                                        <div className="space-y-2 col-span-2">
+                                                            <Label className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">Estado de la Reserva</Label>
+                                                            <div className="relative">
                                                                 <select
                                                                     value={formData.flight_status}
                                                                     onChange={(e) => setFormData(prev => ({ ...prev, flight_status: e.target.value }))}
                                                                     className={cn(
-                                                                        "flex h-10 w-full appearance-none rounded-xl px-4 py-2 text-[11px] font-black transition-all cursor-pointer shadow-sm border-0 focus:ring-4 focus:ring-offset-2 pr-10",
+                                                                        "flex h-10 w-full appearance-none rounded-lg px-4 py-2 text-xs font-bold transition-all cursor-pointer border-0 shadow-sm focus:ring-2 focus:ring-offset-1 pr-10",
                                                                         formData.flight_status === 'Finalizado' 
                                                                             ? 'bg-emerald-500 text-white focus:ring-emerald-200' 
                                                                             : formData.flight_status === 'Cancelado' || formData.flight_status === 'Deportado'
@@ -1253,30 +1271,53 @@ export default function OtherServicesPage() {
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                    </>
+                                                    </div>
                                                 )}
                                             </div>
 
-                                            {formData.service_type === "Reprogramación de vuelo" && formData.flight_date_history && formData.flight_date_history.length > 0 && (
+                                            {formData.service_type === "Reprogramación de vuelo" && ((formData.flight_date_history && formData.flight_date_history.length > 0) || (formData.flight_return_date_history && formData.flight_return_date_history.length > 0)) && (
                                                 <div className="mt-4 p-3 bg-slate-50/50 rounded-lg border border-slate-100 col-span-full">
                                                     <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-2 px-1">
                                                         <RefreshCw className="h-3 w-3" />
                                                         Historial de Reprogramación
                                                     </h4>
-                                                    <div className="space-y-1.5">
-                                                        {[...formData.flight_date_history].reverse().map((h, i) => (
-                                                            <div key={i} className="flex flex-col px-2 py-1.5 bg-white/50 rounded-md border border-slate-50">
-                                                                <div className="flex items-center gap-2">
-                                                                    <div className="h-1 w-1 rounded-full bg-slate-400" />
-                                                                    <span className="text-[10px] font-extrabold text-slate-700">FECHA ANTERIOR: {h.date ? new Date(h.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-'}</span>
-                                                                </div>
-                                                                {h.changed_by && (
-                                                                    <span className="text-[8.5px] text-slate-400 italic font-medium ml-3">
-                                                                        Modificado por: {h.changed_by.split('@')[0]}
-                                                                    </span>
-                                                                )}
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        {formData.flight_date_history && formData.flight_date_history.length > 0 && (
+                                                            <div className="space-y-1.5">
+                                                                <p className="text-[8px] font-bold text-slate-400 uppercase ml-2 mb-1">Viaje</p>
+                                                                {[...formData.flight_date_history].reverse().map((h, i) => (
+                                                                    <div key={i} className="flex flex-col px-2 py-1.5 bg-white/50 rounded-md border border-slate-50">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <div className="h-1 w-1 rounded-full bg-blue-400" />
+                                                                            <span className="text-[10px] font-extrabold text-slate-700">ANTERIOR: {h.date ? new Date(h.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-'}</span>
+                                                                        </div>
+                                                                        {h.changed_by && (
+                                                                            <span className="text-[8.5px] text-slate-400 italic font-medium ml-3">
+                                                                                {h.changed_by.split('@')[0]}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                ))}
                                                             </div>
-                                                        ))}
+                                                        )}
+                                                        {formData.flight_return_date_history && formData.flight_return_date_history.length > 0 && (
+                                                            <div className="space-y-1.5">
+                                                                <p className="text-[8px] font-bold text-slate-400 uppercase ml-2 mb-1">Regreso</p>
+                                                                {[...formData.flight_return_date_history].reverse().map((h, i) => (
+                                                                    <div key={i} className="flex flex-col px-2 py-1.5 bg-white/50 rounded-md border border-slate-50">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <div className="h-1 w-1 rounded-full bg-rose-400" />
+                                                                            <span className="text-[10px] font-extrabold text-slate-700">ANTERIOR: {h.date ? new Date(h.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-'}</span>
+                                                                        </div>
+                                                                        {h.changed_by && (
+                                                                            <span className="text-[8.5px] text-slate-400 italic font-medium ml-3">
+                                                                                {h.changed_by.split('@')[0]}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             )}

@@ -64,8 +64,10 @@ export interface OtherService {
     connected_flight_id: string | null
     flight_pnr: string | null
     current_flight_date: string | null
+    current_return_date: string | null
     flight_status: string | null
     flight_date_history: unknown[]
+    flight_return_date_history: unknown[]
     documents: OtherServiceDocument[]
     total_amount: number
     on_account: number
@@ -152,8 +154,10 @@ export async function createOtherService(formData: FormData) {
     const connected_flight_id = formData.get('connected_flight_id') as string
     const flight_pnr = formData.get('flight_pnr') as string
     const current_flight_date = formData.get('current_flight_date') as string
+    const current_return_date = formData.get('current_return_date') as string
     const flight_status = formData.get('flight_status') as string
     const flight_date_history: DateHistoryEntry[] = []
+    const flight_return_date_history: DateHistoryEntry[] = []
     
     // 3. Economics
     const total_amount = parseFloat(String(formData.get('total_amount')).replace(',', '.')) || 0
@@ -216,8 +220,10 @@ export async function createOtherService(formData: FormData) {
         connected_flight_id: connected_flight_id || null,
         flight_pnr: flight_pnr || null,
         current_flight_date: current_flight_date || null,
+        current_return_date: current_return_date || null,
         flight_status: flight_status || null,
         flight_date_history,
+        flight_return_date_history,
         documents,
         total_amount,
         on_account,
@@ -241,7 +247,7 @@ export async function createOtherService(formData: FormData) {
         // Fetch current flight data to preserve its history
         const { data: flightData } = await supabase
             .from('flights')
-            .select('travel_date, flight_date_history')
+            .select('travel_date, return_date, flight_date_history')
             .eq('id', connected_flight_id)
             .single()
 
@@ -264,19 +270,28 @@ export async function createOtherService(formData: FormData) {
                     changed_by: user?.email || user?.id || 'Otros Servicios'
                 })
                 flightUpdate.flight_date_history = updatedHistory
-            } else if (!oldFlightDate && flight_date_history) {
-                 // Si no había fecha vieja pero tenemos historial del servicio, usarlo
+            } else if (!oldFlightDate && flight_date_history && flight_date_history.length > 0) {
                  flightUpdate.flight_date_history = flight_date_history
             }
         }
+
+        if (current_return_date) {
+            flightUpdate.return_date = current_return_date
+            // We don't have return_date_history in flights yet, 
+            // but we could store it in the flight_date_history too if we wanted, 
+            // or just leave it as is for now since the main history is for travel_date.
+            // For now, let's just update the value as requested.
+        }
         
         if (Object.keys(flightUpdate).length > 0) {
-            await supabase
-                .from('flights')
-                .update(flightUpdate)
-                .eq('id', connected_flight_id)
+                await supabase
+                    .from('flights')
+                    .update(flightUpdate)
+                    .eq('id', connected_flight_id)
+                
+                revalidatePath('/chimi-vuelos')
+            }
         }
-    }
 
     // Record Audit Log
     if (user && inserted) {
@@ -358,10 +373,12 @@ export async function updateOtherService(formData: FormData) {
         const connected_flight_id = formData.get('connected_flight_id') as string
         const flight_pnr = formData.get('flight_pnr') as string
         const current_flight_date = formData.get('current_flight_date') as string
+        const current_return_date = formData.get('current_return_date') as string
         const flight_status = formData.get('flight_status') as string
         
         // Handle Date History with better normalization and logging
         const flight_date_history = Array.isArray(existing.flight_date_history) ? [...existing.flight_date_history] : []
+        const flight_return_date_history = Array.isArray(existing.flight_return_date_history) ? [...existing.flight_return_date_history] : []
         
         const newDate = current_flight_date ? current_flight_date.trim() : null
         const oldDate = existing.current_flight_date ? existing.current_flight_date.trim() : null
@@ -378,6 +395,20 @@ export async function updateOtherService(formData: FormData) {
                     changed_by: user.email || user.id
                 })
             }
+        }
+
+        const newReturnDate = current_return_date ? current_return_date.trim() : null
+        const oldReturnDate = existing.current_return_date ? existing.current_return_date.trim() : null
+
+        if (newReturnDate && oldReturnDate && newReturnDate !== oldReturnDate) {
+             const lastReturnHistoryEntry = flight_return_date_history.length > 0 ? flight_return_date_history[flight_return_date_history.length - 1] : null
+             if (!lastReturnHistoryEntry || lastReturnHistoryEntry.date !== oldReturnDate) {
+                 flight_return_date_history.push({
+                     date: oldReturnDate,
+                     changed_at: new Date().toISOString(),
+                     changed_by: user.email || user.id
+                 })
+             }
         }
 
         const total_amount = parseFloat(String(formData.get('total_amount')).replace(',', '.')) || 0
@@ -435,8 +466,10 @@ export async function updateOtherService(formData: FormData) {
             connected_flight_id: connected_flight_id || null,
             flight_pnr: flight_pnr || null,
             current_flight_date: current_flight_date || null,
+            current_return_date: current_return_date || null,
             flight_status: flight_status || null,
             flight_date_history,
+            flight_return_date_history,
             documents: newDocuments,
             total_amount,
             on_account,
@@ -462,7 +495,7 @@ export async function updateOtherService(formData: FormData) {
             // Important: Fetch current flight state to NOT lose its existing history
             const { data: flightData } = await adminSupabase
                 .from('flights')
-                .select('travel_date, flight_date_history, status')
+                .select('travel_date, return_date, flight_date_history, status')
                 .eq('id', connected_flight_id)
                 .single()
 
@@ -492,12 +525,18 @@ export async function updateOtherService(formData: FormData) {
                     }
                 }
             }
+
+            if (current_return_date) {
+                 flightUpdate.return_date = current_return_date
+            }
             
             if (Object.keys(flightUpdate).length > 0) {
                 await adminSupabase
                     .from('flights')
                     .update(flightUpdate)
                     .eq('id', connected_flight_id)
+                
+                revalidatePath('/chimi-vuelos')
             }
         }
 

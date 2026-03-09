@@ -9,6 +9,7 @@ export interface SearchResult {
     client_phone?: string
     status?: string
     travel_date?: string
+    return_date?: string
 }
 
 export async function searchServiceRecords(type: string, query: string): Promise<SearchResult[]> {
@@ -51,6 +52,7 @@ export async function searchServiceRecords(type: string, query: string): Promise
                 ${codeField},
                 status,
                 travel_date,
+                return_date,
                 profiles:client_id (
                     first_name,
                     last_name,
@@ -75,6 +77,7 @@ export async function searchServiceRecords(type: string, query: string): Promise
             id: string, 
             status: string,
             travel_date: string,
+            return_date: string,
             profiles: ProfileData | ProfileData[] | null 
         })[]).map((item) => {
             const profile = Array.isArray(item.profiles) ? item.profiles[0] : item.profiles
@@ -84,7 +87,8 @@ export async function searchServiceRecords(type: string, query: string): Promise
                 client_name: profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 'Cliente no encontrado',
                 client_phone: profile?.phone || '',
                 status: item.status,
-                travel_date: item.travel_date
+                travel_date: item.travel_date,
+                return_date: item.return_date
             }
         })
     } catch (err) {
