@@ -18,11 +18,14 @@ export async function searchServiceRecords(type: string, query: string): Promise
     const supabase = supabaseAdmin
     let table = ''
     let codeField = ''
+    let profileField = 'client_id'
+    let hasDateCols = false
 
     switch (type) {
         case 'Vuelo':
             table = 'flights'
             codeField = 'pnr'
+            hasDateCols = true
             break
         case 'Giro':
             table = 'money_transfers'
@@ -31,6 +34,7 @@ export async function searchServiceRecords(type: string, query: string): Promise
         case 'Encomienda':
             table = 'parcels'
             codeField = 'tracking_code'
+            profileField = 'sender_id'
             break
         case 'Traducción':
             table = 'translations'
@@ -45,20 +49,18 @@ export async function searchServiceRecords(type: string, query: string): Promise
     }
 
     try {
+        const selectQuery = [
+            'id',
+            codeField,
+            'status',
+            hasDateCols ? 'travel_date' : '',
+            hasDateCols ? 'return_date' : '',
+            `profiles:${profileField} (first_name, last_name, phone)`
+        ].filter(Boolean).join(', ')
+
         const { data, error } = await supabase
             .from(table)
-            .select(`
-                id,
-                ${codeField},
-                status,
-                travel_date,
-                return_date,
-                profiles:client_id (
-                    first_name,
-                    last_name,
-                    phone
-                )
-            `)
+            .select(selectQuery)
             .ilike(codeField, `%${query}%`)
             .limit(10)
 

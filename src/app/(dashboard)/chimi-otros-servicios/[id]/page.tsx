@@ -4,18 +4,11 @@ import { useEffect, useState, use } from "react"
 import Link from "next/link"
 import { 
     ChevronLeft, 
-    FileText, 
-    Info,
     Download,
     AlertCircle,
-    UserCircle,
-    Phone,
-    Calendar,
-    Plane,
-    MapPin,
-    ClipboardList,
     Printer
 } from "lucide-react"
+import { LinkedResourceCard } from "@/components/LinkedResourceCard"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -28,6 +21,7 @@ import {
     type OtherServiceDocument,
     type PaymentDetail
 } from "@/app/actions/manage-other-services"
+import type { CorporateExpense } from "@/app/actions/manage-expenses"
 import { cn } from "@/lib/utils"
 import { OtherSalesNote } from "./OtherSalesNote"
 
@@ -40,8 +34,8 @@ export default function OtherServiceDetailsPage({ params }: { params: Promise<{ 
 
     useEffect(() => {
         getOtherServiceFullDetails(id).then(res => {
-            if (res.success && res.service) {
-                setService(res.service)
+            if (res.success) {
+                setService(res.service || null)
             } else {
                 setError(res.error || 'Servicio no encontrado')
             }
@@ -164,8 +158,7 @@ export default function OtherServiceDetailsPage({ params }: { params: Promise<{ 
                                     <div className="space-y-6">
                                         <div className="space-y-1.5 focus:bg-slate-50 p-1 rounded-lg transition-colors">
                                             <span className="text-[10px] uppercase font-bold text-slate-400">Tipo de Servicio</span>
-                                            <p className="text-base font-bold text-chimipink flex items-center gap-2">
-                                                <ClipboardList className="h-4 w-4 text-chimipink/40" />
+                                            <p className="text-base font-bold text-chimipink">
                                                 {service.service_type === "Otros servicios" ? service.service_type_other : service.service_type}
                                             </p>
                                         </div>
@@ -173,18 +166,36 @@ export default function OtherServiceDetailsPage({ params }: { params: Promise<{ 
                                         <div className="pt-4 border-t border-slate-50">
                                             <span className="text-[10px] uppercase font-bold text-slate-400 block mb-2">Conexión con Vuelo</span>
                                             {service.flight_pnr ? (
-                                                <div className="flex items-center gap-3 p-3 bg-blue-50/50 rounded-xl border border-blue-100 w-fit">
-                                                    <Plane className="h-4 w-4 text-blue-500" />
-                                                    <div>
-                                                        <p className="text-xs font-bold text-blue-800">{service.flight_pnr}</p>
-                                                        {service.current_flight_date && (
-                                                            <p className="text-[10px] text-blue-600 font-medium">{new Date(service.current_flight_date).toLocaleDateString()}</p>
-                                                        )}
+                                                service.connected_flight_id ? (
+                                                    <Link href={`/chimi-vuelos/${service.connected_flight_id}`}>
+                                                        <div className="flex items-center gap-3 p-3 bg-blue-50/50 rounded-xl border border-blue-100 w-fit hover:bg-blue-100/50 transition-all group overflow-hidden relative cursor-pointer active:scale-[0.98]">
+                                                            <div className="absolute top-0 right-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                <div className="bg-blue-500 rounded-full p-0.5">
+                                                                    <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                                                    </svg>
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-xs font-bold text-blue-800">{service.flight_pnr}</p>
+                                                                {service.current_flight_date && (
+                                                                    <p className="text-[10px] text-blue-600 font-medium">{new Date(service.current_flight_date).toLocaleDateString()}</p>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </Link>
+                                                ) : (
+                                                    <div className="flex items-center gap-3 p-3 bg-blue-50/50 rounded-xl border border-blue-100 w-fit">
+                                                        <div>
+                                                            <p className="text-xs font-bold text-blue-800">{service.flight_pnr}</p>
+                                                            {service.current_flight_date && (
+                                                                <p className="text-[10px] text-blue-600 font-medium">{new Date(service.current_flight_date).toLocaleDateString()}</p>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                </div>
+                                                )
                                             ) : (
-                                                <div className="flex items-center gap-2 p-2 px-3 bg-slate-50 rounded-lg border border-slate-100 w-fit">
-                                                    <Plane className="h-3.5 w-3.5 text-slate-400" />
+                                                <div className="p-2 px-3 bg-slate-50 rounded-lg border border-slate-100 w-fit">
                                                     <span className="text-xs font-medium text-slate-500 italic">Sin vinculación</span>
                                                 </div>
                                             )}
@@ -204,26 +215,9 @@ export default function OtherServiceDetailsPage({ params }: { params: Promise<{ 
                                         </div>
                                         <div className="space-y-1.5">
                                             <span className="text-[10px] uppercase font-bold text-slate-400">Teléfono Contacto</span>
-                                            <p className="text-base font-medium text-slate-700 leading-tight flex items-center gap-2">
-                                                <Phone className="h-3 w-3 text-slate-400" /> {service.recipient_phone || '---'}
+                                            <p className="text-base font-medium text-slate-700 leading-tight">
+                                                {service.recipient_phone || '---'}
                                             </p>
-                                        </div>
-                                        
-                                        <div className="grid gap-4 pt-2">
-                                            <div className="space-y-1.5 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                                <span className="text-[9px] uppercase font-black text-slate-400 block mb-1">Dirección de Origen</span>
-                                                <p className="text-xs font-medium text-slate-600 leading-tight flex items-center gap-2">
-                                                    <MapPin className="h-3 w-3 text-slate-300" />
-                                                    {service.origin_address === "Dirección de cliente" ? service.origin_address_client : service.origin_address}
-                                                </p>
-                                            </div>
-                                            <div className="space-y-1.5 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                                <span className="text-[9px] uppercase font-black text-slate-400 block mb-1">Dirección de Destino</span>
-                                                <p className="text-xs font-medium text-slate-600 leading-tight flex items-center gap-2">
-                                                    <MapPin className="h-3 w-3 text-chimipink/30" />
-                                                    {service.destination_address === "Dirección de cliente" ? service.destination_address_client : service.destination_address}
-                                                </p>
-                                            </div>
                                         </div>
                                     </div>
                                 </section>
@@ -236,14 +230,29 @@ export default function OtherServiceDetailsPage({ params }: { params: Promise<{ 
                                 <div className="flex items-center gap-3">
                                     <h3 className="text-xs font-black uppercase text-slate-800 tracking-widest">Descripción y Notas</h3>
                                 </div>
-                                <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 relative">
-                                    <div className="absolute top-4 left-4">
-                                        <Info className="h-5 w-5 text-slate-200" />
-                                    </div>
-                                    <p className="text-sm font-medium text-slate-700 leading-relaxed italic border-l-2 border-slate-200 pl-6">
+                                 <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 relative">
+                                    <p className="text-sm font-medium text-slate-700 leading-relaxed italic border-l-2 border-slate-200 pl-4">
                                         {service.note || 'Sin especificaciones adicionales para el cliente.'}
                                     </p>
                                 </div>
+
+                                {/* Linked Expenses Section */}
+                                {service.linked_expenses && service.linked_expenses.length > 0 && (
+                                    <div className="pt-6 border-t border-slate-100/50">
+                                        <span className="text-[10px] uppercase font-black text-slate-400 block mb-3 tracking-widest">Gastos Operativos Vinculados</span>
+                                        <div className="flex flex-wrap gap-3">
+                                            {service.linked_expenses.map((expense: CorporateExpense) => (
+                                                <LinkedResourceCard
+                                                    key={expense.id}
+                                                    href={`/chimi-gastos/${expense.id}`}
+                                                    title={`${expense.category} - ${expense.sub_category}`}
+                                                    subtitle={`${expense.currency === 'EUR' ? '€' : 'S/'} ${expense.original_amount.toFixed(2)}`}
+                                                    variant="sky"
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </section>
 
                             <div className="pt-4 border-t border-slate-50" />
@@ -274,14 +283,14 @@ export default function OtherServiceDetailsPage({ params }: { params: Promise<{ 
                                                         )}
                                                     </div>
                                                 </div>
-                                                {payment.proof_path && (
-                                                    <button 
-                                                        onClick={() => handleDownload(payment.proof_path!, 'r2')}
-                                                        className="mt-3 w-full h-7 text-[9px] font-black text-chimiteal bg-teal-50/50 hover:bg-teal-50 rounded-lg flex items-center justify-center gap-2 border border-teal-100/30 tracking-widest"
-                                                    >
-                                                        <Download className="h-2.5 w-2.5" /> COMPROBANTE
-                                                    </button>
-                                                )}
+                                                    {payment.proof_path && (
+                                                        <button 
+                                                            onClick={() => handleDownload(payment.proof_path!, 'r2')}
+                                                            className="mt-3 w-full h-7 text-[9px] font-black text-chimiteal bg-teal-50/50 hover:bg-teal-50 rounded-lg flex items-center justify-center gap-2 border border-teal-100/30 tracking-widest"
+                                                        >
+                                                            COMPROBANTE
+                                                        </button>
+                                                    )}
                                             </div>
                                         ))
                                     ) : (
@@ -317,16 +326,14 @@ export default function OtherServiceDetailsPage({ params }: { params: Promise<{ 
                                 <div className="space-y-5">
                                     <div className="space-y-1">
                                         <span className="text-[9px] uppercase font-black text-slate-400 tracking-wider block">Agente Responsable</span>
-                                        <p className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                                            <UserCircle className="h-3 w-3 text-slate-400" />
+                                        <p className="text-sm font-bold text-slate-700">
                                             {service.agent ? `${service.agent.first_name} ${service.agent.last_name}` : 'Admin'}
                                         </p>
                                     </div>
                                     <div className="space-y-1">
                                         <span className="text-[9px] uppercase font-black text-slate-400 tracking-wider block">Fecha de Registro</span>
-                                        <p className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                                            <Calendar className="h-3 w-3 text-slate-400" />
-                                            {new Date(service.created_at).toLocaleString('es-PE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                        <p className="text-sm font-bold text-slate-700">
+                                            {new Date(service.created_at).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                                         </p>
                                     </div>
                                 </div>
@@ -365,8 +372,8 @@ export default function OtherServiceDetailsPage({ params }: { params: Promise<{ 
                                         service.documents.map((doc: OtherServiceDocument, i: number) => (
                                             <div key={i} className="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-2xl hover:border-chimicyan/50 transition-colors group">
                                                 <div className="flex items-center gap-3 min-w-0">
-                                                    <div className="h-8 w-8 rounded-lg bg-slate-50 flex items-center justify-center shrink-0">
-                                                        <FileText className="h-4 w-4 text-slate-400 group-hover:text-chimicyan transition-colors" />
+                                                    <div className="h-8 w-8 rounded-lg bg-slate-50 flex items-center justify-center shrink-0 text-slate-400 font-bold text-[10px]">
+                                                        DOC
                                                     </div>
                                                     <div className="min-w-0">
                                                         <p className="text-xs font-bold text-slate-700 truncate">{doc.title}</p>
@@ -397,7 +404,6 @@ export default function OtherServiceDetailsPage({ params }: { params: Promise<{ 
                                     </div>
                                     <div className="space-y-2">
                                         <p className="text-[11px] text-slate-600 bg-amber-50/40 p-4 rounded-2xl border border-amber-100/30 italic flex gap-2">
-                                            <Info className="h-3 w-3 shrink-0 mt-0.5 text-amber-500/60" />
                                             {service.internal_note}
                                         </p>
                                     </div>

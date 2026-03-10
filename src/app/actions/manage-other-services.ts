@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from "@/lib/supabase/server"
 import { getActivePermissionDetails, consumeEditPermission } from "./manage-permissions"
 import { recordAuditLog } from "@/lib/audit"
+import type { CorporateExpense } from "./manage-expenses"
 
 interface Profile {
     first_name: string | null
@@ -92,6 +93,7 @@ export interface OtherService {
         first_name: string | null
         last_name: string | null
     }
+    linked_expenses?: CorporateExpense[]
 }
 
 export async function getOtherServices() {
@@ -706,43 +708,53 @@ export async function getOtherServiceDocumentUrl(path: string, storage: StorageT
 
 export async function getOtherServiceFullDetails(id: string) {
     const supabase = supabaseAdmin
-    
-    const { data: service, error } = await supabase
-        .from('other_services')
-        .select(`
-            *,
-            profiles:client_id (
-                first_name,
-                last_name,
-                email,
-                phone,
-                document_number
-            )
-        `)
-        .eq('id', id)
-        .single()
-
-    if (error || !service) {
-        console.error('Error fetching service details:', error)
-        return { success: false, error: 'Servicio no encontrado' }
-    }
-
-    // Fetch Agent details
-    if (service.agent_id) {
-        const { data: agentData } = await supabase
-            .from('profiles')
-            .select('first_name, last_name')
-            .eq('id', service.agent_id)
+    try {
+        const { data: service, error } = await supabase
+            .from('other_services')
+            .select(`
+                *,
+                profiles:client_id (
+                    first_name,
+                    last_name,
+                    email,
+                    phone,
+                    document_number
+                )
+            `)
+            .eq('id', id)
             .single()
-        
-        if (agentData) {
-            (service as unknown as OtherService).agent = agentData
-        }
-    }
 
-    return { 
-        success: true, 
-        service: service as unknown as OtherService 
+        if (error || !service) {
+            console.error('Error fetching service details:', error)
+            return { success: false, error: 'Servicio no encontrado' }
+        }
+
+        // Fetch Agent details
+        if (service.agent_id) {
+            const { data: agentData } = await supabase
+                .from('profiles')
+                .select('first_name, last_name')
+                .eq('id', service.agent_id)
+                .single()
+            
+            if (agentData) {
+                (service as unknown as OtherService).agent = agentData
+            }
+        }
+
+        // Fetch linked expenses
+        const { data: linkedExpenses } = await supabase
+            .from('corporate_expenses')
+            .select('*')
+            .eq('connected_record_id', id)
+            .order('expense_date', { ascending: false })
+        
+        ; (service as OtherService).linked_expenses = (linkedExpenses || []) as CorporateExpense[]
+
+        return { success: true, service: service as OtherService }
+    } catch (error) {
+        console.error('Error fetching service details:', error)
+        return { success: false, error: (error as Error).message }
     }
 }
 

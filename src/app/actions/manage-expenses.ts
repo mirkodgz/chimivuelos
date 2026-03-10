@@ -315,3 +315,50 @@ export async function getExpenseDocumentUrl(path: string) {
         return { error: 'Failed' }
     }
 }
+
+export async function getExpenseFullDetails(id: string) {
+    const supabase = supabaseAdmin
+    const { data, error } = await supabase
+        .from('corporate_expenses')
+        .select('*')
+        .eq('id', id)
+        .single()
+
+    if (error) {
+        console.error('Error fetching expense details:', error)
+        return { success: false, error: 'No se encontró el gasto' }
+    }
+
+    // Agents detail
+    const agentIds = [data.agent_id, data.recipient_agent_id].filter(Boolean) as string[]
+    if (agentIds.length > 0) {
+        const { data: agents } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name')
+            .in('id', agentIds)
+        
+        if (agents) {
+            const agentMap = Object.fromEntries(agents.map(a => [a.id, a]))
+            if (data.agent_id && agentMap[data.agent_id]) data.agent = agentMap[data.agent_id]
+            if (data.recipient_agent_id && agentMap[data.recipient_agent_id]) data.recipient_agent = agentMap[data.recipient_agent_id]
+        }
+    }
+
+    return { success: true, expense: data as CorporateExpense }
+}
+
+export async function getRecordExpenses(recordId: string) {
+    const supabase = supabaseAdmin
+    const { data, error } = await supabase
+        .from('corporate_expenses')
+        .select('*')
+        .eq('connected_record_id', recordId)
+        .order('expense_date', { ascending: false })
+
+    if (error) {
+        console.error('Error fetching record expenses:', error)
+        return []
+    }
+
+    return data as CorporateExpense[]
+}

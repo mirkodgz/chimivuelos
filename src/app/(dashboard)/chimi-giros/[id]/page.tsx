@@ -4,19 +4,11 @@ import { useEffect, useState, use } from "react"
 import Link from "next/link"
 import { 
     ChevronLeft, 
-    FileText, 
-    CreditCard,
-    Info,
-    Wallet,
     Download,
     AlertCircle,
-    UserCircle,
-    Hash,
-    User,
-    ArrowRightLeft,
-    NotebookPen,
     Printer
 } from "lucide-react"
+import { LinkedResourceCard } from "@/components/LinkedResourceCard"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -29,6 +21,7 @@ import {
     type PaymentDetail,
     type MoneyTransfer
 } from "@/app/actions/manage-transfers"
+import type { CorporateExpense } from "@/app/actions/manage-expenses"
 import { cn } from "@/lib/utils"
 import { GiroSalesNote } from "./GiroSalesNote"
 
@@ -42,7 +35,7 @@ export default function TransferDetailsPage({ params }: { params: Promise<{ id: 
     useEffect(() => {
         getTransferFullDetails(id).then(res => {
             if (res.success) {
-                setTransfer(res.transfer)
+                setTransfer(res.transfer || null)
             } else {
                 setError(res.error || 'Giro no encontrado')
             }
@@ -84,6 +77,8 @@ export default function TransferDetailsPage({ params }: { params: Promise<{ id: 
         if (s === 'completed' || s === 'finalizado') return 'Completado'
         if (s === 'delivered' || s === 'entregado' || s === 'transit') return 'Entregado'
         if (s === 'cancelled' || s === 'cancelado') return 'Cancelado'
+        if (s === 'scheduled') return 'Programado'
+        if (s === 'available') return 'Disponible'
         return status.toUpperCase()
     }
 
@@ -169,47 +164,43 @@ export default function TransferDetailsPage({ params }: { params: Promise<{ id: 
                             {/* 1. Transfer Information */}
                             <section className="space-y-8">
                                 <div className="flex items-center gap-3">
-                                    <ArrowRightLeft className="h-5 w-5 text-blue-500" />
                                     <h3 className="text-xs font-black uppercase text-slate-800 tracking-widest">Información de la Operación</h3>
                                 </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
-                                    <div className="space-y-1.5 focus:bg-slate-50 p-1 rounded-lg transition-colors">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-10">
+                                    <div className="space-y-1.5">
                                         <span className="text-[10px] uppercase font-bold text-slate-400">Modalidad</span>
                                         <p className="text-lg font-bold text-slate-700 leading-tight">{getModeLabel(transfer.transfer_mode)}</p>
                                     </div>
                                     <div className="space-y-1.5">
                                         <span className="text-[10px] uppercase font-bold text-slate-400">Fecha de Registro</span>
                                         <p className="text-lg font-medium text-slate-700 leading-tight">
-                                             {new Date(transfer.created_at).toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' })}
+                                             {new Date(transfer.created_at).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                                         </p>
                                     </div>
                                     <div className="space-y-1.5">
                                         <span className="text-[10px] uppercase font-bold text-slate-400">Monto Enviado</span>
-                                        <p className="text-xl font-black text-slate-800 flex items-center gap-2">
+                                        <p className="text-lg font-black text-slate-800 leading-tight">
                                             {transfer.transfer_mode === 'pen_to_eur' ? 'S/' : '€'} {transfer.amount_sent.toFixed(2)}
                                         </p>
                                     </div>
                                     <div className="space-y-1.5">
-                                        <span className="text-[10px] uppercase font-bold text-slate-400">Comisión Agencia</span>
-                                        <p className="text-xl font-bold text-emerald-600 flex items-center gap-2">
-                                            {transfer.transfer_mode === 'pen_to_eur' ? 'S/' : '€'} {transfer.commission.toFixed(2)}
-                                            {transfer.commission_percentage > 0 && <span className="text-xs font-medium text-slate-400">({transfer.commission_percentage}%)</span>}
+                                        <span className="text-[10px] uppercase font-bold text-slate-400">Tasa de Cambio</span>
+                                        <p className="text-lg font-bold text-slate-600 italic leading-tight">1.00 = {transfer.exchange_rate.toFixed(4)}</p>
+                                    </div>
+                                    
+                                    <div className="space-y-1.5 pt-6 border-t border-slate-100">
+                                        <span className="text-[10px] uppercase font-black text-slate-400">Cantidad a Recibir</span>
+                                        <p className="text-xl font-black text-slate-800">
+                                            {transfer.transfer_mode === 'eur_to_pen' ? 'S/' : '€'} {transfer.amount_received.toFixed(2)}
                                         </p>
                                     </div>
-                                </div>
-
-                                {/* Summary Bar */}
-                                <div className="grid grid-cols-2 gap-4 bg-slate-50/70 p-5 rounded-[1.5rem] border border-slate-100/50">
-                                    <div className="text-center group">
-                                        <span className="text-[9px] uppercase font-black text-slate-400 block mb-1">CANTIDAD A RECIBIR</span>
-                                        <span className="text-2xl font-black text-slate-800 group-hover:text-chimipink transition-colors">
-                                            {transfer.transfer_mode === 'eur_to_pen' ? 'S/' : '€'} {transfer.amount_received.toFixed(2)}
-                                        </span>
-                                    </div>
-                                    <div className="text-center border-l border-slate-200">
-                                        <span className="text-[9px] uppercase font-black text-slate-400 block mb-1">TASA DE CAMBIO</span>
-                                        <span className="text-2xl font-bold text-slate-600 italic">1.00 = {transfer.exchange_rate.toFixed(4)}</span>
+                                    <div className="space-y-1.5 pt-6 border-t border-slate-100">
+                                        <span className="text-[10px] uppercase font-black text-slate-400">Comisión Agencia</span>
+                                        <p className="text-xl font-bold text-emerald-600">
+                                            {transfer.transfer_mode === 'pen_to_eur' ? 'S/' : '€'} {transfer.commission.toFixed(2)}
+                                            {transfer.commission_percentage > 0 && <span className="text-[10px] font-medium text-slate-400 ml-1">({transfer.commission_percentage}%)</span>}
+                                        </p>
                                     </div>
                                 </div>
                             </section>
@@ -219,7 +210,6 @@ export default function TransferDetailsPage({ params }: { params: Promise<{ id: 
                             {/* 2. Beneficiary Details */}
                             <section className="space-y-8">
                                 <div className="flex items-center gap-3">
-                                    <UserCircle className="h-5 w-5 text-chimipink" />
                                     <h3 className="text-xs font-black uppercase text-slate-800 tracking-widest">Datos del Beneficiario</h3>
                                 </div>
 
@@ -257,7 +247,6 @@ export default function TransferDetailsPage({ params }: { params: Promise<{ id: 
                                 {/* Payments History */}
                                 <section className="space-y-6">
                                     <div className="flex items-center gap-3">
-                                        <CreditCard className="h-4 w-4 text-emerald-500" />
                                         <h3 className="text-[11px] font-black uppercase text-slate-800 tracking-widest">Abonos Recibidos</h3>
                                     </div>
                                     <div className="space-y-4">
@@ -284,7 +273,7 @@ export default function TransferDetailsPage({ params }: { params: Promise<{ id: 
                                                             onClick={() => handleDownload(payment.proof_path!, payment.proof_path!.startsWith('clients/') ? 'r2' : 'images')}
                                                             className="mt-3 w-full h-7 text-[9px] font-black text-chimiteal bg-teal-50/50 hover:bg-teal-50 rounded-lg flex items-center justify-center gap-2 border border-teal-100/30 tracking-widest"
                                                         >
-                                                            <Download className="h-2.5 w-2.5" /> COMPROBANTE
+                                                            COMPROBANTE
                                                         </button>
                                                     )}
                                                 </div>
@@ -293,8 +282,29 @@ export default function TransferDetailsPage({ params }: { params: Promise<{ id: 
                                             <p className="text-xs text-slate-400 italic py-4">No hay abonos registrados.</p>
                                         )}
                                     </div>
-                                </section>
+                                 </section>
 
+                                {/* Linked Expenses History */}
+                                <section className="space-y-6">
+                                    <div className="flex items-center gap-3">
+                                        <h3 className="text-[11px] font-black uppercase text-slate-800 tracking-widest">Gastos Operativos</h3>
+                                    </div>
+                                    <div className="space-y-4">
+                                        {transfer.linked_expenses && transfer.linked_expenses.length > 0 ? (
+                                            transfer.linked_expenses.map((expense: CorporateExpense) => (
+                                                <LinkedResourceCard
+                                                    key={expense.id}
+                                                    href={`/chimi-gastos/${expense.id}`}
+                                                    title={`${expense.category} - ${expense.sub_category}`}
+                                                    subtitle={`${expense.currency === 'EUR' ? '€' : 'S/'} ${expense.original_amount.toFixed(2)}`}
+                                                    variant="sky"
+                                                />
+                                            ))
+                                        ) : (
+                                            <p className="text-xs text-slate-400 italic py-4">No hay gastos vinculados.</p>
+                                        )}
+                                    </div>
+                                </section>
                             </div>
                         </div>
 
@@ -318,14 +328,12 @@ export default function TransferDetailsPage({ params }: { params: Promise<{ id: 
                             {/* Operational Data */}
                             <section className="space-y-6">
                                 <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
-                                    <Info className="h-4 w-4 text-chimicyan" />
                                     <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Datos Operativos</h3>
                                 </div>
                                 <div className="space-y-5">
                                     <div className="space-y-1">
                                         <span className="text-[9px] uppercase font-black text-slate-400 tracking-wider block">Agente Responsable</span>
-                                        <p className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                                            <User className="h-3 w-3 text-slate-400" />
+                                        <p className="text-sm font-bold text-slate-700">
                                             {transfer.agent ? `${transfer.agent.first_name} ${transfer.agent.last_name}` : 'Admin'}
                                         </p>
                                     </div>
@@ -339,7 +347,6 @@ export default function TransferDetailsPage({ params }: { params: Promise<{ id: 
                             {/* Financial Summary */}
                             <section className="space-y-6">
                                 <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
-                                    <Wallet className="h-4 w-4 text-chimipink" />
                                     <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Resumen Financiero</h3>
                                 </div>
                                 <Card className="border-none shadow-none bg-white/50 p-5 rounded-2xl space-y-4">
@@ -375,7 +382,6 @@ export default function TransferDetailsPage({ params }: { params: Promise<{ id: 
                             {/* Attachments */}
                             <section className="space-y-6">
                                 <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
-                                    <Hash className="h-4 w-4 text-chimicyan" />
                                     <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Archivos / Soportes</h3>
                                 </div>
                                 <div className="space-y-3">
@@ -383,8 +389,8 @@ export default function TransferDetailsPage({ params }: { params: Promise<{ id: 
                                         transfer.documents.map((doc: TransferDocument, i: number) => (
                                             <div key={i} className="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-2xl hover:border-chimicyan/50 transition-colors group">
                                                 <div className="flex items-center gap-3 min-w-0">
-                                                    <div className="h-8 w-8 rounded-lg bg-slate-50 flex items-center justify-center shrink-0">
-                                                        <FileText className="h-4 w-4 text-slate-400 group-hover:text-chimicyan transition-colors" />
+                                                    <div className="h-8 w-8 rounded-lg bg-slate-50 flex items-center justify-center shrink-0 text-slate-400 font-bold text-[10px]">
+                                                        DOC
                                                     </div>
                                                     <div className="min-w-0">
                                                         <p className="text-xs font-bold text-slate-700 truncate">{doc.title}</p>
@@ -411,7 +417,6 @@ export default function TransferDetailsPage({ params }: { params: Promise<{ id: 
                             {(transfer.client_note || transfer.internal_note) && (
                                 <section className="space-y-6">
                                     <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
-                                        <NotebookPen className="h-4 w-4 text-amber-500" />
                                         <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Observaciones</h3>
                                     </div>
                                     <div className="space-y-4">

@@ -136,7 +136,7 @@ export function TranslationSalesNote({ translation, onClose }: { translation: Tr
                                         </div>
                                         <div className="bg-slate-50 px-2 py-0.5 rounded border border-slate-100 flex-1">
                                             <p className="text-[7px] font-black uppercase text-slate-400 tracking-widest mb-0">Teléfono</p>
-                                            <p className="text-[10px] font-black text-slate-900 leading-none">{translation.profiles?.phone || '---' || translation.recipient_phone}</p>
+                                            <p className="text-[10px] font-black text-slate-900 leading-none">{translation.profiles?.phone || '---'}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -182,11 +182,11 @@ export function TranslationSalesNote({ translation, onClose }: { translation: Tr
                                             <td className="py-1.5 px-3 border-r border-slate-200">
                                                 <p className="font-black text-slate-900 uppercase leading-none text-[8px]">Servicio de Traducción Jurada / Técnica</p>
                                                 <div className="mt-1 text-[7px] text-slate-500 font-bold uppercase">
-                                                    <span>{translation.notes || 'Sin observaciones adicionales'}</span>
+                                                    <span>{translation.client_note || 'Sin observaciones adicionales'}</span>
                                                 </div>
                                             </td>
                                             <td className="py-1.5 px-3 text-center font-black text-slate-700">
-                                                {translation.quantity}
+                                                {translation.documents?.length || 1}
                                             </td>
                                             <td className="py-1.5 px-3 text-right font-black text-slate-900">
                                                 € {translation.total_amount.toFixed(2)}

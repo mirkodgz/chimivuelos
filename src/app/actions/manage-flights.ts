@@ -7,6 +7,7 @@ import { uploadClientFile, deleteFileFromR2, deleteImageFromCloudflare, getFileU
 import { getActivePermissionDetails, consumeEditPermission } from "./manage-permissions"
 import { getPaymentMethodsIT, getPaymentMethodsPE } from "./manage-payment-methods"
 import { recordAuditLog } from "@/lib/audit"
+import type { CorporateExpense } from "./manage-expenses"
 
 /**
  * Interface for Flight Document
@@ -58,6 +59,12 @@ export interface Flight {
     sold_price: number
     on_account: number
     balance: number
+    linked_other_services?: {
+        id: string
+        tracking_code: string
+        service_type: string
+        service_type_other: string
+    }[]
     fee_agv: number
     status: string
     payment_method_it?: string
@@ -89,6 +96,7 @@ export interface Flight {
         first_name: string | null
         last_name: string | null
     } | null
+    linked_expenses?: CorporateExpense[]
 }
 
 export async function createFlight(formData: FormData) {
@@ -1108,6 +1116,14 @@ export async function getFlightFullDetails(id: string) {
 
         if (error) throw error
 
+        // Fetch linked services that refer to this flight
+        const { data: linkedServices } = await supabase
+            .from('other_services')
+            .select('id, tracking_code, service_type, service_type_other')
+            .eq('connected_flight_id', id)
+            
+        flight.linked_other_services = linkedServices || []
+
         // Recover histories from other_services based on PNR to show a unified history
         const flightPnr = flight.pnr?.trim()
         if (flightPnr) {
@@ -1133,15 +1149,24 @@ export async function getFlightFullDetails(id: string) {
                     })
                     
                     flight.flight_date_history = Array.from(uniqueMap.values()).sort((a,b) => 
-                        new Date(a.changed_at).getTime() - new Date(b.changed_at).getTime()
-                    )
+            new Date(a.changed_at).getTime() - new Date(b.changed_at).getTime()
+        )
                 }
             }
         }
 
-        return { success: true, flight }
-    } catch (error) {
-        console.error('Error fetching flight details:', error)
-        return { success: false, error: (error as Error).message }
+        // Fetch linked expenses
+        const { data: linkedExpenses } = await supabase
+            .from('corporate_expenses')
+            .select('*')
+            .eq('connected_record_id', id)
+            .order('expense_date', { ascending: false })
+        
+        ; (flight as Flight).linked_expenses = (linkedExpenses || []) as CorporateExpense[]
+
+        return { success: true, flight: flight as Flight }
+    } catch (err) {
+        console.error('Error in getFlightFullDetails:', err)
+        return { success: false, error: 'Error al cargar los detalles' }
     }
 }

@@ -11,12 +11,13 @@ import {
     UserCircle,
     Phone,
     Calendar,
-    Globe2,
-    Languages,
-    FileSearch,
+    Globe2, 
+    Languages, 
+    FileSearch, 
     Printer
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { LinkedResourceCard } from "@/components/LinkedResourceCard"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { StatusHistory } from "@/components/StatusHistory"
@@ -28,6 +29,7 @@ import {
     type TranslationDocument,
     type PaymentDetail
 } from "@/app/actions/manage-translations"
+import type { CorporateExpense } from "@/app/actions/manage-expenses"
 import { cn } from "@/lib/utils"
 import { TranslationSalesNote } from "./TranslationSalesNote"
 
@@ -40,8 +42,8 @@ export default function TranslationDetailsPage({ params }: { params: Promise<{ i
 
     useEffect(() => {
         getTranslationFullDetails(id).then(res => {
-            if (res.success && res.translation) {
-                setTranslation(res.translation)
+            if (res.success) {
+                setTranslation(res.translation || null)
             } else {
                 setError(res.error || 'Trámite no encontrado')
             }
@@ -196,26 +198,29 @@ export default function TranslationDetailsPage({ params }: { params: Promise<{ i
                                     </div>
                                 </section>
 
-                                {/* Delivery Info */}
+                                 {/* Delivery Info */}
                                 <section className="space-y-8">
                                     <div className="flex items-center gap-3">
-                                        <h3 className="text-xs font-black uppercase text-slate-800 tracking-widest">Datos de Entrega</h3>
+                                        <h3 className="text-xs font-black uppercase text-slate-800 tracking-widest">Datos del Solicitante</h3>
                                     </div>
                                     <div className="space-y-6">
                                         <div className="space-y-1.5 focus:bg-slate-50 p-1 rounded-lg transition-colors">
-                                            <span className="text-[10px] uppercase font-bold text-slate-400">Nombre del Receptor</span>
-                                            <p className="text-lg font-bold text-slate-800 leading-tight">{translation.recipient_name || '---'}</p>
+                                            <span className="text-[10px] uppercase font-bold text-slate-400">Nombre del Cliente</span>
+                                            <p className="text-lg font-bold text-slate-800 leading-tight">
+                                                {translation.profiles ? `${translation.profiles.first_name} ${translation.profiles.last_name}` : '---'}
+                                            </p>
                                         </div>
                                         <div className="space-y-1.5">
                                             <span className="text-[10px] uppercase font-bold text-slate-400">Teléfono Contacto</span>
                                             <p className="text-base font-medium text-slate-700 leading-tight flex items-center gap-2">
-                                                <Phone className="h-3 w-3 text-slate-400" /> {translation.recipient_phone || '---'}
+                                                <Phone className="h-3 w-3 text-slate-400" /> {translation.profiles?.phone || '---'}
                                             </p>
                                         </div>
                                         <div className="space-y-1.5 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                            <span className="text-[10px] uppercase font-black text-slate-400 block mb-1">Dirección de Envío</span>
-                                            <p className="text-sm font-medium text-slate-700 leading-relaxed italic">{translation.destination_address || '---'}</p>
-                                            <p className="text-[10px] text-slate-400 mt-1">{translation.destination_address_client}</p>
+                                            <span className="text-[10px] uppercase font-black text-slate-400 block mb-1">Fecha de Entrega Estimada</span>
+                                            <p className="text-sm font-bold text-slate-700">
+                                                {new Date(translation.delivery_date).toLocaleDateString()}
+                                            </p>
                                         </div>
                                     </div>
                                 </section>
@@ -247,16 +252,16 @@ export default function TranslationDetailsPage({ params }: { params: Promise<{ i
                                             </div>
                                         </div>
                                         <div className="space-y-1.5">
-                                            <span className="text-[10px] uppercase font-bold text-slate-400">Cantidad Total</span>
+                                            <span className="text-[10px] uppercase font-bold text-slate-400">Cantidad Total de Archivos</span>
                                             <p className="text-base font-black text-slate-800 bg-slate-100 w-fit px-4 py-1 rounded-full">
-                                                {translation.quantity} <span className="text-[10px] font-bold text-slate-400">DOCS</span>
+                                                {translation.documents?.length || 0} <span className="text-[10px] font-bold text-slate-400">DOCS</span>
                                             </p>
                                         </div>
                                     </div>
                                     
                                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                        <span className="text-[10px] uppercase font-black text-slate-400 block mb-2">Descripción de Contenido / Notas</span>
-                                        <p className="text-sm font-medium text-slate-600 leading-relaxed italic border-l-2 border-slate-100 pl-4">{translation.notes || 'Sin especificaciones adicionales'}</p>
+                                        <span className="text-[10px] uppercase font-black text-slate-400 block mb-2">Comentarios / Observaciones</span>
+                                        <p className="text-sm font-medium text-slate-600 leading-relaxed italic border-l-2 border-slate-100 pl-4">{translation.client_note || 'Sin especificaciones adicionales'}</p>
                                     </div>
                                 </div>
                             </section>
@@ -301,6 +306,28 @@ export default function TranslationDetailsPage({ params }: { params: Promise<{ i
                                         ))
                                     ) : (
                                         <p className="text-xs text-slate-400 italic py-4 col-span-full text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">No hay pagos registrados para este trámite.</p>
+                                    )}
+                                 </div>
+                            </section>
+
+                            {/* Linked Expenses History */}
+                            <section className="space-y-6">
+                                <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+                                    <h3 className="text-[11px] font-black uppercase text-slate-800 tracking-widest">Gastos Operativos Vinculados</h3>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {translation.linked_expenses && translation.linked_expenses.length > 0 ? (
+                                        translation.linked_expenses.map((expense: CorporateExpense) => (
+                                            <LinkedResourceCard
+                                                key={expense.id}
+                                                href={`/chimi-gastos/${expense.id}`}
+                                                title={`${expense.category} - ${expense.sub_category}`}
+                                                subtitle={`${expense.currency === 'EUR' ? '€' : 'S/'} ${expense.original_amount.toFixed(2)}`}
+                                                variant="sky"
+                                            />
+                                        ))
+                                    ) : (
+                                        <p className="text-xs text-slate-400 italic py-4 col-span-full">No hay gastos vinculados a este trámite.</p>
                                     )}
                                 </div>
                             </section>
@@ -410,8 +437,8 @@ export default function TranslationDetailsPage({ params }: { params: Promise<{ i
                                 </div>
                             </section>
 
-                            {/* Internal Notes */}
-                            {translation.internal_notes && (
+                             {/* Internal Notes */}
+                            {translation.internal_note && (
                                 <section className="space-y-6">
                                     <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
                                         <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Observaciones Internas</h3>
@@ -419,7 +446,7 @@ export default function TranslationDetailsPage({ params }: { params: Promise<{ i
                                     <div className="space-y-2">
                                         <p className="text-[11px] text-slate-600 bg-amber-50/40 p-4 rounded-2xl border border-amber-100/30 italic flex gap-2">
                                             <Info className="h-3 w-3 shrink-0 mt-0.5 text-amber-500/60" />
-                                            {translation.internal_notes}
+                                            {translation.internal_note}
                                         </p>
                                     </div>
                                 </section>

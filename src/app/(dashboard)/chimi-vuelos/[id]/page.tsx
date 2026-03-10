@@ -4,22 +4,11 @@ import { useEffect, useState, use } from "react"
 import Link from "next/link"
 import { 
     ChevronLeft, 
-    Calendar, 
-    FileText, 
-    CreditCard,
-    Info,
-    CheckCircle2,
-    Clock,
-    Wallet,
     Download,
-    ClipboardList,
     AlertCircle,
-    UserCircle,
-    MapPin,
-    Hash,
-    User,
     Printer
 } from "lucide-react"
+import { LinkedResourceCard } from "@/components/LinkedResourceCard"
 import { FlightSalesNote } from "./FlightSalesNote"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -32,6 +21,7 @@ import {
     type DateHistoryEntry,
     type Flight
 } from "@/app/actions/manage-flights"
+import type { CorporateExpense } from "@/app/actions/manage-expenses"
 import { StatusHistory } from "@/components/StatusHistory"
 import { cn } from "@/lib/utils"
 import { OperationalFileTitle } from "@/components/OperationalFileTitle"
@@ -71,7 +61,7 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
     useEffect(() => {
         getFlightFullDetails(id).then(res => {
             if (res.success) {
-                setFlight(res.flight)
+                setFlight(res.flight || null)
             }
             setLoading(false)
         })
@@ -194,7 +184,6 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
                             {/* 1. Trip Information Detail */}
                             <section className="space-y-8">
                                 <div className="flex items-center gap-3">
-                                    <MapPin className="h-5 w-5 text-blue-500" />
                                     <h3 className="text-xs font-black uppercase text-slate-800 tracking-widest">Información del Viaje</h3>
                                 </div>
 
@@ -209,15 +198,13 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
                                     </div>
                                     <div className="space-y-1.5">
                                         <span className="text-[10px] uppercase font-bold text-slate-400">Fecha Salida</span>
-                                        <p className="text-base font-medium text-slate-700 flex items-center gap-2">
-                                            <Calendar className="h-4 w-4 text-emerald-500" />
+                                        <p className="text-base font-medium text-slate-700">
                                             {flight.travel_date ? new Date(flight.travel_date).toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' }) : '---'}
                                         </p>
                                     </div>
                                     <div className="space-y-1.5">
                                         <span className="text-[10px] uppercase font-bold text-slate-400">Fecha Retorno</span>
-                                        <p className="text-base font-medium text-slate-700 flex items-center gap-2">
-                                            <Calendar className="h-4 w-4 text-rose-500" />
+                                        <p className="text-base font-medium text-slate-700">
                                             {flight.return_date ? new Date(flight.return_date).toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' }) : 'Solo ida'}
                                         </p>
                                     </div>
@@ -242,6 +229,40 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
                                         <span className="text-sm font-bold text-slate-600">{flight.pax_inf || 0}</span>
                                     </div>
                                 </div>
+
+                                 {/* Linked Services Section */}
+                                        {flight.linked_other_services && flight.linked_other_services.length > 0 && (
+                                    <div className="pt-6 border-t border-slate-100/50">
+                                        <span className="text-[10px] uppercase font-black text-slate-400 block mb-3 tracking-widest">Servicios Adicionales Vinculados</span>
+                                        <div className="flex flex-wrap gap-3">
+                                            {flight.linked_other_services.map((svc: { id: string; service_type: string; service_type_other: string; tracking_code: string }) => (
+                                                <LinkedResourceCard
+                                                    key={svc.id}
+                                                    href={`/chimi-otros-servicios/${svc.id}`}
+                                                    title={svc.service_type === "Otros servicios" ? svc.service_type_other : svc.service_type}
+                                                    subtitle={svc.tracking_code}
+                                                    variant="pink"
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                                {flight.linked_expenses && flight.linked_expenses.length > 0 && (
+                                    <div className="pt-6 border-t border-slate-100/50">
+                                        <span className="text-[10px] uppercase font-black text-slate-400 block mb-3 tracking-widest">Gastos Operativos Vinculados</span>
+                                        <div className="flex flex-wrap gap-3">
+                                            {flight.linked_expenses.map((expense: CorporateExpense) => (
+                                                <LinkedResourceCard
+                                                    key={expense.id}
+                                                    href={`/chimi-gastos/${expense.id}`}
+                                                    title={`${expense.category} - ${expense.sub_category}`}
+                                                    subtitle={`${expense.currency === 'EUR' ? '€' : 'S/'} ${expense.original_amount.toFixed(2)}`}
+                                                    variant="sky"
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </section>
 
                             <div className="pt-4 border-t border-slate-50" />
@@ -250,7 +271,6 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
                                 <section className="space-y-6">
                                     <div className="flex items-center gap-3">
-                                        <ClipboardList className="h-4 w-4 text-emerald-500" />
                                         <h3 className="text-[11px] font-black uppercase text-slate-800 tracking-widest">Servicios Incluidos</h3>
                                     </div>
                                     <div className="space-y-2">
@@ -258,8 +278,8 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
                                             Object.entries(flight.details).map(([key, value]) => {
                                                 if (!value || !DETAILS_LABELS[key]) return null
                                                 return (
-                                                    <div key={key} className="flex items-center gap-3 text-xs text-slate-600 bg-slate-50/50 px-3 py-2 rounded-xl transition-all hover:bg-slate-50 border border-transparent hover:border-slate-100">
-                                                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                                                    <div key={key} className="flex items-center gap-2 text-xs text-slate-600 bg-slate-50/50 px-3 py-2 rounded-xl border border-slate-100/50">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
                                                         {DETAILS_LABELS[key]}
                                                     </div>
                                                 )
@@ -270,38 +290,39 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
                                     </div>
                                 </section>
 
-                                <section className="space-y-6">
-                                    <div className="flex items-center gap-3">
-                                        <UserCircle className="h-4 w-4 text-chimipink" />
-                                        <h3 className="text-[11px] font-black uppercase text-slate-800 tracking-widest">Requisitos de Menor</h3>
-                                    </div>
-                                    <div className="space-y-3">
-                                        {flight.required_documents && Object.keys(flight.required_documents).length > 0 ? (
-                                            Object.entries(flight.required_documents).map(([name, data]) => {
-                                                if (!data.required && data.status === 'no') return null
-                                                return (
-                                                    <div key={name} className="flex items-center justify-between text-xs bg-slate-50/50 px-3 py-2.5 rounded-xl border border-slate-100/50">
-                                                        <span className="text-slate-600 font-medium">{name}</span>
-                                                        <Badge className={cn(
-                                                            "text-[9px] font-bold py-0 h-5 px-3 rounded-full",
-                                                            data.status === 'si' ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"
-                                                        )}>
-                                                            {data.status === 'si' ? 'SÍ' : data.status === 'na' ? 'N/A' : 'NO'}
-                                                        </Badge>
-                                                    </div>
-                                                )
-                                            })
-                                        ) : (
-                                            <p className="text-xs text-slate-400 italic py-4">Sin registro de requisitos especiales.</p>
-                                        )}
-                                        {flight.minor_travel_with && (
-                                            <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 mt-2">
-                                                <span className="text-[9px] uppercase font-black text-blue-400 block mb-1">Viaja acompañado por</span>
-                                                <p className="text-xs font-bold text-blue-700">{flight.minor_travel_with}</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </section>
+                                {((flight.pax_chd || 0) > 0 || (flight.pax_inf || 0) > 0) && (
+                                    <section className="space-y-6">
+                                        <div className="flex items-center gap-3">
+                                            <h3 className="text-[11px] font-black uppercase text-slate-800 tracking-widest">Requisitos de Menor</h3>
+                                        </div>
+                                        <div className="space-y-3">
+                                            {flight.required_documents && Object.keys(flight.required_documents).length > 0 ? (
+                                                Object.entries(flight.required_documents).map(([name, data]) => {
+                                                    if (!data.required && data.status === 'no') return null
+                                                    return (
+                                                        <div key={name} className="flex items-center justify-between text-xs bg-slate-50/50 px-3 py-2.5 rounded-xl border border-slate-100/50">
+                                                            <span className="text-slate-600 font-medium">{name}</span>
+                                                            <Badge className={cn(
+                                                                "text-[9px] font-bold py-0 h-5 px-3 rounded-full",
+                                                                data.status === 'si' ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"
+                                                            )}>
+                                                                {data.status === 'si' ? 'SÍ' : data.status === 'na' ? 'N/A' : 'NO'}
+                                                            </Badge>
+                                                        </div>
+                                                    )
+                                                })
+                                            ) : (
+                                                <p className="text-xs text-slate-400 italic py-4">Sin registro de requisitos especiales.</p>
+                                            )}
+                                            {flight.minor_travel_with && (
+                                                <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 mt-2">
+                                                    <span className="text-[9px] uppercase font-black text-blue-400 block mb-1">Viaja acompañado por</span>
+                                                    <p className="text-xs font-bold text-blue-700">{flight.minor_travel_with}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </section>
+                                )}
                             </div>
 
                             <div className="pt-4 border-t border-slate-50" />
@@ -310,7 +331,6 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
                             <section className="space-y-8">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
-                                        <CreditCard className="h-5 w-5 text-emerald-500" />
                                         <h3 className="text-xs font-black uppercase text-slate-800 tracking-widest">Historial de Pagos</h3>
                                     </div>
                                 </div>
@@ -323,7 +343,7 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
                                                     <div className="absolute top-0 left-0 w-1 h-full bg-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                                                     <div className="flex justify-between items-center text-[10px] text-slate-400 font-black uppercase tracking-widest border-b border-slate-50 pb-3 mb-3">
                                                         <span>Transacción #{idx + 1}</span>
-                                                        <span className="flex items-center gap-1.5"><Calendar className="h-3 w-3" /> {payment.created_at ? new Date(payment.created_at).toLocaleDateString() : 'N/D'}</span>
+                                                        <span className="flex items-center gap-1.5">{payment.created_at ? new Date(payment.created_at).toLocaleDateString() : 'N/D'}</span>
                                                     </div>
                                                     <div className="flex justify-between items-end">
                                                         <div>
@@ -337,14 +357,12 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
                                                             <p className="text-[10px] text-slate-400 font-medium mt-1">{payment.moneda} {parseFloat(payment.monto_original || payment.cantidad).toFixed(2)}</p>
                                                         </div>
                                                     </div>
-                                                    {payment.proof_path && (
-                                                        <button 
+                                                                    <button 
                                                             onClick={() => handleDownload(payment.proof_path!, payment.proof_path!.startsWith('clients/') ? 'r2' : 'images')}
                                                             className="mt-4 w-full h-8 text-[10px] font-black text-chimiteal bg-teal-50/50 hover:bg-teal-50 rounded-xl flex items-center justify-center gap-2 border border-teal-100/30 tracking-widest"
                                                         >
-                                                            <Download className="h-3 w-3" /> VER COMPROBANTE
+                                                            VER COMPROBANTE
                                                         </button>
-                                                    )}
                                                 </div>
                                             ))}
                                         </div>
@@ -382,7 +400,6 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
                             {/* Technical Details - Integrated Sidebar */}
                             <section className="space-y-6">
                                 <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
-                                    <Info className="h-4 w-4 text-chimicyan" />
                                     <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Datos Técnicos</h3>
                                 </div>
                                 <div className="space-y-5">
@@ -392,8 +409,7 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
                                     </div>
                                     <div className="space-y-1">
                                         <span className="text-[9px] uppercase font-black text-slate-400 tracking-wider block">Agente a Cargo</span>
-                                        <p className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                                            <User className="h-3 w-3 text-slate-400" />
+                                        <p className="text-sm font-bold text-slate-700">
                                             {flight.agent ? `${flight.agent.first_name} ${flight.agent.last_name}` : 'Admin'}
                                         </p>
                                     </div>
@@ -407,7 +423,6 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
                             {/* Financial Summary - Integrated Sidebar */}
                             <section className="space-y-6">
                                 <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
-                                    <Wallet className="h-4 w-4 text-chimipink" />
                                     <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Resumen Financiero</h3>
                                 </div>
                                 <Card className="border-none shadow-none bg-white/50 p-5 rounded-2xl space-y-4">
@@ -439,7 +454,6 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
                             {/* Attachments - Integrated Sidebar */}
                             <section className="space-y-6">
                                 <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
-                                    <Hash className="h-4 w-4 text-chimicyan" />
                                     <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Archivos / Documentos</h3>
                                 </div>
                                 <div className="space-y-3">
@@ -447,8 +461,8 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
                                         flight.documents.map((doc: FlightDocument, i: number) => (
                                             <div key={i} className="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-2xl hover:border-chimicyan/50 transition-colors group">
                                                 <div className="flex items-center gap-3 min-w-0">
-                                                    <div className="h-8 w-8 rounded-lg bg-slate-50 flex items-center justify-center shrink-0">
-                                                        <FileText className="h-4 w-4 text-slate-400 group-hover:text-chimicyan transition-colors" />
+                                                    <div className="h-8 w-8 rounded-lg bg-slate-50 flex items-center justify-center shrink-0 text-slate-400 font-bold text-[10px]">
+                                                        DOC
                                                     </div>
                                                     <div className="min-w-0">
                                                         <p className="text-xs font-bold text-slate-700 truncate">{doc.title}</p>
@@ -475,7 +489,6 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
                             {(flight.client_note || flight.internal_note) && (
                                 <section className="space-y-6">
                                     <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
-                                        <AlertCircle className="h-4 w-4 text-amber-500" />
                                         <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Observaciones</h3>
                                     </div>
                                     <div className="space-y-4">
@@ -499,7 +512,6 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
                             {flight.flight_date_history && flight.flight_date_history.length > 0 && (
                                 <section className="space-y-6">
                                     <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
-                                        <Clock className="h-4 w-4 text-amber-500" />
                                         <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Trazabilidad</h3>
                                     </div>
                                     <div className="space-y-5 relative before:absolute before:inset-0 before:left-2.5 before:w-0.5 before:bg-slate-100 pl-8">

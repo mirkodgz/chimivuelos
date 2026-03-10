@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import Image from "next/image"
+import Link from "next/link"
 import { 
     X, 
     Receipt, 
@@ -19,7 +20,8 @@ import {
     Pencil,
     ClipboardList,
     Paperclip,
-    Users
+    Users,
+    Eye
 } from 'lucide-react'
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -428,13 +430,12 @@ export default function GastosPage() {
                                 <th className="p-4">FECHA</th>
                                 <th className="p-4 text-nowrap">CATEGORÍA</th>
                                 <th className="p-4 text-nowrap">MOTIVO</th>
-                                <th className="p-4">DESCRIPCIÓN</th>
+                                <th className="p-4 text-nowrap">AGENTE</th>
                                 <th className="p-4 text-nowrap">BENEFICIARIO</th>
-                                <th className="p-4 text-nowrap">VINCULACIÓN</th>
                                 <th className="p-4 text-nowrap">MONTO (€)</th>
                                 <th className="p-4 text-nowrap">SEDE</th>
                                 <th className="p-4 text-nowrap">MÉTODO</th>
-                                <th className="p-4 text-right sticky right-0 bg-slate-50/90 backdrop-blur-sm z-10 border-l border-slate-100 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.15)] text-[9px]">ACCIONES</th>
+                                <th className="px-2 py-4 text-right sticky right-0 bg-slate-50/90 backdrop-blur-sm z-10 border-l border-slate-100 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.15)] text-[9px]">ACCIONES</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -460,35 +461,25 @@ export default function GastosPage() {
                                         <td className="p-4 py-3 text-nowrap">
                                             <span className="text-[10px] text-chimipink font-bold uppercase tracking-tight">{item.sub_category || '--'}</span>
                                         </td>
-                                        <td className="p-4 py-3">
-                                            <span className="font-bold text-slate-700 line-clamp-1 max-w-[200px]">{item.description}</span>
+                                        <td className="p-4 py-3 text-nowrap">
+                                            {item.agent ? (
+                                                <span className="text-xs font-bold text-slate-700 leading-tight">
+                                                    {item.agent.first_name} {item.agent.last_name}
+                                                </span>
+                                            ) : (
+                                                <span className="text-[10px] text-slate-300 italic">--</span>
+                                            )}
                                         </td>
-                                        <td className="p-4 py-3">
+                                        <td className="p-4 py-3 text-nowrap">
                                             {item.recipient_agent ? (
-                                                <span className="text-xs font-bold text-slate-700 uppercase">
+                                                <span className="text-xs font-bold text-chimipink leading-tight">
                                                     {item.recipient_agent.first_name} {item.recipient_agent.last_name}
                                                 </span>
                                             ) : (
                                                 <span className="text-[10px] text-slate-300 italic">--</span>
                                             )}
                                         </td>
-                                        <td className="p-4 py-3">
-                                            {item.connected_record_id || item.reference_number ? (
-                                                <div className="flex flex-col gap-1">
-                                                    <div className="flex items-center gap-1.5 px-2 py-1 bg-cyan-50 border border-cyan-100 rounded-md w-fit">
-                                                        <span className="text-[9px] font-bold text-chimicyan uppercase tracking-widest">
-                                                            {item.connected_service}: {item.reference_number || (item.connected_record_id && item.connected_record_id.length > 8 ? item.connected_record_id.slice(0, 8) : item.connected_record_id)}
-                                                        </span>
-                                                    </div>
-                                                    {item.linked_client_name && (
-                                                        <span className="text-[10px] text-slate-400 font-medium italic truncate max-w-[150px]">
-                                                            {item.linked_client_name}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            ) : <span className="text-[10px] text-slate-300 italic uppercase tracking-tighter">Libre</span>}
-                                        </td>
-                                        <td className="p-4 py-3 text-nowrap">
+                                         <td className="p-4 py-3 text-nowrap">
                                             <span className="font-bold text-slate-800">€ {item.amount_eur.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</span>
                                         </td>
                                         <td className="p-4 py-3 text-nowrap">
@@ -499,8 +490,18 @@ export default function GastosPage() {
                                         <td className="p-4 py-3 text-nowrap">
                                             <span className="text-[10px] text-slate-400 font-bold uppercase italic">{item.metodo_it || item.metodo_pe || 'Efectivo'}</span>
                                         </td>
-                                        <td className="p-4 py-3 text-right sticky right-0 bg-pink-50/90 backdrop-blur-sm group-hover:bg-pink-100 z-10 border-l border-pink-100 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.15)] transition-colors">
-                                            <div className="flex items-center justify-end gap-2">
+                                        <td className="px-2 py-3 text-right sticky right-0 bg-pink-50/90 backdrop-blur-sm group-hover:bg-pink-100 z-10 border-l border-pink-100 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.15)] transition-colors">
+                                            <div className="flex items-center justify-end gap-1">
+                                                <Link href={`/chimi-gastos/${item.id}`}>
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="sm" 
+                                                        className="text-slate-400 hover:text-slate-600 hover:bg-slate-50 h-8 w-8 p-0"
+                                                    >
+                                                        <Eye className="h-4 w-4" />
+                                                    </Button>
+                                                </Link>
+
                                                 <Button 
                                                     variant="ghost" 
                                                     size="sm" 

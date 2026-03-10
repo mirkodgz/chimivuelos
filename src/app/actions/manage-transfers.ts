@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache"
 import { uploadClientFile, deleteFileFromR2, deleteImageFromCloudflare, getFileUrl } from "@/lib/storage"
 import { getActivePermissionDetails, consumeEditPermission } from "./manage-permissions"
 import { recordAuditLog } from "@/lib/audit"
+import type { CorporateExpense } from "./manage-expenses"
 
 /**
  * Interface for Transfer Document
@@ -79,6 +80,7 @@ export interface MoneyTransfer {
         first_name: string
         last_name: string
     }
+    linked_expenses?: CorporateExpense[]
 }
 
 
@@ -761,7 +763,16 @@ export async function getTransferFullDetails(id: string) {
             }
         }
 
-        return { success: true, transfer }
+        // Fetch linked expenses
+        const { data: linkedExpenses } = await supabase
+            .from('corporate_expenses')
+            .select('*')
+            .eq('connected_record_id', id)
+            .order('expense_date', { ascending: false })
+        
+        ; (transfer as MoneyTransfer).linked_expenses = (linkedExpenses || []) as CorporateExpense[]
+
+        return { success: true, transfer: transfer as MoneyTransfer }
     } catch (error) {
         console.error('Error fetching transfer details:', error)
         return { success: false, error: (error as Error).message }

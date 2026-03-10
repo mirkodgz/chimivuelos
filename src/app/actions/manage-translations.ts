@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from "@/lib/supabase/server"
 import { getActivePermissionDetails, consumeEditPermission } from "./manage-permissions"
 import { recordAuditLog } from "@/lib/audit"
+import type { CorporateExpense } from "./manage-expenses"
 
 export interface TranslationDocument {
     title: string
@@ -42,20 +43,13 @@ export interface Translation {
     work_types_other?: string
     source_language: string
     target_language: string
-    quantity: number
-    notes?: string
-    internal_notes?: string
-    recipient_name?: string
-    recipient_phone?: string
-    origin_address?: string
-    origin_address_client?: string
-    destination_address?: string
-    destination_address_client?: string
-    net_amount: number
+    delivery_date: string
+    status: 'pending' | 'in_process' | 'completed' | 'delivered' | 'cancelled'
     total_amount: number
     on_account: number
     balance: number
-    status: 'pending' | 'in_process' | 'completed' | 'cancelled'
+    client_note?: string
+    internal_note?: string
     documents?: TranslationDocument[]
     payment_details?: PaymentDetail[]
     agent_id?: string
@@ -70,6 +64,7 @@ export interface Translation {
         first_name: string
         last_name: string
     }
+    linked_expenses?: CorporateExpense[]
 }
 
 export async function getTranslations() {
@@ -78,10 +73,6 @@ export async function getTranslations() {
         .from('translations')
         .select(`
             *,
-            origin_address,
-            origin_address_client,
-            destination_address,
-            destination_address_client,
             profiles:client_id (
                 first_name,
                 last_name,
@@ -117,41 +108,27 @@ export async function getTranslations() {
 
 export async function createTranslation(formData: FormData) {
     const supabase = supabaseAdmin
-    const { data: { user } } = await createClient().then(c => c.auth.getUser())
     
     // 1. Core Data
     const client_id = formData.get('client_id') as string
-    const tracking_code = formData.get('tracking_code') as string || `TRAD-${Date.now().toString().slice(-4)}`
-    
-    // 2. Types & Services
     const document_types = JSON.parse(formData.get('document_types') as string || '[]')
     const document_types_other = formData.get('document_types_other') as string
     const work_types = JSON.parse(formData.get('work_types') as string || '[]')
     const work_types_other = formData.get('work_types_other') as string
     const source_language = formData.get('source_language') as string
     const target_language = formData.get('target_language') as string
-    const notes = formData.get('notes') as string
-    const internal_notes = formData.get('internal_notes') as string
-    const recipient_name = formData.get('recipient_name') as string
-    const recipient_phone = formData.get('recipient_phone') as string
+    const delivery_date = formData.get('delivery_date') as string
+    const client_note = formData.get('client_note') as string
+    const internal_note = formData.get('internal_note') as string
     
-    const quantity = parseInt(formData.get('quantity') as string) || 1
-    
-    // 3. Addresses
-    const origin_address = formData.get('origin_address') as string
-    const origin_address_client = formData.get('origin_address_client') as string
-    const destination_address = formData.get('destination_address') as string
-    const destination_address_client = formData.get('destination_address_client') as string
-    
-    // 4. Economics
-    const net_amount = parseFloat(formData.get('net_amount') as string) || 0
-    const total_amount = parseFloat(formData.get('total_amount') as string) || 0
-    const on_account = parseFloat(formData.get('on_account') as string) || 0
-    
-    // 5. Multi-Payments & Proofs
+    // 2. Economics
+    const total_amount = parseFloat(String(formData.get('total_amount')).replace(',', '.')) || 0
+    const on_account = parseFloat(String(formData.get('on_account')).replace(',', '.')) || 0
+    const balance = total_amount - on_account
+
     const paymentDetailsRaw = formData.get('payment_details') as string
     const payment_details = paymentDetailsRaw ? JSON.parse(paymentDetailsRaw) : []
-
+    
     for (let i = 0; i < payment_details.length; i++) {
         const file = formData.get(`payment_proof_${i}`) as File
         if (file && file.size > 0) {
@@ -162,11 +139,12 @@ export async function createTranslation(formData: FormData) {
     }
 
     const status = formData.get('status') as string || 'pending'
+    const tracking_code = formData.get('tracking_code') as string || `TRAD-${Date.now().toString().slice(-4)}`
 
-    // 6. File Upload Logic
+    // 3. File Uploads
     const documents = []
     let index = 0
-    while (formData.has(`document_file_${index}`)) {
+    while (formData.has(`document_title_${index}`)) {
         const title = formData.get(`document_title_${index}`) as string
         const file = formData.get(`document_file_${index}`) as File
         
@@ -188,51 +166,38 @@ export async function createTranslation(formData: FormData) {
         index++
     }
 
+    const { data: { user } } = await createClient().then(c => c.auth.getUser())
+
     const insertData = {
         client_id,
-        tracking_code,
         agent_id: user?.id,
         document_types,
         document_types_other,
-        quantity,
-        documents,
         work_types,
         work_types_other,
         source_language,
         target_language,
-        notes,
-        internal_notes,
-        recipient_name,
-        recipient_phone,
-        origin_address,
-        origin_address_client,
-        destination_address,
-        destination_address_client,
-        net_amount,
+        delivery_date,
         total_amount,
         on_account,
-        balance: total_amount - on_account,
-        payment_details,
-        status
+        balance,
+        status,
+        tracking_code,
+        client_note,
+        internal_note,
+        documents,
+        payment_details
     }
 
-    const { data: inserted, error } = await supabase
-        .from('translations')
-        .insert(insertData)
-        .select('id')
-        .single()
+    const { error } = await supabase.from('translations').insert(insertData)
+    if (error) return { error: error.message }
 
-    if (error) {
-        return { error: error.message }
-    }
-
-    // Record Audit Log
-    if (user && inserted) {
+    if (user) {
         await recordAuditLog({
             actorId: user.id,
             action: 'create',
             resourceType: 'translations',
-            resourceId: inserted.id,
+            resourceId: tracking_code || 'new',
             newValues: insertData as unknown as Record<string, unknown>,
             metadata: { 
                 method: 'createTranslation',
@@ -257,16 +222,14 @@ export async function updateTranslation(formData: FormData) {
         const { data: profile } = await adminSupabase.from('profiles').select('role').eq('id', user.id).single()
         const userRole = profile?.role || 'client'
 
-        let activeRequestId = 'admin_direct';
-        let activeReason = 'Edición Directa';
+        let activeRequestId = 'admin_direct'
+        let activeReason = 'Edición Directa'
         const isDraft = formData.get('isDraft') === 'true'
 
         if (userRole === 'agent' || userRole === 'usuario') {
             if (!isDraft) {
                 const permission = await getActivePermissionDetails('translations', id)
-                if (!permission.hasPermission) {
-                    throw new Error('No tienes permiso para editar esta traducción. Debes solicitar autorización.')
-                }
+                if (!permission.hasPermission) throw new Error('No tienes permiso para editar esta traducción.')
                 activeRequestId = permission.requestId as string
                 activeReason = permission.reason as string
                 await consumeEditPermission('translations', id)
@@ -278,44 +241,31 @@ export async function updateTranslation(formData: FormData) {
             const permission = await getActivePermissionDetails('translations', id)
             activeRequestId = permission.requestId as string
             activeReason = permission.reason as string
-        } else {
-            throw new Error('Acceso denegado')
         }
 
-        const { data: existing } = await adminSupabase
-            .from('translations')
-            .select('*')
-            .eq('id', id)
-            .single()
+        const { data: existing } = await adminSupabase.from('translations').select('*').eq('id', id).single()
+        if (!existing) throw new Error('Translation not found')
 
-        if (!existing) throw new Error('Traducción no encontrada')
+        const oldValues = JSON.parse(JSON.stringify(existing))
+        const currentDocs = existing.documents || []
 
-        // Process Data
         const document_types = JSON.parse(formData.get('document_types') as string || '[]')
         const document_types_other = formData.get('document_types_other') as string
         const work_types = JSON.parse(formData.get('work_types') as string || '[]')
         const work_types_other = formData.get('work_types_other') as string
         const source_language = formData.get('source_language') as string
         const target_language = formData.get('target_language') as string
-        const notes = formData.get('notes') as string
-        const internal_notes = formData.get('internal_notes') as string
-        const recipient_name = formData.get('recipient_name') as string
-        const recipient_phone = formData.get('recipient_phone') as string
-        const quantity = parseInt(formData.get('quantity') as string) || 1
+        const delivery_date = formData.get('delivery_date') as string
+        const client_note = formData.get('client_note') as string
+        const internal_note = formData.get('internal_note') as string
         
-        const origin_address = formData.get('origin_address') as string
-        const origin_address_client = formData.get('origin_address_client') as string
-        const destination_address = formData.get('destination_address') as string
-        const destination_address_client = formData.get('destination_address_client') as string
-        
-        const net_amount = parseFloat(formData.get('net_amount') as string) || 0
-        const total_amount = parseFloat(formData.get('total_amount') as string) || 0
-        const on_account = parseFloat(formData.get('on_account') as string) || 0
+        const total_amount = parseFloat(String(formData.get('total_amount')).replace(',', '.')) || 0
+        const on_account = parseFloat(String(formData.get('on_account')).replace(',', '.')) || 0
         const status = formData.get('status') as string
 
         const paymentDetailsRaw = formData.get('payment_details') as string
         const payment_details = paymentDetailsRaw ? JSON.parse(paymentDetailsRaw) : []
-
+        
         for (let i = 0; i < payment_details.length; i++) {
             const file = formData.get(`payment_proof_${i}`) as File
             if (file && file.size > 0) {
@@ -325,19 +275,15 @@ export async function updateTranslation(formData: FormData) {
             }
         }
 
-        // Handle new documents
-        const newDocuments = [...(existing.documents || [])]
         let index = 0
-        while (formData.has(`document_file_${index}`)) {
+        while (formData.has(`document_title_${index}`)) {
             const title = formData.get(`document_title_${index}`) as string
             const file = formData.get(`document_file_${index}`) as File
-            
             if (file && file.size > 0) {
                 const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
-                const path = `translations/${existing.client_id}/${Date.now()}_${safeName}`
+                const path = `translations/updates/${Date.now()}_${safeName}`
                 await uploadFileToR2(file, path)
-                
-                newDocuments.push({
+                currentDocs.push({
                     title: title || file.name,
                     path: path,
                     name: file.name,
@@ -357,34 +303,20 @@ export async function updateTranslation(formData: FormData) {
             work_types_other,
             source_language,
             target_language,
-            notes,
-            recipient_name,
-            recipient_phone,
-            quantity,
-            documents: newDocuments,
-            origin_address,
-            origin_address_client,
-            destination_address,
-            destination_address_client,
-            net_amount,
+            delivery_date,
             total_amount,
             on_account,
             balance: total_amount - on_account,
-            payment_details,
-            internal_notes,
-            status
+            status,
+            client_note,
+            internal_note,
+            documents: currentDocs,
+            payment_details
         }
 
-        // --- NEW DRAFT MODE ---
-        if (isDraft) {
-            return { success: true, draftData: updateData }
-        }
+        if (isDraft) return { success: true, draftData: updateData }
 
-        const { error } = await adminSupabase
-            .from('translations')
-            .update(updateData)
-            .eq('id', id)
-
+        const { error } = await adminSupabase.from('translations').update(updateData).eq('id', id)
         if (error) throw error
 
         await recordAuditLog({
@@ -392,20 +324,21 @@ export async function updateTranslation(formData: FormData) {
             action: 'update',
             resourceType: 'translations',
             resourceId: id,
-            oldValues: existing,
-            newValues: { ...existing, ...updateData },
+            oldValues: oldValues,
+            newValues: updateData,
             metadata: { 
+                method: 'updateTranslation',
+                displayId: existing?.tracking_code || undefined,
                 requestId: activeRequestId,
-                reason: activeReason,
-                displayId: existing.tracking_code || 'Traducción'
+                reason: activeReason
             }
         })
 
         revalidatePath('/chimi-traducciones')
         return { success: true }
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Error updating translation:', error)
-        return { error: (error as Error).message }
+        return { error: error instanceof Error ? error.message : 'Error al actualizar traducción' }
     }
 }
 
@@ -415,30 +348,30 @@ export async function deleteTranslation(id: string) {
     try {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) throw new Error('Unauthorized')
-
         const { data: profile } = await adminSupabase.from('profiles').select('role').eq('id', user.id).single()
-        if (profile?.role !== 'admin' && profile?.role !== 'supervisor') throw new Error('Se requieren permisos de administrador o supervisor')
-
-        const { data: existing } = await adminSupabase.from('translations').select('*').eq('id', id).single()
-        if (!existing) throw new Error('Traducción no encontrada')
-
+        if (profile?.role !== 'admin' && profile?.role !== 'supervisor') {
+            throw new Error('Solo los administradores o supervisores pueden eliminar traducciones.')
+        }
+        const { data: translation } = await adminSupabase.from('translations').select('*').eq('id', id).single()
+        if (!translation) throw new Error('Traducción no encontrada')
         const { error } = await adminSupabase.from('translations').delete().eq('id', id)
         if (error) throw error
-
         await recordAuditLog({
             actorId: user.id,
             action: 'delete',
             resourceType: 'translations',
             resourceId: id,
-            oldValues: existing,
-            metadata: { displayId: existing.tracking_code || id }
+            oldValues: translation,
+            metadata: { 
+                method: 'deleteTranslation',
+                displayId: translation?.tracking_code || undefined
+            }
         })
-
         revalidatePath('/chimi-traducciones')
         return { success: true }
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Error deleting translation:', error)
-        return { error: (error as Error).message }
+        return { error: error instanceof Error ? error.message : 'Error al eliminar traducción' }
     }
 }
 
@@ -448,81 +381,57 @@ export async function updateTranslationStatus(id: string, status: string) {
     try {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) throw new Error('Unauthorized')
-
         const { data: profile } = await adminSupabase.from('profiles').select('role').eq('id', user.id).single()
         const userRole = profile?.role || 'client'
-
         let activeRequestId = 'admin_direct';
         let activeReason = 'Actualización de Estado Rápida';
-
         if (userRole === 'agent' || userRole === 'usuario') {
             const permission = await getActivePermissionDetails('translations', id)
             if (permission.hasPermission) {
                 activeRequestId = permission.requestId as string
                 activeReason = permission.reason as string
             } else {
-                throw new Error('No tienes permiso para editar esta traducción. Debes solicitar autorización.')
+                throw new Error('No tienes permiso para editar esta traducción.')
             }
         } else if (userRole === 'admin' || userRole === 'supervisor') {
             const permission = await getActivePermissionDetails('translations', id)
             activeRequestId = permission.requestId as string
             activeReason = permission.reason as string
         }
-
-        const { data: existing } = await adminSupabase.from('translations').select('*').eq('id', id).single()
-        if (!existing) throw new Error('Traducción no encontrada')
-
-        const { error } = await adminSupabase
-            .from('translations')
-            .update({ status })
-            .eq('id', id)
-
+        const { data: translationRecord } = await adminSupabase.from('translations').select('*').eq('id', id).single()
+        const { error } = await adminSupabase.from('translations').update({ status }).eq('id', id)
         if (error) throw error
-
         await recordAuditLog({
             actorId: user.id,
             action: 'update',
             resourceType: 'translations',
             resourceId: id,
-            oldValues: existing,
-            newValues: { ...existing, status },
+            oldValues: translationRecord,
+            newValues: { status },
             metadata: { 
                 method: 'updateTranslationStatus',
-                action: 'status_update', 
-                newStatus: status,
-                displayId: existing.tracking_code || 'Traducción',
+                displayId: translationRecord?.tracking_code || undefined,
                 requestId: activeRequestId,
                 reason: activeReason
             }
         })
-
         revalidatePath('/chimi-traducciones')
         return { success: true }
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Error updating status:', error)
-        return { error: (error as Error).message }
+        return { error: error instanceof Error ? error.message : 'Error al actualizar estado' }
     }
 }
 
-export async function deleteTranslationDocument(id: string, path: string) {
-    const adminSupabase = supabaseAdmin
-    try {
-        const { data: existing } = await adminSupabase.from('translations').select('documents').eq('id', id).single()
-        if (!existing) throw new Error('Traducción no encontrada')
-
-        const newDocs = (existing.documents as unknown as TranslationDocument[]).filter((d: TranslationDocument) => d.path !== path)
-
-        const { error } = await adminSupabase
-            .from('translations')
-            .update({ documents: newDocs })
-            .eq('id', id)
-
-        if (error) throw error
-        return { success: true }
-    } catch (error) {
-        console.error('Error deleting document:', error)
-        return { error: (error as Error).message }
-    }
+export async function deleteTranslationDocument(id: string, docPath: string) {
+    const supabase = supabaseAdmin
+    const { data: existing } = await supabase.from('translations').select('documents').eq('id', id).single()
+    if (!existing) return { error: 'Translation not found' }
+    const newDocs = existing.documents.filter((d: {path: string}) => d.path !== docPath)
+    const { error } = await supabase.from('translations').update({ documents: newDocs }).eq('id', id)
+    if (error) return { error: error.message }
+    revalidatePath('/chimi-traducciones')
+    return { success: true }
 }
 
 export async function getTranslationDocumentUrl(path: string, storage: StorageType = 'r2') {
@@ -530,14 +439,11 @@ export async function getTranslationDocumentUrl(path: string, storage: StorageTy
         const url = await getFileUrl(path, storage)
         return { url }
     } catch (error) {
-        console.error('Error generating translation URL:', error)
-        return { error: 'Failed to generate download URL' }
+        console.error('Error generating document URL:', error)
+        return { error: 'Failed' }
     }
 }
 
-/**
- * Get translation full details for the single page
- */
 export async function getTranslationFullDetails(id: string) {
     const supabase = supabaseAdmin
     try {
@@ -556,50 +462,53 @@ export async function getTranslationFullDetails(id: string) {
             .eq('id', id)
             .single()
 
-        if (error) {
+        if (error || !translation) {
             console.error('Error fetching translation:', error)
             return { success: false, error: 'Traducción no encontrada' }
         }
 
-        // Fetch agent details separately if agent_id exists
         if (translation.agent_id) {
             const { data: agentData } = await supabase
                 .from('profiles')
                 .select('first_name, last_name')
                 .eq('id', translation.agent_id)
                 .single()
-            
             if (agentData) {
-                (translation as unknown as Translation).agent = agentData
+                (translation as Translation).agent = agentData
             }
         }
 
-        return { success: true, translation: translation as unknown as Translation }
+        const { data: linkedExpenses } = await supabase
+            .from('corporate_expenses')
+            .select('*')
+            .eq('connected_record_id', id)
+            .order('expense_date', { ascending: false })
+        
+        ; (translation as Translation).linked_expenses = (linkedExpenses || []) as CorporateExpense[]
+
+        return { success: true, translation: translation as Translation }
     } catch (error) {
-        console.error('Error fetching translation details:', error)
+        console.error('Error in getTranslationFullDetails:', error)
         return { success: false, error: (error as Error).message }
     }
 }
 
-/**
- * Public Track Translation by Code
- */
 export async function getTranslationByCode(code: string) {
     const supabase = supabaseAdmin
-    
-    // Clean code
     const cleanCode = code.trim().toUpperCase()
-
     const { data, error } = await supabase
         .from('translations')
         .select(`
             id,
             created_at,
+            source_language,
+            target_language,
+            delivery_date,
             tracking_code,
+            status,
             total_amount,
             on_account,
             balance,
-            status,
             profiles:client_id (
                 first_name,
                 last_name
@@ -607,22 +516,22 @@ export async function getTranslationByCode(code: string) {
         `)
         .ilike('tracking_code', cleanCode)
         .single()
-    
-    if (error || !data) {
-        return { error: 'Trámite no encontrado' }
-    }
-
+    if (error || !data) return { error: 'Traducción no encontrada' }
+    const senderName = getSenderName(data.profiles)
     return {
         success: true,
         data: {
             id: data.id,
             created_at: data.created_at,
+            source_language: data.source_language,
+            target_language: data.target_language,
+            delivery_date: data.delivery_date,
+            sender_name: maskName(senderName),
             code: data.tracking_code,
+            status: data.status,
             total_amount: data.total_amount,
             on_account: data.on_account,
-            balance: data.balance,
-            status: data.status,
-            sender_name: maskName(getSenderName(data.profiles))
+            balance: data.balance
         }
     }
 }
@@ -631,18 +540,18 @@ function maskName(name: string) {
     if (!name) return '***'
     const parts = name.split(' ')
     return parts.map((part, index) => {
-        if (index === 0) return part // Show first name
-        return part.charAt(0) + '***' // Mask others
+        if (index === 0) return part
+        return part.charAt(0) + '***'
     }).join(' ')
 }
 
 function getSenderName(profiles: unknown) {
     if (!profiles) return '***'
-    const p = profiles as { first_name?: string; last_name?: string } | { first_name?: string; last_name?: string }[]
-    if (Array.isArray(p)) {
-        const profile = p[0]
+    if (Array.isArray(profiles)) {
+        const profile = profiles[0] as { first_name?: string; last_name?: string } | undefined
         return profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : '***'
     } else {
-        return `${p.first_name || ''} ${p.last_name || ''}`.trim() || '***'
+        const profile = profiles as { first_name?: string; last_name?: string }
+        return `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || '***'
     }
 }

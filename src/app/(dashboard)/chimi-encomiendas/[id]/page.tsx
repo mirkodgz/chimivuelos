@@ -13,32 +13,40 @@ import {
     Calendar,
     Printer
 } from "lucide-react"
+import { LinkedResourceCard } from "@/components/LinkedResourceCard"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { StatusHistory } from "@/components/StatusHistory"
 import { OperationalFileTitle } from "@/components/OperationalFileTitle"
-import { 
-    getParcelFullDetails, 
+import {
+    getParcelFullDetails,
     getParcelDocumentUrl,
     type Parcel,
     type ParcelDocument,
     type PaymentDetail
 } from "@/app/actions/manage-parcels"
+import type { CorporateExpense } from "@/app/actions/manage-expenses"
 import { cn } from "@/lib/utils"
 import { ParcelSalesNote } from "./ParcelSalesNote"
 
+// Extend Parcel type to include linked_expenses if not already part of the imported Parcel type
+// This is a common pattern when an action returns a more detailed version of a base type.
+type ParcelWithExpenses = Parcel & {
+    linked_expenses?: CorporateExpense[];
+}
+
 export default function ParcelDetailsPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params)
-    const [parcel, setParcel] = useState<Parcel | null>(null)
+    const [parcel, setParcel] = useState<ParcelWithExpenses | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [showSalesNote, setShowSalesNote] = useState(false)
 
     useEffect(() => {
         getParcelFullDetails(id).then(res => {
-            if (res.success && res.parcel) {
-                setParcel(res.parcel)
+            if (res.success) {
+                setParcel(res.parcel || null)
             } else {
                 setError(res.error || 'Encomienda no encontrada')
             }
@@ -96,7 +104,7 @@ export default function ParcelDetailsPage({ params }: { params: Promise<{ id: st
 
     return (
         <div className="max-w-7xl mx-auto space-y-6 py-6 px-4 animate-in fade-in duration-500">
-            
+
             {/* Top Navigation */}
             <Link href="/chimi-encomiendas">
                 <Button variant="ghost" className="gap-2 text-slate-400 hover:text-slate-800 px-0 transition-colors">
@@ -107,7 +115,7 @@ export default function ParcelDetailsPage({ params }: { params: Promise<{ id: st
 
             {/* Unified Main Container */}
             <Card className="border-slate-200 shadow-xl rounded-3xl overflow-hidden bg-white">
-                
+
                 {/* Header Section */}
                 <div className="bg-slate-50/50 p-6 md:p-8 border-b border-slate-100">
                     <OperationalFileTitle />
@@ -125,7 +133,7 @@ export default function ParcelDetailsPage({ params }: { params: Promise<{ id: st
                         </div>
 
                         <div className="flex items-center gap-6">
-                            <Button 
+                            <Button
                                 onClick={() => setShowSalesNote(true)}
                                 className="bg-slate-800 hover:bg-slate-900 text-white gap-2 font-bold px-5 h-11 rounded-xl shadow-lg shadow-slate-200 transition-all active:scale-95"
                             >
@@ -148,10 +156,10 @@ export default function ParcelDetailsPage({ params }: { params: Promise<{ id: st
 
                 <CardContent className="p-0">
                     <div className="grid grid-cols-1 lg:grid-cols-12">
-                        
+
                         {/* Main Body Column */}
                         <div className="lg:col-span-8 p-6 md:p-8 space-y-12 border-b lg:border-b-0 lg:border-r border-slate-100">
-                            
+
                             {/* 1. Recipient & Route Information */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                                 {/* Destination */}
@@ -258,7 +266,7 @@ export default function ParcelDetailsPage({ params }: { params: Promise<{ id: st
                                                     </div>
                                                 </div>
                                                 {payment.proof_path && (
-                                                    <button 
+                                                    <button
                                                         onClick={() => handleDownload(payment.proof_path!, 'r2')}
                                                         className="mt-3 w-full h-7 text-[9px] font-black text-chimiteal bg-teal-50/50 hover:bg-teal-50 rounded-lg flex items-center justify-center gap-2 border border-teal-100/30 tracking-widest"
                                                     >
@@ -269,6 +277,28 @@ export default function ParcelDetailsPage({ params }: { params: Promise<{ id: st
                                         ))
                                     ) : (
                                         <p className="text-xs text-slate-400 italic py-4 col-span-full">No hay pagos registrados para este envío.</p>
+                                    )}
+                                 </div>
+                            </section>
+
+                            {/* Linked Expenses History */}
+                            <section className="space-y-6">
+                                <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+                                    <h3 className="text-[11px] font-black uppercase text-slate-800 tracking-widest">Gastos Operativos Vinculados</h3>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {parcel.linked_expenses && parcel.linked_expenses.length > 0 ? (
+                                        parcel.linked_expenses.map((expense: CorporateExpense) => (
+                                            <LinkedResourceCard
+                                                key={expense.id}
+                                                href={`/chimi-gastos/${expense.id}`}
+                                                title={`${expense.category} - ${expense.sub_category}`}
+                                                subtitle={`${expense.currency === 'EUR' ? '€' : 'S/'} ${expense.original_amount.toFixed(2)}`}
+                                                variant="sky"
+                                            />
+                                        ))
+                                    ) : (
+                                        <p className="text-xs text-slate-400 italic py-4 col-span-full">No hay gastos vinculados a este envío.</p>
                                     )}
                                 </div>
                             </section>
