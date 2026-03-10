@@ -1704,7 +1704,7 @@ export default function MoneyTransfersPage() {
                 <CardContent className="p-0">
                     <div className="w-full overflow-auto">
                         <table className="w-full text-sm text-left">
-                            <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-100">
+                            <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-100 whitespace-nowrap">
                                 <tr>
                                     <th className="px-6 py-4 font-medium">Fecha</th>
                                     <th className="px-6 py-4 font-medium">Código</th>
@@ -1764,7 +1764,7 @@ export default function MoneyTransfersPage() {
                                                     )}
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="font-medium text-slate-900">{transfer.profiles?.first_name} {transfer.profiles?.last_name}</div>
                                                 <div className="text-xs text-slate-500">{transfer.profiles?.email}</div>
                                             </td>
@@ -1773,10 +1773,10 @@ export default function MoneyTransfersPage() {
                                                     {transfer.agent ? `${transfer.agent.first_name} ${transfer.agent.last_name}` : '-'}
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-6 py-4 whitespace-nowrap">
                                                 <button 
                                                     onClick={() => setViewingBeneficiary(transfer)}
-                                                    className="font-medium text-chimiteal hover:underline text-left"
+                                                    className="font-medium text-chimiteal hover:underline text-left block"
                                                 >
                                                     {transfer.beneficiary_name}
                                                 </button>

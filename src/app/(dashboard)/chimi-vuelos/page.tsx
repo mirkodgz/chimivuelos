@@ -3085,32 +3085,32 @@ export default function FlightsPage() {
                     <div className="w-full overflow-auto">
                         <table className="w-full text-sm text-left">
                             <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-100">
-                                <tr>
-                                    <th className="px-6 py-4 font-medium">Fecha Registro</th>
-                                    <th className="px-6 py-4 font-medium">Fecha Viaje</th>
-                                    <th className="px-6 py-4 font-medium">PNR</th>
-                                    <th className="px-6 py-4 font-medium">Cliente</th>
-                                    {showDeudaOnly && <th className="px-6 py-4 font-medium">Teléfono</th>}
-                                    <th className="px-6 py-4 font-medium">Agente</th>
+                                <tr className="whitespace-nowrap">
+                                    <th className="px-6 py-4 font-medium text-left bg-slate-50">Fecha Registro</th>
+                                    <th className="px-6 py-4 font-medium text-left bg-slate-50">Fecha Viaje</th>
+                                    <th className="px-6 py-4 font-medium text-left bg-slate-50">PNR</th>
+                                    <th className="px-6 py-4 font-medium text-left bg-slate-50">Cliente</th>
+                                    {showDeudaOnly && <th className="px-6 py-4 font-medium text-left bg-slate-50">Teléfono</th>}
+                                    <th className="px-6 py-4 font-medium text-left bg-slate-50">Agente</th>
                                     {!showDeudaOnly && (
                                         <>
-                                            <th className="px-6 py-4 font-medium">Itinerario</th>
-                                            <th className="px-6 py-4 font-medium">Tipo Pasaje</th>
-                                            <th className="px-6 py-4 font-medium">IATA / GDS</th>
-                                            <th className="px-6 py-4 font-medium text-center">PAX</th>
-                                            <th className="px-6 py-4 font-medium text-center">Incluye</th>
-                                            <th className="px-6 py-4 font-medium">Neto</th>
+                                            <th className="px-6 py-4 font-medium text-left bg-slate-50">Itinerario</th>
+                                            <th className="px-6 py-4 font-medium text-left bg-slate-50">Tipo Pasaje</th>
+                                            <th className="px-6 py-4 font-medium text-left bg-slate-50">IATA / GDS</th>
+                                            <th className="px-6 py-4 font-medium text-center bg-slate-50">PAX</th>
+                                            <th className="px-6 py-4 font-medium text-center bg-slate-50">Incluye</th>
+                                            <th className="px-6 py-4 font-medium text-left bg-slate-50">Neto</th>
                                         </>
                                     )}
-                                    <th className="px-6 py-4 font-medium">Vendido</th>
-                                    {!showDeudaOnly && <th className="px-6 py-4 font-medium">Fee AGV</th>}
-                                    <th className="px-6 py-4 font-medium">A Cuenta</th>
-                                    <th className="px-6 py-4 font-medium">Saldo</th>
+                                    <th className="px-6 py-4 font-medium text-left bg-slate-50">Vendido</th>
+                                    {!showDeudaOnly && <th className="px-6 py-4 font-medium text-left bg-slate-50">Fee AGV</th>}
+                                    <th className="px-6 py-4 font-medium text-left bg-slate-50">A Cuenta</th>
+                                    <th className="px-6 py-4 font-medium text-left bg-slate-50">Saldo</th>
                                     {!showDeudaOnly && (
                                         <>
-                                            <th className="px-6 py-4 font-medium">Pago</th>
-                                            <th className="px-6 py-4 font-medium text-center">Docs</th>
-                                            <th className="px-6 py-4 font-medium">Estado</th>
+                                            <th className="px-6 py-4 font-medium text-left bg-slate-50">Pago</th>
+                                            <th className="px-6 py-4 font-medium text-center bg-slate-50">Docs</th>
+                                            <th className="px-6 py-4 font-medium text-left bg-slate-50">Estado</th>
                                             <th className="px-1 sm:px-2 py-4 font-medium text-right sticky right-0 bg-pink-100/90 backdrop-blur-sm z-20 border-l border-pink-200 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.15)] text-pink-700">Acción</th>
                                         </>
                                     )}
@@ -3142,7 +3142,7 @@ export default function FlightsPage() {
                                                     )}
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-6 py-4 whitespace-nowrap">
                                                 <Link 
                                                     href={`/clients/${flight.client_id}`}
                                                     className="font-medium text-slate-900 hover:text-chimipink hover:underline transition-all underline-offset-4 decoration-chimipink/30"
@@ -3172,7 +3172,7 @@ export default function FlightsPage() {
                                                     )}
                                                 </td>
                                             )}
-                                            <td className="px-6 py-4">
+                                            <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="text-xs text-slate-600 font-medium">
                                                     {flight.agent ? `${flight.agent.first_name} ${flight.agent.last_name}` : '-'}
                                                 </div>

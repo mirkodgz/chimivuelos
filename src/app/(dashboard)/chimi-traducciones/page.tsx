@@ -1568,7 +1568,7 @@ export default function TranslationsPage() {
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="bg-slate-50/80 text-[10px] uppercase tracking-widest text-slate-500 font-bold border-b border-slate-100">
+                            <tr className="bg-slate-50/80 text-[10px] uppercase tracking-widest text-slate-500 font-bold border-b border-slate-100 whitespace-nowrap">
                                 <th className="p-4">FECHA</th>
                                 <th className="p-4">CÓDIGO</th>
                                 <th className="p-4">CLIENTE</th>
@@ -1612,7 +1612,7 @@ export default function TranslationsPage() {
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="p-4 py-3 font-bold text-slate-700">
+                                    <td className="p-4 py-3 font-bold text-slate-700 whitespace-nowrap">
                                         {t.profiles?.first_name} {t.profiles?.last_name}
                                     </td>
                                     <td className="p-4 py-3">
