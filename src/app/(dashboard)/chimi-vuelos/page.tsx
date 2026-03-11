@@ -335,6 +335,7 @@ export default function FlightsPage() {
 
     // Docs Viewer State
     const [docsViewerFlight, setDocsViewerFlight] = useState<Flight | null>(null)
+    const [finanzasViewerFlight, setFinanzasViewerFlight] = useState<Flight | null>(null)
     const [paymentHistoryFlight, setPaymentHistoryFlight] = useState<Flight | null>(null)
     const [copiedPhoneId, setCopiedPhoneId] = useState<string | null>(null)
 
@@ -3098,14 +3099,10 @@ export default function FlightsPage() {
                                             <th className="px-6 py-4 font-medium text-left bg-slate-50">Tipo Pasaje</th>
                                             <th className="px-6 py-4 font-medium text-left bg-slate-50">IATA / GDS</th>
                                             <th className="px-6 py-4 font-medium text-center bg-slate-50">PAX</th>
-                                            <th className="px-6 py-4 font-medium text-center bg-slate-50">Incluye</th>
-                                            <th className="px-6 py-4 font-medium text-left bg-slate-50">Neto</th>
+                                            <th className="px-6 py-4 font-medium text-left bg-slate-50">Incluye</th>
                                         </>
                                     )}
-                                    <th className="px-6 py-4 font-medium text-left bg-slate-50">Vendido</th>
-                                    {!showDeudaOnly && <th className="px-6 py-4 font-medium text-left bg-slate-50">Fee AGV</th>}
-                                    <th className="px-6 py-4 font-medium text-left bg-slate-50">A Cuenta</th>
-                                    <th className="px-6 py-4 font-medium text-left bg-slate-50">Saldo</th>
+                                    <th className="px-6 py-4 font-medium text-left bg-slate-50">Finanzas</th>
                                     {!showDeudaOnly && (
                                         <>
                                             <th className="px-6 py-4 font-medium text-left bg-slate-50">Pago</th>
@@ -3204,21 +3201,32 @@ export default function FlightsPage() {
                                                             <span className="text-slate-300">-</span>
                                                         )}
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">€ {flight.cost.toFixed(2)}</td>
                                                 </>
                                             )}
-                                            <td className="px-6 py-4 whitespace-nowrap">€ {(flight.sold_price || 0).toFixed(2)}</td>
-                                            {!showDeudaOnly && (
-                                                <td className="px-6 py-4 whitespace-nowrap text-emerald-600 font-semibold">€ {(flight.fee_agv || 0).toFixed(2)}</td>
-                                            )}
-                                            <td className="px-6 py-4 whitespace-nowrap">€ {flight.on_account.toFixed(2)}</td>
+                                            
                                             <td className="px-6 py-4 font-medium whitespace-nowrap">
-                                                {flight.balance > 0 ? (
-                                                    <span className="text-red-600 font-black">€ {flight.balance.toFixed(2)}</span>
-                                                ) : (
-                                                    <span className="text-emerald-600">Pagado</span>
-                                                )}
+                                                <Button
+                                                    variant="ghost" 
+                                                    onClick={() => setFinanzasViewerFlight(flight)}
+                                                    className={cn(
+                                                        "group relative flex items-center justify-between gap-3 px-3 py-1.5 h-auto transition-all duration-300 rounded-xl hover:shadow-sm border border-transparent shadow-none",
+                                                        flight.balance > 0 ? "hover:bg-red-50 hover:border-red-100" : "hover:bg-emerald-50 hover:border-emerald-100"
+                                                    )}
+                                                >
+                                                    <div className={cn(
+                                                        "p-1.5 rounded-lg transition-colors shadow-sm",
+                                                        flight.balance > 0 ? "bg-red-100/80 text-red-600 group-hover:bg-red-500 group-hover:text-white" : "bg-emerald-100/80 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white"
+                                                    )}>
+                                                        <Wallet className="h-3.5 w-3.5" />
+                                                    </div>
+                                                    {flight.balance > 0 ? (
+                                                        <span className="text-red-600 font-extrabold text-sm translate-x-0 group-hover:translate-x-0 transition-transform">Deuda: € {flight.balance.toFixed(2)}</span>
+                                                    ) : (
+                                                        <span className="text-emerald-600 font-bold text-sm">Pagado</span>
+                                                    )}
+                                                </Button>
                                             </td>
+
                                             {!showDeudaOnly && (
                                                 <>
                                                     <td className="px-6 py-4 text-center">
@@ -3317,6 +3325,70 @@ export default function FlightsPage() {
                     )}
                 </CardContent>
             </Card>
+
+            {/* Finanzas Dialog */}
+            <Dialog open={!!finanzasViewerFlight} onOpenChange={(open) => !open && setFinanzasViewerFlight(null)}>
+                <DialogContent className="max-w-[350px] bg-white border border-slate-200 shadow-lg p-0 overflow-hidden rounded-xl">
+                    <DialogHeader className="p-5 border-b border-slate-100 bg-slate-50/50">
+                        <DialogTitle className="text-base font-bold text-slate-800">
+                            Resumen Financiero
+                        </DialogTitle>
+                        <DialogDescription className="text-xs font-medium text-slate-500 mt-1">
+                            <span className="text-slate-700 font-bold">{finanzasViewerFlight?.pnr}</span> • {finanzasViewerFlight?.profiles?.first_name} {finanzasViewerFlight?.profiles?.last_name}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="p-5">
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-0.5">Costo Neto</span>
+                                    <span className="text-sm font-medium text-slate-800">
+                                        € {finanzasViewerFlight?.cost?.toFixed(2) || '0.00'}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-0.5">Precio Vendido</span>
+                                    <span className="text-sm font-medium text-slate-800">
+                                        € {finanzasViewerFlight?.sold_price?.toFixed(2) || '0.00'}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="pt-3 border-t border-slate-100">
+                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-0.5">Fee AGV (Ganancia)</span>
+                                <span className="text-sm font-bold text-slate-800">
+                                    € {finanzasViewerFlight?.fee_agv?.toFixed(2) || '0.00'}
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 pt-3 border-t border-slate-100">
+                                <div>
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-0.5">Pagado a Cuenta</span>
+                                    <span className="text-sm font-medium text-slate-800">
+                                        € {finanzasViewerFlight?.on_account?.toFixed(2) || '0.00'}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span className={cn(
+                                        "text-[10px] font-bold uppercase tracking-wider block mb-0.5",
+                                        (finanzasViewerFlight?.balance || 0) > 0 ? "text-red-500" : "text-emerald-600"
+                                    )}>
+                                        Saldo {(finanzasViewerFlight?.balance || 0) > 0 ? "Pendiente" : "Final"}
+                                    </span>
+                                    <span className={cn(
+                                        "text-sm font-bold",
+                                        (finanzasViewerFlight?.balance || 0) > 0 ? "text-red-600" : "text-emerald-600"
+                                    )}>
+                                        € {finanzasViewerFlight?.balance?.toFixed(2) || '0.00'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
         </div>
     )
 }
