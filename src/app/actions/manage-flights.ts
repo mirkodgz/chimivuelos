@@ -725,6 +725,8 @@ export interface FetchFlightsParams {
     dateFrom?: string
     dateTo?: string
     showDeudaOnly?: boolean
+    sortField?: string
+    sortOrder?: 'asc' | 'desc'
 }
 
 /**
@@ -738,7 +740,9 @@ export async function getFlights(params: FetchFlightsParams) {
         statusFilter, 
         dateFrom, 
         dateTo, 
-        showDeudaOnly 
+        showDeudaOnly,
+        sortField = 'created_at',
+        sortOrder = 'desc'
     } = params
 
     const supabase = supabaseAdmin
@@ -794,7 +798,7 @@ export async function getFlights(params: FetchFlightsParams) {
 
     // 3. Execution with range (Like LIMIT/OFFSET in PHP)
     const { data: flights, error, count } = await query
-        .order('created_at', { ascending: false })
+        .order(sortField, { ascending: sortOrder === 'asc' })
         .range(from, to)
     
     if (error) {

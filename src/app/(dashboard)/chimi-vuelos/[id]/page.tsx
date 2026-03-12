@@ -4,7 +4,7 @@ import { useEffect, useState, use } from "react"
 import Link from "next/link"
 import { 
     ChevronLeft, 
-    Download,
+    Eye,
     AlertCircle,
     Printer
 } from "lucide-react"
@@ -472,10 +472,11 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
                                                 <Button 
                                                     variant="ghost" 
                                                     size="sm" 
-                                                    className="h-8 w-8 p-0 rounded-full hover:bg-chimicyan/10 text-slate-400 hover:text-chimicyan"
+                                                    className="h-8 px-3 rounded-xl hover:bg-chimicyan/10 text-slate-400 hover:text-chimicyan gap-2 font-bold text-[10px] tracking-widest border border-slate-100/50"
                                                     onClick={() => handleDownload(doc.path, doc.storage)}
                                                 >
-                                                    <Download className="h-4 w-4" />
+                                                    <Eye className="h-3.5 w-3.5" />
+                                                    VER
                                                 </Button>
                                             </div>
                                         ))

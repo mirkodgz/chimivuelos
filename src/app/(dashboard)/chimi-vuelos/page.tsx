@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Plus, Search, Trash2, Edit, FileText, Download, FileSpreadsheet, ChevronLeft, ChevronRight, ChevronDown, ListChecks, Wallet, Check, X, Calendar, Building2, User, Copy, Pencil, RefreshCw, AlertTriangle, NotebookPen, ClipboardList } from 'lucide-react'
+import { Plus, Search, Trash2, Edit, FileText, Download, FileSpreadsheet, ChevronLeft, ChevronRight, ChevronDown, ListChecks, Wallet, Check, X, Calendar, Building2, User, Copy, Pencil, RefreshCw, AlertTriangle, NotebookPen, ClipboardList, ArrowUpDown, ChevronUp } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import * as XLSX from 'xlsx'
@@ -320,6 +320,18 @@ export default function FlightsPage() {
 
     // Filters State
     const [statusFilter, setStatusFilter] = useState<string>('all')
+    const [sortField, setSortField] = useState<string>('created_at')
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+    
+    const handleSort = (field: string) => {
+        if (sortField === field) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+        } else {
+            setSortField(field)
+            setSortOrder('desc')
+        }
+        setCurrentPage(1)
+    }
     
     // Initialize dates to current month (Local Time Safe)
     const [dateFrom, setDateFrom] = useState(() => {
@@ -484,7 +496,9 @@ export default function FlightsPage() {
                     statusFilter: statusFilter,
                     dateFrom: dateFrom,
                     dateTo: dateTo,
-                    showDeudaOnly: showDeudaOnly
+                    showDeudaOnly: showDeudaOnly,
+                    sortField,
+                    sortOrder
                 }),
                 getPendingResourceDetails('flights')
             ])
@@ -497,7 +511,7 @@ export default function FlightsPage() {
         } finally {
             setIsLoading(false)
         }
-    }, [currentPage, itemsPerPage, debouncedSearchTerm, statusFilter, dateFrom, dateTo, showDeudaOnly])
+    }, [currentPage, itemsPerPage, debouncedSearchTerm, statusFilter, dateFrom, dateTo, showDeudaOnly, sortField, sortOrder])
 
     useEffect(() => {
         loadData()
@@ -905,58 +919,65 @@ export default function FlightsPage() {
     const [showEditMetodoPEList, setShowEditMetodoPEList] = useState(false)
     const [editPaymentFile, setEditPaymentFile] = useState<File | null>(null)
 
-    const handleSaveEditPayment = async (flightId: string) => {
-        if (!editPaymentData || editingPaymentIndex === null) return
-        
-        const formDataPayload = new FormData()
-        formDataPayload.append('flightId', flightId)
-        formDataPayload.append('paymentIndex', editingPaymentIndex.toString())
-        formDataPayload.append('sede_it', editPaymentData.sede_it)
-        formDataPayload.append('sede_pe', editPaymentData.sede_pe)
-        formDataPayload.append('metodo_it', editPaymentData.metodo_it)
-        formDataPayload.append('metodo_pe', editPaymentData.metodo_pe)
-        formDataPayload.append('cantidad', editPaymentData.cantidad)
-        formDataPayload.append('tipo_cambio', editPaymentData.tipo_cambio.toString())
-        formDataPayload.append('total', editPaymentData.total)
-        if (editPaymentData.moneda) formDataPayload.append('moneda', editPaymentData.moneda)
-        if (editPaymentData.monto_original) formDataPayload.append('monto_original', editPaymentData.monto_original)
-        if (editPaymentData.moneda && editPaymentData.monto_original) {
-            const sym = editPaymentData.moneda === 'EUR' ? '€' : editPaymentData.moneda === 'PEN' ? 'S/' : '$'
-            formDataPayload.append('total_display', `${sym} ${parseFloat(editPaymentData.monto_original).toFixed(2)}`)
-        }
-        
-        if (editPaymentFile) {
-            formDataPayload.append('proofFile', editPaymentFile)
-        }
 
-        const res = await updateFlightPayment(formDataPayload)
-        if (res.success) {
-            await loadData()
-            
-            // Update local formData if the edited flight is the current one
-            if (selectedFlightId === flightId) {
-                const flight = flights.find(f => f.id === flightId)
-                if (flight && flight.payment_details) {
-                    const updatedPayments = [...flight.payment_details]
-                    updatedPayments[editingPaymentIndex] = {
-                        ...updatedPayments[editingPaymentIndex],
-                        cantidad: editPaymentData.cantidad
-                    }
-                    let totalOnAccount = 0
-                    updatedPayments.forEach(p => totalOnAccount += parseFloat(p.cantidad) || 0)
-                    
-                    setFormData(prev => ({
-                        ...prev,
-                        on_account: totalOnAccount.toFixed(2),
-                        balance: (parseFloat(prev.sold_price || '0') - totalOnAccount).toFixed(2)
-                    }))
-                    setBaseOnAccount(totalOnAccount)
-                }
+    const handleSaveEditPayment = async (flightId: string) => {
+        if (!editPaymentData || editingPaymentIndex === null || !flightId) return
+        
+        try {
+            const formDataPayload = new FormData()
+            formDataPayload.append('flightId', flightId)
+            formDataPayload.append('paymentIndex', editingPaymentIndex.toString())
+            formDataPayload.append('sede_it', editPaymentData.sede_it)
+            formDataPayload.append('sede_pe', editPaymentData.sede_pe)
+            formDataPayload.append('metodo_it', editPaymentData.metodo_it)
+            formDataPayload.append('metodo_pe', editPaymentData.metodo_pe)
+            formDataPayload.append('cantidad', editPaymentData.cantidad)
+            formDataPayload.append('tipo_cambio', editPaymentData.tipo_cambio.toString())
+            formDataPayload.append('total', editPaymentData.total)
+            if (editPaymentData.moneda) formDataPayload.append('moneda', editPaymentData.moneda)
+            if (editPaymentData.monto_original) formDataPayload.append('monto_original', editPaymentData.monto_original)
+            if (editPaymentData.moneda && editPaymentData.monto_original) {
+                const sym = editPaymentData.moneda === 'EUR' ? '€' : editPaymentData.moneda === 'PEN' ? 'S/' : '$'
+                formDataPayload.append('total_display', `${sym} ${parseFloat(editPaymentData.monto_original).toFixed(2)}`)
             }
-            setEditingPaymentIndex(null)
-            setEditPaymentData(null)
-            setEditPaymentFile(null)
-        } else {
+            
+            if (editPaymentFile) {
+                formDataPayload.append('proofFile', editPaymentFile)
+            }
+
+            const res = await updateFlightPayment(formDataPayload)
+            if (res.success) {
+                toast.success("Pago actualizado correctamente")
+                await loadData()
+                
+                // Update local formData if the edited flight is the current one
+                if (selectedFlightId === flightId) {
+                    const flight = flights.find(f => f.id === flightId)
+                    if (flight && flight.payment_details) {
+                        const updatedPayments = [...flight.payment_details]
+                        updatedPayments[editingPaymentIndex] = {
+                            ...updatedPayments[editingPaymentIndex],
+                            cantidad: editPaymentData.cantidad
+                        }
+                        let totalOnAccount = 0
+                        updatedPayments.forEach(p => totalOnAccount += parseFloat(p.cantidad) || 0)
+                        
+                        setFormData(prev => ({
+                            ...prev,
+                            on_account: totalOnAccount.toFixed(2),
+                            balance: (parseFloat(prev.sold_price || '0') - totalOnAccount).toFixed(2)
+                        }))
+                        setBaseOnAccount(totalOnAccount)
+                    }
+                }
+                setEditingPaymentIndex(null)
+                setEditPaymentData(null)
+                setEditPaymentFile(null)
+            } else {
+                toast.error(res.error || "Error al actualizar pago")
+            }
+        } catch (error) {
+            console.error(error)
         }
     }
 
@@ -2254,7 +2275,7 @@ export default function FlightsPage() {
                                                                     <span className="font-bold text-blue-700 flex items-center gap-2">
                                                                         <Edit className="h-3 w-3" /> Editando Abono #{idx + 1}
                                                                     </span>
-                                                                    <div className="flex gap-2">
+                                                                    <div className="flex gap-2 relative z-10">
                                                                         <button 
                                                                             type="button" 
                                                                             onClick={() => {
@@ -2269,7 +2290,7 @@ export default function FlightsPage() {
                                                                         <button 
                                                                             type="button" 
                                                                             onClick={() => handleSaveEditPayment(selectedFlightId!)}
-                                                                            className="text-emerald-400 hover:text-emerald-600 transition-colors p-1"
+                                                                            className="text-emerald-500 hover:text-emerald-700 transition-colors p-1"
                                                                             title="Guardar"
                                                                         >
                                                                             <Check size={18} />
@@ -3087,8 +3108,32 @@ export default function FlightsPage() {
                         <table className="w-full text-sm text-left">
                             <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-100">
                                 <tr className="whitespace-nowrap">
-                                    <th className="px-6 py-4 font-medium text-left bg-slate-50">Fecha Registro</th>
-                                    <th className="px-6 py-4 font-medium text-left bg-slate-50">Fecha Viaje</th>
+                                    <th 
+                                        className="px-6 py-4 font-medium text-left bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors group/sort"
+                                        onClick={() => handleSort('created_at')}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            Fecha Registro
+                                            {sortField === 'created_at' ? (
+                                                sortOrder === 'asc' ? <ChevronUp className="h-4 w-4 text-chimipink" /> : <ChevronDown className="h-4 w-4 text-chimipink" />
+                                            ) : (
+                                                <ArrowUpDown className="h-3 w-3 text-slate-300 group-hover/sort:text-slate-400" />
+                                            )}
+                                        </div>
+                                    </th>
+                                    <th 
+                                        className="px-6 py-4 font-medium text-left bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors group/sort"
+                                        onClick={() => handleSort('travel_date')}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            Fecha Viaje
+                                            {sortField === 'travel_date' ? (
+                                                sortOrder === 'asc' ? <ChevronUp className="h-4 w-4 text-chimipink" /> : <ChevronDown className="h-4 w-4 text-chimipink" />
+                                            ) : (
+                                                <ArrowUpDown className="h-3 w-3 text-slate-300 group-hover/sort:text-slate-400" />
+                                            )}
+                                        </div>
+                                    </th>
                                     <th className="px-6 py-4 font-medium text-left bg-slate-50">PNR</th>
                                     <th className="px-6 py-4 font-medium text-left bg-slate-50">Cliente</th>
                                     {showDeudaOnly && <th className="px-6 py-4 font-medium text-left bg-slate-50">Teléfono</th>}

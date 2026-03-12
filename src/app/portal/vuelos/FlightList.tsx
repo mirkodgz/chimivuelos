@@ -96,18 +96,34 @@ export default function FlightList({ flights, termsContent, termsVersion }: { fl
                                     </span>
                                 </div>
 
-                                {/* Passenger */}
-                                {flight.profiles && (
-                                    <div className="flex items-center gap-1.5 min-w-fit text-slate-500">
-                                        <User size={14} className="text-slate-400" />
-                                        <span className="text-xs font-bold uppercase tracking-wide">
-                                            {flight.profiles.first_name} {flight.profiles.last_name}
-                                        </span>
-                                    </div>
-                                )}
+                                {/* PNR & Passenger */}
+                                <div className="flex items-center gap-4">
+                                    {flight.pnr && (
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">PNR</span>
+                                            <span className="font-mono text-xs font-black text-slate-600 tracking-wider">
+                                                {flight.pnr}
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    {flight.profiles && (
+                                        <div className="flex flex-col justify-center">
+                                            <div className="flex items-center gap-1.5 min-w-fit text-slate-500 mb-1">
+                                                <User size={14} className="text-slate-400" />
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+                                                    Pasajero
+                                                </span>
+                                            </div>
+                                            <span className="text-xs font-black text-slate-700 uppercase tracking-tight">
+                                                {flight.profiles.first_name} {flight.profiles.last_name}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
 
                                 {/* Route */}
-                                <div className="flex items-center gap-2 text-slate-800 text-lg font-bold">
+                                <div className="flex items-center gap-2 text-slate-800 text-lg font-bold pt-2 md:pt-0">
                                     <Plane className="text-chimipink fill-current opacity-20" size={20} />
                                     <span>{routeText}</span>
                                 </div>
