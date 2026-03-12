@@ -243,6 +243,15 @@ export async function createFlight(formData: FormData) {
         }
 
         const ticket_type = formData.get('ticket_type') as string
+        
+        // Handle Appointment File if exists
+        const appointmentFile = formData.get('appointment_file') as File
+        if (appointmentFile && appointmentFile.size > 0) {
+            const uploadResult = await uploadClientFile(appointmentFile, client_id)
+            const detailsObj = details as any
+            detailsObj.appointment_file_path = uploadResult.path
+            detailsObj.appointment_file_storage = uploadResult.storage
+        }
 
         const insertData = {
             client_id,
@@ -469,6 +478,15 @@ export async function updateFlight(formData: FormData, isDraft: boolean = false)
                 })
             }
             docIndex++
+        }
+
+        // Handle Appointment File if exists
+        const appointmentFile = formData.get('appointment_file') as File
+        if (appointmentFile && appointmentFile.size > 0) {
+            const uploadResult = await uploadClientFile(appointmentFile, client_id)
+            const detailsObj = details as any
+            detailsObj.appointment_file_path = uploadResult.path
+            detailsObj.appointment_file_storage = uploadResult.storage
         }
 
         const on_account = totalOnAccount 

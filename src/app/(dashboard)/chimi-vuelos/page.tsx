@@ -134,6 +134,11 @@ interface FlightDetails {
     hotel_custom_nights: string
     special_note: string
     doc_electronic_ticket: boolean
+    appointment_date?: string
+    appointment_location?: string
+    appointment_note?: string
+    appointment_file_path?: string | null
+    appointment_file_storage?: 'r2' | 'images' | null
 }
 
 const DETAILS_LABELS: Record<string, string> = {
@@ -311,7 +316,12 @@ const INITIAL_FLIGHT_DETAILS: FlightDetails = {
     hotel_custom_days: '',
     hotel_custom_nights: '',
     special_note: '',
-    doc_electronic_ticket: false
+    doc_electronic_ticket: false,
+    appointment_date: '',
+    appointment_location: '',
+    appointment_note: '',
+    appointment_file_path: null,
+    appointment_file_storage: null
 }
 
 export default function FlightsPage() {
@@ -460,6 +470,8 @@ export default function FlightsPage() {
 
     const [showPaymentFields, setShowPaymentFields] = useState(false)
     const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null)
+    const [appointmentFile, setAppointmentFile] = useState<File | null>(null)
+    const [showAppointmentFields, setShowAppointmentFields] = useState(false)
 
     const [flightDetails, setFlightDetails] = useState(INITIAL_FLIGHT_DETAILS)
 
@@ -775,6 +787,8 @@ export default function FlightsPage() {
         setFlightDetails(INITIAL_FLIGHT_DETAILS)
         setShowPaymentFields(false)
         setPaymentProofFile(null)
+        setAppointmentFile(null)
+        setShowAppointmentFields(false)
         setBaseOnAccount(0)
         setTempPayments([])
         setTempPaymentProofs([])
@@ -1148,6 +1162,11 @@ export default function FlightsPage() {
                 data.append('payment_proof_file', paymentProofFile)
             }
 
+            // Append Appointment File if exists
+            if (appointmentFile) {
+                data.append('appointment_file', appointmentFile)
+            }
+
              if (selectedFlightId) {
                   const isDraft = userRole === 'agent' && !unlockedResources.has(selectedFlightId)
                   const result = (await updateFlight(data, isDraft)) as { success?: boolean; error?: string; draftData?: Record<string, unknown> }
@@ -1334,7 +1353,7 @@ export default function FlightsPage() {
                                 <h4 className="text-sm font-bold text-chimipink">Servicios Incluidos:</h4>
                                 <ul className="grid grid-cols-1 gap-2">
                                     {Object.entries(detailsViewerFlight.details).map(([key, value]) => {
-                                        if (key === 'hotel_custom_days' || key === 'hotel_custom_nights' || key === 'special_note' || key.startsWith('insurance_tourism_date') || !value) return null
+                                        if (key === 'hotel_custom_days' || key === 'hotel_custom_nights' || key === 'special_note' || key.startsWith('insurance_tourism_date') || key.startsWith('appointment_') || !value) return null
                                         
                                         let label = DETAILS_LABELS[key] || key;
                                         
@@ -1380,6 +1399,48 @@ export default function FlightsPage() {
                                         <p className="text-sm text-slate-600 bg-yellow-50 p-3 rounded border border-yellow-100 italic">
                                             &quot;{detailsViewerFlight.details.special_note}&quot;
                                         </p>
+                                    </div>
+                                )}
+
+                                {/* Appointment Info if available */}
+                                {(detailsViewerFlight?.details?.appointment_date || detailsViewerFlight?.details?.appointment_location) && (
+                                    <div className="mt-4 p-3 bg-indigo-50 border border-indigo-100 rounded-lg animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                        <h4 className="text-sm font-bold text-indigo-700 flex items-center gap-2 mb-2">
+                                            <Calendar className="h-4 w-4" />
+                                            Cita Programada:
+                                        </h4>
+                                        <div className="space-y-2 text-sm text-slate-700">
+                                            {detailsViewerFlight.details.appointment_date && (
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-semibold text-indigo-600">Fecha:</span>
+                                                    {new Date(detailsViewerFlight.details.appointment_date + 'T00:00:00').toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' })}
+                                                </div>
+                                            )}
+                                            {detailsViewerFlight.details.appointment_location && (
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-semibold text-indigo-600">Lugar:</span>
+                                                    {detailsViewerFlight.details.appointment_location}
+                                                </div>
+                                            )}
+                                            {detailsViewerFlight.details.appointment_note && (
+                                                <div className="flex flex-col gap-1 mt-1 p-2 bg-white/50 rounded border border-indigo-50 italic text-xs">
+                                                    <span className="font-semibold text-indigo-600 not-italic">Notas:</span>
+                                                    {detailsViewerFlight.details.appointment_note}
+                                                </div>
+                                            )}
+                                            {detailsViewerFlight.details.appointment_file_path && (
+                                                <Button
+                                                    type="button"
+                                                    variant="secondary"
+                                                    size="sm"
+                                                    className="w-full mt-2 gap-2 bg-indigo-600 text-white hover:bg-indigo-700 font-bold shadow-sm"
+                                                    onClick={() => handleDownload(detailsViewerFlight.details!.appointment_file_path!, detailsViewerFlight.details!.appointment_file_storage || 'r2')}
+                                                >
+                                                    <Download className="h-4 w-4" />
+                                                    Descargar Documento de Cita
+                                                </Button>
+                                            )}
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -2433,6 +2494,78 @@ export default function FlightsPage() {
                                 </div>
 
 
+                            </div>
+
+                            {/* Citas para gestionar tu viaje (Collapsible) */}
+                            <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm transition-all duration-300">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAppointmentFields(!showAppointmentFields)}
+                                    className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors group"
+                                >
+                                    <div className="flex items-center gap-2 text-slate-700 font-bold text-base uppercase tracking-wider">
+                                        <Calendar className="h-4 w-4 text-chimipink" />
+                                        Citas para gestionar tu viaje
+                                        <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-normal lowercase tracking-normal ml-2">opcional</span>
+                                    </div>
+                                    <div className={`transition-transform duration-300 ${showAppointmentFields ? 'rotate-180' : ''}`}>
+                                        <ChevronDown className="h-4 w-4 text-slate-400 group-hover:text-chimipink" />
+                                    </div>
+                                </button>
+
+                                {showAppointmentFields && (
+                                    <div className="p-4 border-t border-slate-100 bg-white grid grid-cols-1 sm:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                        <div className="flex flex-col gap-1.5">
+                                            <Label className="text-xs font-semibold text-slate-600 uppercase tracking-tight">Fecha de Cita</Label>
+                                            <Input 
+                                                type="date"
+                                                value={flightDetails.appointment_date || ''}
+                                                onChange={(e) => handleDetailChange('appointment_date', e.target.value)}
+                                                className="h-9 text-sm focus:ring-chimipink"
+                                            />
+                                        </div>
+                                        <div className="flex flex-col gap-1.5">
+                                            <Label className="text-xs font-semibold text-slate-600 uppercase tracking-tight">Cita en</Label>
+                                            <Input 
+                                                placeholder="Ej: Consulado, Embajada..."
+                                                value={flightDetails.appointment_location || ''}
+                                                onChange={(e) => handleDetailChange('appointment_location', e.target.value)}
+                                                className="h-9 text-sm focus:ring-chimipink"
+                                            />
+                                        </div>
+                                        <div className="flex flex-col gap-1.5 sm:col-span-2">
+                                            <Label className="text-xs font-semibold text-slate-600 uppercase tracking-tight">Nota</Label>
+                                            <Textarea 
+                                                placeholder="Observaciones adicionales sobre la cita..."
+                                                value={flightDetails.appointment_note || ''}
+                                                onChange={(e) => handleDetailChange('appointment_note', e.target.value)}
+                                                className="min-h-[60px] text-sm focus:ring-chimipink"
+                                            />
+                                        </div>
+                                        <div className="flex flex-col gap-1.5 sm:col-span-2">
+                                            <Label className="text-xs font-semibold text-slate-600 uppercase tracking-tight">Adjuntar Archivo</Label>
+                                            <div className="flex items-center gap-2">
+                                                <Input 
+                                                    type="file"
+                                                    onChange={(e) => setAppointmentFile(e.target.files?.[0] || null)}
+                                                    className="h-9 text-xs focus:ring-chimipink file:mr-4 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-[10px] file:font-semibold file:bg-chimipink/10 file:text-chimipink hover:file:bg-chimipink/20"
+                                                />
+                                                {flightDetails.appointment_file_path && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="h-9 px-3 gap-1 text-[10px] whitespace-nowrap border-chimipink/30 text-chimipink hover:bg-chimipink/5"
+                                                        onClick={() => handleDownload(flightDetails.appointment_file_path!, flightDetails.appointment_file_storage || 'r2')}
+                                                    >
+                                                        <FileText className="h-3 w-3" />
+                                                        Ver Actual
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* --- NOTES SECTION --- */}
