@@ -43,6 +43,7 @@ export interface PaymentDetail {
     created_at?: string
     updated_at?: string
     proof_path?: string
+    proof_storage?: 'r2' | 'images'
 }
 
 export interface Flight {
@@ -171,8 +172,7 @@ export async function createFlight(formData: FormData) {
                     if (tempFile && tempFile.size > 0) {
                         const uploadResult = await uploadClientFile(tempFile, client_id)
                         multiPayments[i].proof_path = uploadResult.path
-                        // If multiple proofs, the "main" one for the flight record will be the last one assigned here
-                        // though each payment detail has its own path.
+                        multiPayments[i].proof_storage = uploadResult.storage
                         payment_proof_path = uploadResult.path
                     }
                 }
@@ -183,13 +183,17 @@ export async function createFlight(formData: FormData) {
             }
         }
 
+        // Handle Global Payment Proof
+        const proofFile = formData.get('payment_proof_file') as File
+        let payment_proof_storage: 'r2' | 'images' | undefined = undefined
+        if (proofFile && proofFile.size > 0) {
+            const uploadResult = await uploadClientFile(proofFile, client_id)
+            payment_proof_path = uploadResult.path
+            payment_proof_storage = uploadResult.storage
+        }
+
         // Handle Single Payment (legacy/fallback)
         if (payment_quantity > 0) {
-            const proofFile = formData.get('payment_proof_file') as File
-            if (proofFile && proofFile.size > 0) {
-                const uploadResult = await uploadClientFile(proofFile, client_id)
-                payment_proof_path = uploadResult.path
-            }
 
             const currency = formData.get('payment_currency') as string || 'EUR'
             const original_amount = formData.get('payment_original_amount') as string || payment_quantity_str
@@ -205,7 +209,8 @@ export async function createFlight(formData: FormData) {
                 moneda: currency,
                 monto_original: original_amount,
                 created_at: new Date().toISOString(),
-                proof_path: payment_proof_path || undefined
+                proof_path: payment_proof_path || undefined,
+                proof_storage: payment_proof_path ? (payment_proof_storage || (payment_proof_path.startsWith('clients/') ? 'r2' : 'images')) : undefined
             })
         }
 
@@ -397,6 +402,7 @@ export async function updateFlight(formData: FormData, isDraft: boolean = false)
                     if (tempFile && tempFile.size > 0) {
                         const uploadResult = await uploadClientFile(tempFile, client_id)
                         multiPayments[i].proof_path = uploadResult.path
+                        multiPayments[i].proof_storage = uploadResult.storage
                     }
                 }
 
@@ -408,13 +414,15 @@ export async function updateFlight(formData: FormData, isDraft: boolean = false)
 
         // Handle Payment Proof
         let payment_proof_path = existingFlight.payment_proof_path
+        let payment_proof_storage: 'r2' | 'images' | undefined = payment_proof_path?.startsWith('clients/') ? 'r2' : 'images'
+
         const proofFile = formData.get('payment_proof_file') as File
         if (proofFile && proofFile.size > 0) {
             const uploadResult = await uploadClientFile(proofFile, client_id)
             payment_proof_path = uploadResult.path
+            payment_proof_storage = uploadResult.storage
         }
 
-        // Handle Single Payment (legacy/fallback)
         if (payment_quantity > 0) {
             const currency = formData.get('payment_currency') as string || 'EUR'
             const original_amount = formData.get('payment_original_amount') as string || payment_quantity_str
@@ -430,7 +438,8 @@ export async function updateFlight(formData: FormData, isDraft: boolean = false)
                 moneda: currency,
                 monto_original: original_amount,
                 created_at: new Date().toISOString(),
-                proof_path: payment_proof_path || undefined
+                proof_path: payment_proof_path || undefined,
+                proof_storage: payment_proof_storage
             }
             currentPayments.push(newPayment)
         }
@@ -1014,9 +1023,12 @@ export async function updateFlightPayment(formData: FormData) {
         }
 
         let proofPath = payments[paymentIndex].proof_path
+        let proofStorage = payments[paymentIndex].proof_storage || (proofPath?.startsWith('clients/') ? 'r2' : 'images')
+        
         if (proofFile && proofFile.size > 0) {
             const uploadResult = await uploadClientFile(proofFile, flight.client_id)
             proofPath = uploadResult.path
+            proofStorage = uploadResult.storage
         }
 
         // Update the payment fields from formData
@@ -1035,6 +1047,7 @@ export async function updateFlightPayment(formData: FormData) {
             moneda: currency,
             monto_original: original_amount,
             proof_path: proofPath,
+            proof_storage: proofStorage,
             updated_at: new Date().toISOString()
         }
 

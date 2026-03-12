@@ -41,6 +41,7 @@ interface PaymentDetail {
     created_at?: string
     updated_at?: string
     proof_path?: string
+    proof_storage?: 'r2' | 'images'
 }
 
 interface DateHistoryEntry {
@@ -132,6 +133,7 @@ interface FlightDetails {
     hotel_custom_days: string
     hotel_custom_nights: string
     special_note: string
+    doc_electronic_ticket: boolean
 }
 
 const DETAILS_LABELS: Record<string, string> = {
@@ -140,7 +142,7 @@ const DETAILS_LABELS: Record<string, string> = {
     insurance_1m: "Seguro x 1 mes",
     insurance_2m: "Seguro x 2 meses",
     insurance_3m: "Seguro x 3 meses",
-    doc_invitation_letter: "Redacción carta de invitación con documentos del anfitrión (El cliente envía copia del documento de identidad o Permesso di soggiorno y Tessera sanitaria del familiar en Italia.)",
+    doc_invitation_letter: "Redacción carta de invitación con documentos del anfitrión (cliente envia foto de la carta de invito + sogiorno+ tesera sanitaria del familiar para la redaccion del documento)",
     doc_agency_managed: "Carta inv. gestionada por agencia",
     svc_airport_assistance: "Asistencia aeroportuaria",
     svc_return_activation: "Activación pasaje retorno",
@@ -156,6 +158,7 @@ const DETAILS_LABELS: Record<string, string> = {
     svc_stewardess_um: "Solicitud de azafata para menor de edad (UMNR) +225 EURO PAGO SÍ INCLUIDO EN EL PRECIO",
     svc_stewardess_um_unpaid: "Solicitud de azafata para menor de edad (UMNR) +225 EURO PAGO NO INCLUIDO EN EL PRECIO",
     svc_pet_travel: "Viaja con mascota",
+    doc_electronic_ticket: "BOLETA ELECTRONICA (para tramite de pasaporte 48 horas antes)"
 }
 
 const DOCUMENT_TYPES = [
@@ -167,6 +170,7 @@ const DOCUMENT_TYPES = [
     "Reserva de Hotel",
     "Permiso Notarial",
     "Seguro de Viaje",
+    "Boleta Electrónica",
     "Otros"
 ]
 
@@ -306,7 +310,8 @@ const INITIAL_FLIGHT_DETAILS: FlightDetails = {
     hotel_custom_active: false,
     hotel_custom_days: '',
     hotel_custom_nights: '',
-    special_note: ''
+    special_note: '',
+    doc_electronic_ticket: false
 }
 
 export default function FlightsPage() {
@@ -445,7 +450,8 @@ export default function FlightsPage() {
         client_note: '',
         internal_note: '',
         required_documents: { ...INITIAL_REQUIRED_DOCUMENTS },
-        flight_date_history: [] as DateHistoryEntry[]
+        flight_date_history: [] as DateHistoryEntry[],
+        payment_proof_path: null as string | null
     })
     
     const [showDateHistory, setShowDateHistory] = useState(false)
@@ -755,7 +761,8 @@ export default function FlightsPage() {
             client_note: '',
             internal_note: '',
             required_documents: { ...INITIAL_REQUIRED_DOCUMENTS },
-            flight_date_history: [] as DateHistoryEntry[]
+            flight_date_history: [] as DateHistoryEntry[],
+            payment_proof_path: null
         })
         const initialDocs = DOCUMENT_TYPES.map(type => ({ 
             title: type, 
@@ -857,7 +864,8 @@ export default function FlightsPage() {
             client_note: flight.client_note || '',
             internal_note: flight.internal_note || '',
             required_documents: flight.required_documents || { ...INITIAL_REQUIRED_DOCUMENTS },
-            flight_date_history: Array.isArray(flight.flight_date_history) ? flight.flight_date_history : []
+            flight_date_history: Array.isArray(flight.flight_date_history) ? flight.flight_date_history : [],
+            payment_proof_path: flight.payment_proof_path || null
         })
         setShowDateHistory(false)
         setBaseOnAccount(flight.on_account || 0)
@@ -1394,8 +1402,32 @@ export default function FlightsPage() {
                     </DialogHeader>
                     
                     <div className="py-4 space-y-4">
-                        <div className="space-y-2">
-                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Detalle de Transacciones:</h4>
+                        <div className="space-y-3">
+                            {paymentHistoryFlight?.payment_proof_path && (
+                                <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center justify-between shadow-sm animate-in fade-in slide-in-from-top-1">
+                                    <div className="flex items-center gap-3">
+                                        <div className="bg-emerald-100 p-2 rounded-full text-emerald-600">
+                                            <FileText className="h-4 w-4" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest leading-none mb-1">Comprobante Global</p>
+                                            <p className="text-[11px] text-emerald-700 font-medium italic">Adjunto principal del vuelo</p>
+                                        </div>
+                                    </div>
+                                    <Button 
+                                        size="sm" 
+                                        variant="outline" 
+                                        className="h-8 border-emerald-200 text-emerald-600 hover:bg-emerald-100 gap-1.5 bg-white font-bold text-[10px]"
+                                        onClick={() => handleDownload(paymentHistoryFlight.payment_proof_path!, paymentHistoryFlight.payment_proof_path!.startsWith('clients/') ? 'r2' : 'images')}
+                                    >
+                                        <Download className="h-3 w-3" /> VER ACTUAL
+                                    </Button>
+                                </div>
+                            )}
+
+                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                <Wallet className="h-3 w-3" /> Detalle de Transacciones:
+                            </h4>
                             <div className="space-y-2 pr-1">
                                 {paymentHistoryFlight?.payment_details && paymentHistoryFlight.payment_details.length > 0 ? (
                                     [...paymentHistoryFlight.payment_details].reverse().map((payment, idx) => {
@@ -1444,7 +1476,7 @@ export default function FlightsPage() {
                                                             size="sm" 
                                                             variant="ghost" 
                                                             className="h-7 text-[10px] font-bold text-chimiteal hover:text-chimiteal hover:bg-teal-50 gap-1 px-2"
-                                                            onClick={() => handleDownload(payment.proof_path!, payment.proof_path?.startsWith('clients/') ? 'r2' : 'images')}
+                                                            onClick={() => handleDownload(payment.proof_path!, payment.proof_storage || (payment.proof_path?.startsWith('clients/') ? 'r2' : 'images'))}
                                                         >
                                                             <FileText className="h-3 w-3" />
                                                             Ver Comprobante
@@ -2281,7 +2313,7 @@ export default function FlightsPage() {
                                             <div className="flex flex-col">
                                                 <span className="font-medium">Redacción carta de invitación con documentos del anfitrión</span>
                                                 <span className="text-[10px] text-slate-500 leading-tight">
-                                                    (El cliente envía copia del documento de identidad o Permesso di soggiorno y Tessera sanitaria del familiar en Italia.)
+                                                    (cliente envia foto de la carta de invito + sogiorno+ tesera sanitaria del familiar para la redaccion del documento)
                                                 </span>
                                             </div>
                                         </label>
@@ -2301,6 +2333,15 @@ export default function FlightsPage() {
                                                 </div>
                                             )}
                                         </div>
+                                        <label className="flex items-start gap-2 text-sm cursor-pointer hover:bg-slate-100 p-1 rounded mt-1">
+                                            <input type="checkbox" checked={flightDetails.doc_electronic_ticket} onChange={(e) => handleDetailChange('doc_electronic_ticket', e.target.checked)} className="rounded border-slate-300 text-chimipink focus:ring-chimipink mt-1" />
+                                            <div className="flex flex-col">
+                                                <span className="font-medium text-slate-700">BOLETA ELECTRONICA</span>
+                                                <span className="text-[10px] text-slate-500 leading-tight">
+                                                    para tramite de pasaporte 48 horas antes
+                                                </span>
+                                            </div>
+                                        </label>
                                     </div>
                                 </div>
 
@@ -2765,7 +2806,7 @@ export default function FlightsPage() {
                                                                         {payment.proof_path && (
                                                                             <button 
                                                                                 type="button"
-                                                                                onClick={() => handleDownload(payment.proof_path!, payment.proof_path?.startsWith('clients/') ? 'r2' : 'images')}
+                                                                                onClick={() => handleDownload(payment.proof_path!, payment.proof_storage || (payment.proof_path?.startsWith('clients/') ? 'r2' : 'images'))}
                                                                                 className="text-[9px] font-bold text-chimiteal hover:underline flex items-center gap-1 mt-0.5 justify-end w-full"
                                                                             >
                                                                                 <FileText className="h-2 w-2" /> Ver Comprobante
@@ -3120,12 +3161,32 @@ export default function FlightsPage() {
                                             <div className="grid grid-cols-1 gap-4 mt-3">
                                                 <div className="grid gap-2">
                                                     <Label className="text-xs font-bold text-slate-700">Foto de Comprobante (Opcional)</Label>
-                                                    <Input 
-                                                        type="file" 
-                                                        accept="image/*" 
-                                                        onChange={(e) => setPaymentProofFile(e.target.files?.[0] || null)}
-                                                        className="cursor-pointer file:bg-chimiteal/10 file:text-chimiteal file:border-0 file:rounded file:px-2 file:py-1 file:mr-2 file:text-xs file:font-semibold"
-                                                    />
+                                                    <div className="flex flex-col gap-2">
+                                                        <Input 
+                                                            type="file" 
+                                                            accept="image/*" 
+                                                            onChange={(e) => setPaymentProofFile(e.target.files?.[0] || null)}
+                                                            className="cursor-pointer file:bg-chimiteal/10 file:text-chimiteal file:border-0 file:rounded file:px-2 file:py-1 file:mr-2 file:text-xs file:font-semibold"
+                                                        />
+                                                        {formData.payment_proof_path && (
+                                                            <div className="flex items-center justify-between p-2 bg-emerald-50 border border-emerald-100 rounded text-xs">
+                                                                <div className="flex items-center gap-2 text-emerald-700 font-medium">
+                                                                    <FileText className="h-3.5 w-3.5" />
+                                                                    <span>Comprobante guardado</span>
+                                                                </div>
+                                                                <Button 
+                                                                    type="button" 
+                                                                    variant="ghost" 
+                                                                    size="sm" 
+                                                                    className="h-7 text-[10px] font-bold text-chimiteal hover:bg-emerald-100"
+                                                                    onClick={() => handleDownload(formData.payment_proof_path!, formData.payment_proof_path!.startsWith('clients/') ? 'r2' : 'images')}
+                                                                >
+                                                                    <Download className="h-3 w-3 mr-1" />
+                                                                    Ver Actual
+                                                                </Button>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </>

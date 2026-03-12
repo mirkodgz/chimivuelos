@@ -29,12 +29,27 @@ export default function ClientChatPage() {
     }, [])
 
 
+    const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior })
+        }
+    }, [])
+
     useEffect(() => {
         const timer = setTimeout(() => {
             void loadChat()
         }, 0)
         return () => clearTimeout(timer)
     }, [loadChat])
+
+    // Scroll to bottom when messages change
+    useEffect(() => {
+        if (!loading && messages.length > 0) {
+            // Initial load immediate, subsequent smooth
+            const behavior = messages.length <= (conversation?.messages?.length || 0) ? 'auto' : 'smooth'
+            scrollToBottom(behavior as ScrollBehavior)
+        }
+    }, [messages, loading, conversation, scrollToBottom])
 
     useEffect(() => {
         if (!conversation) return
