@@ -277,10 +277,14 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
                                         {flight.details && Object.entries(flight.details).some(([k, v]) => v === true && DETAILS_LABELS[k]) ? (
                                             Object.entries(flight.details).map(([key, value]) => {
                                                 if (!value || !DETAILS_LABELS[key]) return null
+                                                let label = DETAILS_LABELS[key] || key;
+                                                if (key === 'doc_agency_managed' && flight.details?.doc_agency_managed_text) {
+                                                    label = `${DETAILS_LABELS[key]} ${flight.details.doc_agency_managed_text}`;
+                                                }
                                                 return (
                                                     <div key={key} className="flex items-center gap-2 text-xs text-slate-600 bg-slate-50/50 px-3 py-2 rounded-xl border border-slate-100/50">
                                                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-                                                        {DETAILS_LABELS[key]}
+                                                        {label}
                                                     </div>
                                                 )
                                             })

@@ -272,7 +272,10 @@ export function FlightSalesNote({ flight, onClose }: { flight: Flight, onClose: 
                                             return (
                                                 <tr key={key} className="border-b border-slate-100">
                                                     <td className="py-1.5 px-3 border-r border-slate-200">
-                                                        <p className="font-bold text-slate-600 uppercase leading-none text-[8px]">{DETAILS_LABELS[key]}</p>
+                                                        <p className="font-bold text-slate-600 uppercase leading-none text-[8px]">
+                                                            {DETAILS_LABELS[key]}
+                                                            {key === 'doc_agency_managed' && flight.details?.doc_agency_managed_text ? ` ${flight.details.doc_agency_managed_text}` : ''}
+                                                        </p>
                                                     </td>
                                                     <td className="py-1.5 px-3 text-center">
                                                         <span className="bg-emerald-100 text-emerald-700 text-[7px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter">Incluido</span>

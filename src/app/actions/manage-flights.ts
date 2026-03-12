@@ -72,7 +72,7 @@ export interface Flight {
     payment_details?: PaymentDetail[]
     payment_proof_path?: string
     documents?: FlightDocument[]
-    details?: Record<string, boolean>
+    details?: Record<string, boolean | string | number | null>
     exchange_rate?: number
     ticket_type?: string
     pax_adt?: number
@@ -727,6 +727,7 @@ export interface FetchFlightsParams {
     showDeudaOnly?: boolean
     sortField?: string
     sortOrder?: 'asc' | 'desc'
+    filterByTravelDate?: boolean
 }
 
 /**
@@ -742,7 +743,8 @@ export async function getFlights(params: FetchFlightsParams) {
         dateTo, 
         showDeudaOnly,
         sortField = 'created_at',
-        sortOrder = 'desc'
+        sortOrder = 'desc',
+        filterByTravelDate = false
     } = params
 
     const supabase = supabaseAdmin
@@ -792,7 +794,7 @@ export async function getFlights(params: FetchFlightsParams) {
         }
     }
 
-    const dateField = showDeudaOnly ? 'travel_date' : 'created_at'
+    const dateField = filterByTravelDate || showDeudaOnly ? 'travel_date' : 'created_at'
     if (dateFrom) query = query.gte(dateField, dateFrom)
     if (dateTo) query = query.lte(dateField, dateTo)
 

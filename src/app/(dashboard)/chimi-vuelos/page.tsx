@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { getFlights, createFlight, updateFlight, deleteFlight, deleteFlightDocument, updateFlightStatus, getFlightDocumentUrl, deleteFlightPayment, updateFlightPayment, getInitialChimiVuelosData } from '@/app/actions/manage-flights'
 
 interface FlightDocument {
@@ -111,6 +112,7 @@ interface FlightDetails {
     insurance_3m: boolean
     doc_invitation_letter: boolean
     doc_agency_managed: boolean
+    doc_agency_managed_text: string
     svc_airport_assistance: boolean
     svc_return_activation: boolean
     hotel_3d_2n: boolean
@@ -285,6 +287,7 @@ const INITIAL_FLIGHT_DETAILS: FlightDetails = {
     insurance_3m: false,
     doc_invitation_letter: false,
     doc_agency_managed: false,
+    doc_agency_managed_text: '',
     svc_airport_assistance: false,
     svc_return_activation: false,
     hotel_3d_2n: false,
@@ -482,6 +485,24 @@ export default function FlightsPage() {
     const [tempPayments, setTempPayments] = useState<PaymentDetail[]>([])
     const [tempPaymentProofs, setTempPaymentProofs] = useState<(File | null)[]>([])
     const [pendingRequests, setPendingRequests] = useState<Record<string, string>>({})
+    const [showUpcomingDialog, setShowUpcomingDialog] = useState(false)
+    const [upcomingFlights, setUpcomingFlights] = useState<Flight[]>([])
+    const [isUpcomingLoading, setIsUpcomingLoading] = useState(false)
+    const [upcomingDateFrom, setUpcomingDateFrom] = useState('')
+    const [upcomingDateTo, setUpcomingDateTo] = useState('')
+    const [upcomingSortOrder, setUpcomingSortOrder] = useState<'asc' | 'desc'>('asc')
+
+    // Set default dates for upcoming departures
+    useEffect(() => {
+        setUpcomingDateFrom(getYesterdayDate())
+    }, [])
+    
+    // Default dates for Upcoming Departures: from yesterday to far future
+    const getYesterdayDate = () => {
+        const d = new Date()
+        d.setDate(d.getDate() - 1)
+        return d.toISOString().split('T')[0]
+    }
 
     // Load Data (Parallelized for maximum speed)
     const loadData = useCallback(async () => {
@@ -497,8 +518,8 @@ export default function FlightsPage() {
                     dateFrom: dateFrom,
                     dateTo: dateTo,
                     showDeudaOnly: showDeudaOnly,
-                    sortField,
-                    sortOrder
+                    sortField: sortField,
+                    sortOrder: sortOrder
                 }),
                 getPendingResourceDetails('flights')
             ])
@@ -512,6 +533,33 @@ export default function FlightsPage() {
             setIsLoading(false)
         }
     }, [currentPage, itemsPerPage, debouncedSearchTerm, statusFilter, dateFrom, dateTo, showDeudaOnly, sortField, sortOrder])
+
+    const fetchUpcomingFlights = useCallback(async () => {
+        setIsUpcomingLoading(true)
+        try {
+            const result = await getFlights({
+                page: 1,
+                pageSize: 1000,
+                dateFrom: upcomingDateFrom,
+                dateTo: upcomingDateTo,
+                filterByTravelDate: true,
+                sortField: 'travel_date',
+                sortOrder: upcomingSortOrder
+            })
+            setUpcomingFlights(result.flights as unknown as Flight[])
+        } catch (error) {
+            console.error('Error fetching upcoming flights:', error)
+            toast.error('Error al cargar salidas próximas')
+        } finally {
+            setIsUpcomingLoading(false)
+        }
+    }, [upcomingDateFrom, upcomingDateTo, upcomingSortOrder])
+
+    useEffect(() => {
+        if (showUpcomingDialog) {
+            fetchUpcomingFlights()
+        }
+    }, [showUpcomingDialog, fetchUpcomingFlights])
 
     useEffect(() => {
         loadData()
@@ -1282,6 +1330,11 @@ export default function FlightsPage() {
                                         
                                         let label = DETAILS_LABELS[key] || key;
                                         
+                                        // Custom text for agency managed invitation
+                                        if (key === 'doc_agency_managed' && detailsViewerFlight.details?.doc_agency_managed_text) {
+                                            label = `${DETAILS_LABELS[key]} ${detailsViewerFlight.details.doc_agency_managed_text}`;
+                                        }
+                                        
                                         // Specific formatting for dates if it's the tourism insurance
                                         if (key === 'insurance_tourism_active') {
                                             const from = detailsViewerFlight.details?.insurance_tourism_date_from;
@@ -1423,30 +1476,168 @@ export default function FlightsPage() {
 
 
 
-            <div className="flex justify-center items-center gap-4">
-                <Button 
-                    variant={showDeudaOnly ? "primary" : "outline"}
-                    onClick={() => {
-                        setShowDeudaOnly(!showDeudaOnly)
-                        setCurrentPage(1)
-                    }}
-                    className={cn(
-                        "font-bold shadow-md transition-all h-10",
-                        showDeudaOnly 
-                            ? "bg-red-600 hover:bg-red-700 text-white border-red-700" 
-                            : "border-slate-200 text-slate-600 hover:bg-slate-50"
-                    )}
-                >
-                    <Wallet className={cn("mr-2 h-4 w-4", showDeudaOnly ? "text-white" : "text-red-500")} /> 
-                    {showDeudaOnly ? "Ver Todos los Vuelos" : "Vuelos con Deudas"}
-                </Button>
 
-                 <Dialog open={isDialogOpen} onOpenChange={(open) => {
-                     setIsDialogOpen(open)
-                     if (!open) resetForm()
-                 }}>
+
+            {/* Upcoming Departures Dialog */}
+            <Dialog open={showUpcomingDialog} onOpenChange={setShowUpcomingDialog}>
+                <DialogContent className="sm:max-w-7xl max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:hidden" onOpenAutoFocus={(e) => e.preventDefault()}>
+                    <DialogHeader>
+                        <DialogTitle className="text-slate-900 font-black uppercase tracking-tighter">
+                            Salidas Próximas
+                        </DialogTitle>
+                        <DialogDescription className="text-[10px] font-bold uppercase text-slate-400">
+                            Vuelos con fecha de viaje desde ayer en adelante.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {/* Filters in Dialog */}
+                    <div className="flex flex-wrap items-center gap-4 py-4 bg-slate-50/50 p-4 rounded-xl border border-slate-100 mb-4">
+                        <div className="grid gap-1.5 focus-within:scale-[1.02] transition-transform">
+                            <Label className="text-[9px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-1.5">
+                                <Calendar className="h-3 w-3 text-slate-400" />
+                                Fecha Desde (Viaje)
+                            </Label>
+                            <Input 
+                                type="date" 
+                                value={upcomingDateFrom} 
+                                onChange={(e) => setUpcomingDateFrom(e.target.value)}
+                                className="h-9 text-xs w-40 bg-white border-slate-200 font-bold focus:ring-chimipink"
+                            />
+                        </div>
+                        <div className="grid gap-1.5 focus-within:scale-[1.02] transition-transform">
+                            <Label className="text-[9px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-1.5">
+                                <Calendar className="h-3 w-3 text-slate-400" />
+                                Fecha Hasta (Viaje)
+                            </Label>
+                            <Input 
+                                type="date" 
+                                value={upcomingDateTo} 
+                                onChange={(e) => setUpcomingDateTo(e.target.value)}
+                                className="h-9 text-xs w-40 bg-white border-slate-200 font-bold focus:ring-chimipink"
+                            />
+                        </div>
+                        {isUpcomingLoading && (
+                            <div className="flex items-center gap-2 px-3 py-1 bg-pink-50 rounded-full border border-pink-100 animate-in fade-in slide-in-from-left-2 mt-5">
+                                <RefreshCw className="h-3 w-3 text-chimipink animate-spin" />
+                                <span className="text-[9px] font-black text-pink-700 uppercase tracking-widest">Actualizando...</span>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-x-auto bg-white">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-slate-50 border-b border-slate-200">
+                                    <th 
+                                        className="p-4 text-[9px] font-black uppercase text-slate-500 tracking-widest whitespace-nowrap cursor-pointer hover:bg-slate-100 transition-colors group/sort"
+                                        onClick={() => setUpcomingSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                                    >
+                                        <div className="flex items-center gap-1">
+                                            {upcomingSortOrder === 'asc' ? <ChevronUp className="h-3 w-3 text-chimipink" /> : <ChevronDown className="h-3 w-3 text-chimipink" />}
+                                            Fecha Viaje
+                                            <ArrowUpDown className="h-2.5 w-2.5 ml-1 opacity-20 group-hover/sort:opacity-100 transition-opacity" />
+                                        </div>
+                                    </th>
+                                    <th className="p-4 text-[9px] font-black uppercase text-slate-500 tracking-widest whitespace-nowrap">PNR</th>
+                                    <th className="p-4 text-[9px] font-black uppercase text-slate-500 tracking-widest whitespace-nowrap text-center">Estado</th>
+                                    <th className="p-4 text-[9px] font-black uppercase text-slate-500 tracking-widest whitespace-nowrap">Cliente</th>
+                                    <th className="p-4 text-[9px] font-black uppercase text-slate-500 tracking-widest whitespace-nowrap">Agente</th>
+                                    <th className="p-4 text-[9px] font-black uppercase text-slate-500 tracking-widest whitespace-nowrap">Itinerario</th>
+                                    <th className="p-4 text-[9px] font-black uppercase text-slate-500 tracking-widest whitespace-nowrap">Tipo Pasaje</th>
+                                    <th className="p-4 text-[9px] font-black uppercase text-chimipink tracking-widest whitespace-nowrap">Invito</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 italic-last-row">
+                                {isUpcomingLoading ? (
+                                    <tr>
+                                        <td colSpan={8} className="p-16 text-center">
+                                            <div className="flex flex-col items-center gap-3">
+                                                <div className="relative h-12 w-12">
+                                                    <div className="absolute inset-0 border-4 border-chimipink/10 rounded-full" />
+                                                    <div className="absolute inset-0 border-4 border-chimipink border-t-transparent rounded-full animate-spin" />
+                                                </div>
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest animate-pulse">Consultando base de datos...</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : upcomingFlights.length > 0 ? (
+                                    upcomingFlights.map((flight) => (
+                                        <tr key={flight.id} className="hover:bg-slate-50 transition-colors group">
+                                            <td className="p-4 font-mono">
+                                                <span className="text-[11px] font-bold text-slate-700">
+                                                    {flight.travel_date ? new Date(flight.travel_date).toLocaleDateString('es-PE', { timeZone: 'UTC' }) : '-'}
+                                                </span>
+                                            </td>
+                                            <td className="p-4">
+                                                <span className="text-[11px] font-black text-slate-900 tracking-tighter bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200/50 shadow-sm group-hover:bg-white transition-colors">
+                                                    {flight.pnr || '---'}
+                                                </span>
+                                            </td>
+                                            <td className="p-4 text-center">
+                                                <span className={cn("px-3 py-1 rounded-full text-[8.5px] font-black uppercase shadow-[0_2px_10px_rgba(0,0,0,0.05)]", getStatusColorClass(flight.status))}>
+                                                    {STATUS_UI_MAP[flight.status] || flight.status}
+                                                </span>
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[11px] font-black text-slate-800 uppercase leading-none mb-1 transition-colors tracking-tighter">
+                                                        {flight.profiles?.first_name} {flight.profiles?.last_name}
+                                                    </span>
+                                                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">{flight.profiles?.email}</span>
+                                                </div>
+                                            </td>
+                                            <td className="p-4">
+                                                <span className="text-[10px] font-black text-slate-600 uppercase tracking-tighter">
+                                                    {flight.agent ? `${flight.agent.first_name} ${flight.agent.last_name}` : '-'}
+                                                </span>
+                                            </td>
+                                            <td className="p-4">
+                                                <p className="text-[10px] font-bold text-slate-500 line-clamp-1 max-w-[180px] hover:line-clamp-none transition-all cursor-default" title={flight.itinerary}>
+                                                    {flight.itinerary}
+                                                </p>
+                                            </td>
+                                            <td className="p-4">
+                                                <span className="text-[9px] font-black text-slate-400 border border-slate-200 px-1.5 py-0.5 rounded uppercase tracking-widest bg-slate-50">
+                                                    {flight.ticket_type || '-'}
+                                                </span>
+                                            </td>
+                                            <td className="p-4">
+                                                {flight.details?.doc_agency_managed && flight.details?.doc_agency_managed_text ? (
+                                                    <div className="flex items-center gap-2 bg-pink-50 p-2.5 rounded-xl border border-pink-100 group-hover:bg-pink-100/50 transition-colors shadow-sm">
+                                                        <div className="w-2 h-2 rounded-full bg-chimipink animate-pulse shadow-[0_0_8px_rgba(219,39,119,0.3)]" />
+                                                        <span className="text-[9px] font-black text-pink-800 leading-tight uppercase tracking-tighter">
+                                                            {flight.details.doc_agency_managed_text as string}
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="h-1 w-8 bg-slate-100 rounded-full mx-auto" />
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan={8} className="p-20 text-center">
+                                            <div className="flex flex-col items-center gap-2 opacity-40">
+                                                <Search className="h-10 w-10 text-slate-300 mb-2" />
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Sin resultados de salida</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            <div className="flex flex-wrap items-center justify-center gap-4 mb-6">
+                <Dialog open={isDialogOpen} onOpenChange={(open) => {
+                    setIsDialogOpen(open)
+                    if (!open) resetForm()
+                }}>
                     <DialogTrigger asChild>
-                        <Button className="bg-linear-to-r from-chimipink to-chimicyan font-bold text-slate-700 shadow-md">
+                        <Button className="bg-linear-to-r from-chimipink to-chimicyan font-bold text-slate-700 shadow-md h-10">
                             <Plus className="mr-2 h-4 w-4" /> Registrar Vuelo
                         </Button>
                     </DialogTrigger>
@@ -2094,10 +2285,22 @@ export default function FlightsPage() {
                                                 </span>
                                             </div>
                                         </label>
-                                        <label className="flex items-center gap-2 text-sm cursor-pointer hover:bg-slate-100 p-1 rounded">
-                                            <input type="checkbox" checked={flightDetails.doc_agency_managed} onChange={(e) => handleDetailChange('doc_agency_managed', e.target.checked)} className="rounded border-slate-300 text-chimipink focus:ring-chimipink" />
-                                            Carta inv. gestionada por agencia
-                                        </label>
+                                        <div className="flex flex-col gap-2">
+                                            <label className="flex items-center gap-2 text-sm cursor-pointer hover:bg-slate-100 p-1 rounded">
+                                                <input type="checkbox" checked={flightDetails.doc_agency_managed} onChange={(e) => handleDetailChange('doc_agency_managed', e.target.checked)} className="rounded border-slate-300 text-chimipink focus:ring-chimipink" />
+                                                Carta inv. gestionada por agencia
+                                            </label>
+                                            {flightDetails.doc_agency_managed && (
+                                                <div className="pl-6 animate-in fade-in slide-in-from-left-1 duration-200">
+                                                    <Input 
+                                                        value={flightDetails.doc_agency_managed_text}
+                                                        onChange={(e) => handleDetailChange('doc_agency_managed_text', e.target.value)}
+                                                        placeholder="Digite información adicional..."
+                                                        className="h-8 text-[11px] bg-white border-slate-200 focus:ring-chimipink"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
 
@@ -2996,6 +3199,35 @@ export default function FlightsPage() {
                         </form>
                     </DialogContent>
                  </Dialog>
+
+                <Button 
+                    variant={showDeudaOnly ? "primary" : "outline"}
+                    onClick={() => {
+                        const nextVal = !showDeudaOnly
+                        setShowDeudaOnly(nextVal)
+                        setCurrentPage(1)
+                    }}
+                    className={cn(
+                        "font-bold shadow-md transition-all h-10",
+                        showDeudaOnly 
+                            ? "bg-red-600 hover:bg-red-700 text-white border-red-700" 
+                            : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                    )}
+                >
+                    <Wallet className={cn("mr-2 h-4 w-4", showDeudaOnly ? "text-white" : "text-red-500")} /> 
+                    {showDeudaOnly ? "Ver Todos los Vuelos" : "Vuelos con Deudas"}
+                </Button>
+                
+                <Button 
+                    variant="outline"
+                    onClick={() => {
+                        setShowUpcomingDialog(true)
+                    }}
+                    className="font-bold border-slate-200 text-slate-600 hover:bg-slate-50 h-10 shadow-md"
+                >
+                    <ClipboardList className="mr-2 h-4 w-4 text-blue-600" /> 
+                    Salidas Próximas
+                </Button>
             </div>
 
             {/* Flights List Card */}
@@ -3113,7 +3345,7 @@ export default function FlightsPage() {
                                         onClick={() => handleSort('created_at')}
                                     >
                                         <div className="flex items-center gap-2">
-                                            Fecha Registro
+                                            FR
                                             {sortField === 'created_at' ? (
                                                 sortOrder === 'asc' ? <ChevronUp className="h-4 w-4 text-chimipink" /> : <ChevronDown className="h-4 w-4 text-chimipink" />
                                             ) : (
@@ -3134,6 +3366,7 @@ export default function FlightsPage() {
                                             )}
                                         </div>
                                     </th>
+                                    <th className="px-2 py-4 font-medium text-left bg-slate-50 min-w-[100px]">Estado</th>
                                     <th className="px-6 py-4 font-medium text-left bg-slate-50">PNR</th>
                                     <th className="px-6 py-4 font-medium text-left bg-slate-50">Cliente</th>
                                     {showDeudaOnly && <th className="px-6 py-4 font-medium text-left bg-slate-50">Teléfono</th>}
@@ -3152,7 +3385,6 @@ export default function FlightsPage() {
                                         <>
                                             <th className="px-6 py-4 font-medium text-left bg-slate-50">Pago</th>
                                             <th className="px-6 py-4 font-medium text-center bg-slate-50">Docs</th>
-                                            <th className="px-6 py-4 font-medium text-left bg-slate-50">Estado</th>
                                             <th className="px-1 sm:px-2 py-4 font-medium text-right sticky right-0 bg-pink-100/90 backdrop-blur-sm z-20 border-l border-pink-200 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.15)] text-pink-700">Acción</th>
                                         </>
                                     )}
@@ -3172,6 +3404,32 @@ export default function FlightsPage() {
                                             <td className={cn("px-6 py-4 font-medium text-slate-700", flight.status === 'Cancelado' && "line-through opacity-50")}>
                                                 {new Date(flight.travel_date).toLocaleDateString('es-PE', { timeZone: 'UTC' })}
                                             </td>
+                                            <td className="px-2 py-4">
+                                                <TooltipProvider delayDuration={0}>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <div className="relative group/status-cell">
+                                                                <select
+                                                                    value={STATUS_UI_MAP[flight.status] || flight.status}
+                                                                    onChange={(e) => handleStatusChange(flight.id, e.target.value)}
+                                                                    className={cn(
+                                                                        "appearance-none px-2 py-0.5 pr-6 rounded-full text-[8.5px] font-black uppercase border-0 cursor-pointer focus:ring-1 transition-all shadow-sm w-full truncate",
+                                                                        getStatusColorClass(flight.status)
+                                                                    )}
+                                                                >
+                                                                    {FLIGHT_STATUSES.map(s => (
+                                                                        <option key={s} value={s}>{s}</option>
+                                                                    ))}
+                                                                </select>
+                                                                <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-2 w-2 opacity-50 pointer-events-none" />
+                                                            </div>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent side="top" className="bg-slate-900 text-white border-slate-800 px-3 py-1.5 rounded-lg shadow-xl">
+                                                            <p className="text-[10px] font-black uppercase tracking-wider">{STATUS_UI_MAP[flight.status] || flight.status}</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                            </td>
                                             <td className="px-6 py-4 font-mono text-slate-600">
                                                 <div className="flex flex-col gap-1">
                                                     <Link href={`/chimi-vuelos/${flight.id}`} className="hover:text-chimipink hover:underline transition-all underline-offset-4 decoration-chimipink/30">
@@ -3187,11 +3445,10 @@ export default function FlightsPage() {
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <Link 
                                                     href={`/clients/${flight.client_id}`}
-                                                    className="font-medium text-slate-900 hover:text-chimipink hover:underline transition-all underline-offset-4 decoration-chimipink/30"
+                                                    className="font-medium text-slate-900 hover:text-chimipink hover:underline transition-all underline-offset-4 decoration-chimipink/30 uppercase text-xs"
                                                 >
-                                                    {flight.profiles?.first_name} {flight.profiles?.last_name}
+                                                    {flight.profiles?.first_name?.split(' ')[0]} {flight.profiles?.last_name?.split(' ')[0]}
                                                 </Link>
-                                                <div className="text-xs text-slate-500">{flight.profiles?.email}</div>
                                             </td>
                                             {showDeudaOnly && (
                                                 <td className="px-6 py-4">
@@ -3216,7 +3473,7 @@ export default function FlightsPage() {
                                             )}
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="text-xs text-slate-600 font-medium">
-                                                    {flight.agent ? `${flight.agent.first_name} ${flight.agent.last_name}` : '-'}
+                                                    {flight.agent ? `${flight.agent.first_name} ${flight.agent.last_name?.charAt(0)}.` : '-'}
                                                 </div>
                                             </td>
                                             {!showDeudaOnly && (
@@ -3298,22 +3555,6 @@ export default function FlightsPage() {
                                                         ) : (
                                                             <span className="text-slate-300">-</span>
                                                         )}
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <div className="relative">
-                                                            <select
-                                                                value={STATUS_UI_MAP[flight.status] || flight.status}
-                                                                onChange={(e) => handleStatusChange(flight.id, e.target.value)}
-                                                                className={cn(
-                                                                    "appearance-none px-3 py-1 pr-8 rounded-full text-[10px] font-black uppercase border-0 cursor-pointer focus:ring-2 focus:ring-offset-1 transition-all shadow-sm",
-                                                                    getStatusColorClass(flight.status)
-                                                                )}
-                                                            >
-                                                                {FLIGHT_STATUSES.map(s => (
-                                                                    <option key={s} value={s}>{s}</option>
-                                                                ))}
-                                                            </select>
-                                                        </div>
                                                     </td>
                                                     <td className="px-1 sm:px-2 py-4 text-right sticky right-0 bg-pink-50/90 backdrop-blur-sm group-hover:bg-pink-100 z-10 border-l border-pink-100 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.15)] transition-colors">
                                                         <div className="flex items-center justify-end gap-1 sm:gap-2">
