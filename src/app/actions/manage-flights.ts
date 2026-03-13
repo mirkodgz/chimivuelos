@@ -73,6 +73,7 @@ export interface Flight {
     payment_details?: PaymentDetail[]
     payment_proof_path?: string
     documents?: FlightDocument[]
+    is_advised?: boolean
     details?: Record<string, boolean | string | number | null>
     exchange_rate?: number
     ticket_type?: string
@@ -85,6 +86,7 @@ export interface Flight {
     required_documents?: Record<string, { required: boolean; status: string; extra?: string }>
     client_note?: string
     internal_note?: string
+    airlines?: string
     flight_date_history?: DateHistoryEntry[]
     profiles?: {
         first_name: string | null
@@ -135,7 +137,7 @@ export async function createFlight(formData: FormData) {
         const client_note = formData.get('client_note') as string || ''
         const internal_note = formData.get('internal_note') as string || ''
         
-        let details = {}
+        let details: Record<string, string | number | boolean | null> = {}
         try {
             const detailsStr = formData.get('details') as string
             if (detailsStr) details = JSON.parse(detailsStr)
@@ -248,16 +250,20 @@ export async function createFlight(formData: FormData) {
         const appointmentFile = formData.get('appointment_file') as File
         if (appointmentFile && appointmentFile.size > 0) {
             const uploadResult = await uploadClientFile(appointmentFile, client_id)
-            const detailsObj = details as any
-            detailsObj.appointment_file_path = uploadResult.path
-            detailsObj.appointment_file_storage = uploadResult.storage
+            details['appointment_file_path'] = uploadResult.path
+            details['appointment_file_storage'] = uploadResult.storage
         }
+
+        const airlines = formData.get('airlines') as string || null
+
+        const is_advised = formData.get('is_advised') === 'true'
 
         const insertData = {
             client_id,
             travel_date,
             pnr,
             itinerary,
+            airlines,
             cost,
             on_account,
             balance,
@@ -283,6 +289,7 @@ export async function createFlight(formData: FormData) {
             client_note,
             internal_note,
             documents,
+            is_advised,
             created_at: new Date().toISOString()
         }
 
@@ -375,7 +382,7 @@ export async function updateFlight(formData: FormData, isDraft: boolean = false)
         const client_note = formData.get('client_note') as string || ''
         const internal_note = formData.get('internal_note') as string || ''
 
-        let details = {}
+        let details: Record<string, string | number | boolean | null> = {}
         try {
             const detailsStr = formData.get('details') as string
             if (detailsStr) details = JSON.parse(detailsStr)
@@ -484,9 +491,8 @@ export async function updateFlight(formData: FormData, isDraft: boolean = false)
         const appointmentFile = formData.get('appointment_file') as File
         if (appointmentFile && appointmentFile.size > 0) {
             const uploadResult = await uploadClientFile(appointmentFile, client_id)
-            const detailsObj = details as any
-            detailsObj.appointment_file_path = uploadResult.path
-            detailsObj.appointment_file_storage = uploadResult.storage
+            details['appointment_file_path'] = uploadResult.path
+            details['appointment_file_storage'] = uploadResult.storage
         }
 
         const on_account = totalOnAccount 
@@ -496,11 +502,16 @@ export async function updateFlight(formData: FormData, isDraft: boolean = false)
         const ticket_type = formData.get('ticket_type') as string
 
 
+        const airlines = formData.get('airlines') as string || null
+
+        const is_advised = formData.get('is_advised') === 'true'
+
         const updateData = {
             client_id,
             travel_date,
             pnr,
             itinerary,
+            airlines,
             cost,
             on_account,
             balance,
@@ -525,6 +536,7 @@ export async function updateFlight(formData: FormData, isDraft: boolean = false)
             required_documents,
             client_note,
             internal_note,
+            is_advised,
             updated_at: new Date().toISOString()
         }
 
@@ -875,18 +887,20 @@ export async function getFlights(params: FetchFlightsParams) {
  */
 export async function getInitialChimiVuelosData() {
     try {
-        const [clients, itineraries, methodsIT, methodsPE] = await Promise.all([
+        const [clients, itineraries, methodsIT, methodsPE, airlines] = await Promise.all([
             getClientsForDropdown(),
             getItineraries(),
             getPaymentMethodsIT(),
-            getPaymentMethodsPE()
+            getPaymentMethodsPE(),
+            getAirlinesList()
         ])
         
         return {
             clients,
             itineraries,
             paymentMethodsIT: methodsIT,
-            paymentMethodsPE: methodsPE
+            paymentMethodsPE: methodsPE,
+            airlines
         }
     } catch (error) {
         console.error('Error in unified fetcher:', error)
@@ -894,7 +908,8 @@ export async function getInitialChimiVuelosData() {
             clients: [],
             itineraries: [],
             paymentMethodsIT: [],
-            paymentMethodsPE: []
+            paymentMethodsPE: [],
+            airlines: []
         }
     }
 }
@@ -1206,4 +1221,23 @@ export async function getFlightFullDetails(id: string) {
         console.error('Error in getFlightFullDetails:', err)
         return { success: false, error: 'Error al cargar los detalles' }
     }
+}
+
+/**
+ * Gets active airlines from the database
+ */
+export async function getAirlinesList() {
+    const supabase = supabaseAdmin
+    const { data, error } = await supabase
+        .from('airlines')
+        .select('code, name')
+        .eq('is_active', true)
+        .order('name', { ascending: true })
+
+    if (error) {
+        console.error('Error fetching airlines:', error)
+        return []
+    }
+    // Formato CODE--NAME como solicitado
+    return data.map(item => `${item.code}--${item.name}`)
 }
