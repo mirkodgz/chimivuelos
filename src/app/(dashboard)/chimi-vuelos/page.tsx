@@ -3471,6 +3471,8 @@ export default function FlightsPage() {
                                             </th>
                                             <th className="px-6 py-4 font-black uppercase text-slate-500 tracking-widest whitespace-nowrap">PNR</th>
                                             <th className="px-6 py-4 text-center font-black uppercase text-slate-500 tracking-widest whitespace-nowrap">Estado</th>
+                                            <th className="px-6 py-4 text-center font-black uppercase text-slate-500 tracking-widest whitespace-nowrap">Asesorado</th>
+                                            <th className="px-6 py-4 font-black uppercase text-slate-500 tracking-widest whitespace-nowrap">Aerolínea</th>
                                             <th className="px-6 py-4 font-black uppercase text-slate-500 tracking-widest whitespace-nowrap">Itinerario</th>
                                             <th className="px-6 py-4 font-black uppercase text-slate-500 tracking-widest whitespace-nowrap">Tipo Pasaje</th>
                                             <th className="px-6 py-4 font-black uppercase text-chimipink tracking-widest whitespace-nowrap">Invito</th>
@@ -3533,7 +3535,7 @@ export default function FlightsPage() {
                             <tbody className="divide-y divide-slate-100">
                                 {flights.length === 0 && !isLoading ? (
                                     <tr>
-                                        <td colSpan={showUpcomingOnly ? 7 : (showDeudaOnly ? 8 : 16)} className="px-6 py-8 text-center text-slate-500">No se encontraron vuelos.</td>
+                                        <td colSpan={showUpcomingOnly ? 9 : (showDeudaOnly ? 8 : 16)} className="px-6 py-8 text-center text-slate-500">No se encontraron vuelos.</td>
                                     </tr>
                                 ) : (
                                     showUpcomingOnly ? (
@@ -3595,6 +3597,20 @@ export default function FlightsPage() {
                                                 <td className="px-6 py-4 text-center">
                                                     <span className={cn("px-3 py-1 rounded-full text-[8.5px] font-black uppercase shadow-[0_2px_10px_rgba(0,0,0,0.05)]", getStatusColorClass(flight.status))}>
                                                         {STATUS_UI_MAP[flight.status] || flight.status}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    {flight.is_advised && (
+                                                        <div className="flex items-center justify-center">
+                                                            <div className="bg-blue-50 p-1.5 rounded-lg border border-blue-100/50 shadow-sm group-hover:bg-blue-100/80 transition-all">
+                                                                <CheckCircle2 className="h-3.5 w-3.5 text-blue-600" />
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className="text-[10px] font-black text-slate-700 uppercase tracking-tighter bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-md whitespace-nowrap">
+                                                        {flight.airlines || '-'}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4">
