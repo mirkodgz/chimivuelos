@@ -426,7 +426,7 @@ export function FlightSalesNote({ flight, onClose }: { flight: Flight, onClose: 
                                 </div>
                                 <div className="space-y-1 md:text-right flex flex-col items-center md:items-end">
                                     <h5 className="text-[8px] font-black uppercase tracking-widest text-slate-500">Canal Digital</h5>
-                                    <p className="text-[8px] font-black text-slate-900 uppercase">www.chimi-peru.com</p>
+                                    <p className="text-[8px] font-black text-slate-900 uppercase">www.chimivuelos.pe</p>
                                 </div>
                             </div>
 

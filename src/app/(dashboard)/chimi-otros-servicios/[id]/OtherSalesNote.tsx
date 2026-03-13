@@ -301,7 +301,7 @@ export function OtherSalesNote({ service, onClose }: { service: OtherService, on
                                 </div>
                                 <div className="md:text-right flex flex-col items-center md:items-end">
                                     <h5 className="font-black uppercase tracking-widest text-slate-500">Canal Digital</h5>
-                                    <p className="font-black text-slate-900 uppercase tracking-tighter">www.chimi-peru.com</p>
+                                    <p className="font-black text-slate-900 uppercase tracking-tighter">www.chimivuelos.pe</p>
                                 </div>
                             </div>
 

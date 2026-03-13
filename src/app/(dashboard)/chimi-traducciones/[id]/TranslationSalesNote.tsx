@@ -316,7 +316,7 @@ export function TranslationSalesNote({ translation, onClose }: { translation: Tr
                                 </div>
                                 <div className="md:text-right flex flex-col items-center md:items-end">
                                     <h5 className="font-black uppercase tracking-widest text-slate-500">Canal Digital</h5>
-                                    <p className="font-black text-slate-900 uppercase">www.chimi-peru.com</p>
+                                    <p className="font-black text-slate-900 uppercase">www.chimivuelos.pe</p>
                                 </div>
                             </div>
 
