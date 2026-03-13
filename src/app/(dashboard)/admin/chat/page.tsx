@@ -11,7 +11,8 @@ import {
   type Message,
   type Conversation,
 } from "@/app/actions/chat";
-import { Search, Send, User, MessageCircle, ArrowLeft } from "lucide-react";
+import { Search, Send, User, MessageCircle, ArrowLeft, Phone, Copy } from "lucide-react";
+import { toast } from "sonner";
 
 // Layout for Admin Chat
 // Left Sidebar: List of conversations
@@ -364,7 +365,23 @@ export default function AdminChatPage() {
                   </p>
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-center">
+                {selectedConversation?.profiles?.phone && (
+                   <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-100 text-slate-600 text-xs rounded-full font-medium group">
+                      <Phone size={12} className="text-slate-400" />
+                      <span>{selectedConversation.profiles.phone}</span>
+                      <button 
+                         onClick={() => {
+                            navigator.clipboard.writeText(selectedConversation.profiles!.phone!);
+                            toast.success("Número copiado al portapapeles");
+                         }}
+                         className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-200 rounded transition-all text-slate-500"
+                         title="Copiar número"
+                      >
+                         <Copy size={12} />
+                      </button>
+                   </div>
+                )}
                 <div className="hidden sm:block px-3 py-1 bg-slate-100 text-slate-500 text-xs rounded-full font-medium">
                   {selectedConversation?.profiles?.email}
                 </div>

@@ -6,7 +6,9 @@ import {
     ChevronLeft, 
     Eye,
     AlertCircle,
-    Printer
+    Printer,
+    Calendar,
+    CalendarClock
 } from "lucide-react"
 import { LinkedResourceCard } from "@/components/LinkedResourceCard"
 import { FlightSalesNote } from "./FlightSalesNote"
@@ -47,8 +49,10 @@ const DETAILS_LABELS: Record<string, string> = {
     baggage_backpack: "1 Mochila",
     insurance_tourism_active: "Seguro (Turista / Schengen)",
     insurance_migratory: "Seguro migratorio",
-    svc_stewardess_um: "Azafata UMNR (Incluido)",
-    svc_stewardess_um_unpaid: "Azafata UMNR (No Incluido)",
+    svc_stewardess_agency: "Azafata UMNR (Solicitud Agencia)",
+    svc_stewardess_paid_client: "Azafata UMNR (Pago Cliente)",
+    svc_stewardess_paid_airline: "Azafata UMNR (Pago Aerolínea)",
+    svc_stewardess_paid_airport: "Azafata UMNR (Pago Aeropuerto)",
     svc_pet_travel: "Viaja con mascota",
 }
 
@@ -263,6 +267,81 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
                                         </div>
                                     </div>
                                 )}
+                                
+                                {/* 1.5 Citas Programadas */}
+                                {flight.details?.appointments && Array.isArray(flight.details.appointments) && flight.details.appointments.length > 0 && (
+                                    <div className="pt-6 border-t border-slate-100/50">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <CalendarClock className="h-4 w-4 text-chimipink" />
+                                            <h3 className="text-[11px] font-black uppercase text-slate-800 tracking-widest">Citas Programadas</h3>
+                                        </div>
+                                        <div className="space-y-3">
+                                            {flight.details.appointments.map((apt: { date?: string; location?: string; note?: string; documents?: { title: string; name: string; path: string; storage: 'r2' | 'images' }[]; file_path?: string; file_storage?: string }, idx: number) => (
+                                                <div key={idx} className="bg-white border text-left border-slate-200 rounded-xl p-3 shadow-sm">
+                                                    <div className="flex items-center gap-2 mb-1.5 border-b border-slate-100 pb-2">
+                                                        <Calendar className="h-4 w-4 text-chimipink" />
+                                                        <span className="font-bold text-sm text-slate-700">Cita {idx + 1}</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                                                        <div className="p-2 bg-slate-50 rounded-lg">
+                                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-0.5">Fecha</span>
+                                                            <span className="font-bold text-slate-700">{apt.date ? new Date(apt.date).toLocaleDateString() : 'N/D'}</span>
+                                                        </div>
+                                                        <div className="p-2 bg-slate-50 rounded-lg">
+                                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-0.5">Lugar</span>
+                                                            <span className="text-slate-600 line-clamp-1">{apt.location || 'N/D'}</span>
+                                                        </div>
+                                                    </div>
+                                                    {apt.note && (
+                                                        <div className="mt-2 p-2 bg-orange-50/50 border border-orange-100/50 rounded-lg">
+                                                            <span className="text-[9px] font-black uppercase tracking-widest text-orange-400 block mb-0.5">Notas</span>
+                                                            <span className="text-slate-600 text-xs italic">{apt.note}</span>
+                                                        </div>
+                                                    )}
+                                                    {(apt.documents && apt.documents.length > 0) || apt.file_path ? (
+                                                        <div className="mt-3 space-y-2">
+                                                            <span className="text-[9px] font-black uppercase tracking-widest text-chimiteal block mb-1">Archivos Adjuntos</span>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {apt.documents && apt.documents.length > 0 ? (
+                                                                    apt.documents.map((doc: { title: string; name: string; path: string; storage: 'r2' | 'images' }, dIdx: number) => (
+                                                                        <Button 
+                                                                            key={dIdx}
+                                                                            variant="outline" 
+                                                                            size="sm"
+                                                                            className="h-7 text-[10px] bg-teal-50/30 text-teal-700 border-teal-100 hover:bg-teal-50 hover:text-teal-800"
+                                                                            onClick={(e) => {
+                                                                                e.preventDefault();
+                                                                                e.stopPropagation();
+                                                                                handleDownload(doc.path, doc.storage);
+                                                                            }}
+                                                                        >
+                                                                            <Eye className="h-3 w-3 mr-1.5" />
+                                                                            VER
+                                                                        </Button>
+                                                                    ))
+                                                                ) : (
+                                                                    <Button 
+                                                                        variant="outline" 
+                                                                        size="sm"
+                                                                        className="h-7 text-[10px] bg-teal-50/30 text-teal-700 border-teal-100 hover:bg-teal-50 hover:text-teal-800"
+                                                                        onClick={(e) => {
+                                                                            e.preventDefault();
+                                                                            e.stopPropagation();
+                                                                            handleDownload(apt.file_path!, (apt.file_storage as 'r2' | 'images') || 'r2');
+                                                                        }}
+                                                                    >
+                                                                        <Eye className="h-3 w-3 mr-1.5" />
+                                                                        VER
+                                                                    </Button>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ) : null}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </section>
 
                             <div className="pt-4 border-t border-slate-50" />
@@ -416,10 +495,6 @@ export default function FlightDetailsPage({ params }: { params: Promise<{ id: st
                                         <p className="text-sm font-bold text-slate-700">
                                             {flight.agent ? `${flight.agent.first_name} ${flight.agent.last_name}` : 'Admin'}
                                         </p>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <span className="text-[9px] uppercase font-black text-slate-400 tracking-wider block">ID Registro</span>
-                                        <p className="text-[10px] font-mono font-medium text-slate-400">{flight.id}</p>
                                     </div>
                                 </div>
                             </section>

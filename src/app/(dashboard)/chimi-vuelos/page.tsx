@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Plus, Search, Trash2, Edit, FileText, Download, FileSpreadsheet, ChevronLeft, ChevronRight, ChevronDown, ListChecks, Wallet, Check, X, Calendar, Building2, User, Copy, Pencil, RefreshCw, AlertTriangle, NotebookPen, ClipboardList, ArrowUpDown, ChevronUp, Phone, CheckCircle2, Receipt } from 'lucide-react'
+import { Plus, Search, Trash2, Edit, FileText, Download, FileSpreadsheet, ChevronLeft, ChevronRight, ChevronDown, ListChecks, Wallet, Check, X, Calendar, Building2, User, Copy, Pencil, RefreshCw, AlertTriangle, NotebookPen, ClipboardList, ArrowUpDown, ChevronUp, Phone, CheckCircle2, Receipt, Eye } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import * as XLSX from 'xlsx'
@@ -136,8 +136,10 @@ interface FlightDetails {
     insurance_tourism_date_to: string
     insurance_tourism_active: boolean
     insurance_migratory: boolean
-    svc_stewardess_um: boolean
-    svc_stewardess_um_unpaid: boolean
+    svc_stewardess_agency: boolean
+    svc_stewardess_paid_client: boolean
+    svc_stewardess_paid_airline: boolean
+    svc_stewardess_paid_airport: boolean
     svc_pet_travel: boolean
     hotel_custom_active: boolean
     hotel_custom_days: string
@@ -171,8 +173,10 @@ const DETAILS_LABELS: Record<string, string> = {
     baggage_backpack: "1 Mochila",
     insurance_tourism_active: "Seguro (Turista / Schengen)",
     insurance_migratory: "Seguro migratorio",
-    svc_stewardess_um: "Solicitud de azafata para menor de edad (UMNR) +225 EURO PAGO SÍ INCLUIDO EN EL PRECIO",
-    svc_stewardess_um_unpaid: "Solicitud de azafata para menor de edad (UMNR) +225 EURO PAGO NO INCLUIDO EN EL PRECIO",
+    svc_stewardess_agency: "La agencia realiza la solicitud de azafata.",
+    svc_stewardess_paid_client: "Azafata pagada — cliente hizo el pago del servicio.",
+    svc_stewardess_paid_airline: "Azafata solicitada y pagada a la aerolínea.",
+    svc_stewardess_paid_airport: "Azafata se paga en aeropuerto — Pago en check-in.",
     svc_pet_travel: "Viaja con mascota",
     doc_electronic_ticket: "BOLETA ELECTRONICA (para tramite de pasaporte 48 horas antes)"
 }
@@ -320,8 +324,10 @@ const INITIAL_FLIGHT_DETAILS: FlightDetails = {
     insurance_tourism_date_to: '',
     insurance_tourism_active: false,
     insurance_migratory: false,
-    svc_stewardess_um: false,
-    svc_stewardess_um_unpaid: false,
+    svc_stewardess_agency: false,
+    svc_stewardess_paid_client: false,
+    svc_stewardess_paid_airline: false,
+    svc_stewardess_paid_airport: false,
     svc_pet_travel: false,
     hotel_custom_active: false,
     hotel_custom_days: '',
@@ -1331,8 +1337,9 @@ export default function FlightsPage() {
                                             <span className="text-xs text-slate-500">{(doc.size / 1024).toFixed(1)} KB</span>
                                         </div>
                                     </div>
-                                    <Button size="sm" variant="ghost" className="text-blue-600 hover:text-blue-800" onClick={() => handleDownload(doc.path, doc.storage)}>
-                                        <Download className="h-4 w-4" />
+                                    <Button size="sm" variant="ghost" className="text-blue-600 hover:text-blue-800 flex gap-2 items-center font-bold" onClick={() => handleDownload(doc.path, doc.storage)}>
+                                        <Eye className="h-4 w-4" />
+                                        <span>Ver</span>
                                     </Button>
                                 </div>
                             ))
@@ -2442,13 +2449,21 @@ export default function FlightsPage() {
                                                 <input type="checkbox" checked={flightDetails.svc_return_activation} onChange={(e) => handleDetailChange('svc_return_activation', e.target.checked)} className="rounded border-slate-300 text-chimipink focus:ring-chimipink" />
                                                 Activación pasaje retorno
                                             </label>
-                                            <label className="flex items-center gap-2 text-[11px] cursor-pointer bg-emerald-50 border border-emerald-100 text-emerald-800 p-1.5 rounded-lg hover:bg-emerald-100 transition-colors">
-                                                <input type="checkbox" checked={flightDetails.svc_stewardess_um} onChange={(e) => handleDetailChange('svc_stewardess_um', e.target.checked)} className="rounded border-emerald-300 text-emerald-600 focus:ring-emerald-500" />
-                                                Solicitud de azafata para menor de edad (UMNR) +225 EURO PAGO SÍ INCLUIDO EN EL PRECIO
+                                            <label className="flex items-center gap-2 text-[11px] cursor-pointer bg-slate-50 border border-slate-200 text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition-colors">
+                                                <input type="checkbox" checked={flightDetails.svc_stewardess_agency} onChange={(e) => handleDetailChange('svc_stewardess_agency', e.target.checked)} className="rounded border-slate-300 text-chimipink focus:ring-chimipink" />
+                                                La agencia realiza la solicitud de azafata.
                                             </label>
-                                            <label className="flex items-center gap-2 text-[11px] cursor-pointer bg-rose-50 border border-rose-100 text-rose-800 p-1.5 rounded-lg hover:bg-rose-100 transition-colors">
-                                                <input type="checkbox" checked={flightDetails.svc_stewardess_um_unpaid} onChange={(e) => handleDetailChange('svc_stewardess_um_unpaid', e.target.checked)} className="rounded border-rose-300 text-rose-600 focus:ring-rose-500" />
-                                                Solicitud de azafata para menor de edad (UMNR) +225 EURO PAGO NO INCLUIDO EN EL PRECIO
+                                            <label className="flex items-center gap-2 text-[11px] cursor-pointer bg-emerald-50 border border-emerald-100 text-emerald-800 p-1.5 rounded-lg hover:bg-emerald-100 transition-colors">
+                                                <input type="checkbox" checked={flightDetails.svc_stewardess_paid_client} onChange={(e) => handleDetailChange('svc_stewardess_paid_client', e.target.checked)} className="rounded border-emerald-300 text-emerald-600 focus:ring-emerald-500" />
+                                                Azafata pagada — cliente hizo el pago del servicio.
+                                            </label>
+                                            <label className="flex items-center gap-2 text-[11px] cursor-pointer bg-blue-50 border border-blue-100 text-blue-800 p-1.5 rounded-lg hover:bg-blue-100 transition-colors">
+                                                <input type="checkbox" checked={flightDetails.svc_stewardess_paid_airline} onChange={(e) => handleDetailChange('svc_stewardess_paid_airline', e.target.checked)} className="rounded border-blue-300 text-blue-600 focus:ring-blue-500" />
+                                                Azafata solicitada y pagada a la aerolínea.
+                                            </label>
+                                            <label className="flex items-center gap-2 text-[11px] cursor-pointer bg-amber-50 border border-amber-100 text-amber-800 p-1.5 rounded-lg hover:bg-amber-100 transition-colors">
+                                                <input type="checkbox" checked={flightDetails.svc_stewardess_paid_airport} onChange={(e) => handleDetailChange('svc_stewardess_paid_airport', e.target.checked)} className="rounded border-amber-300 text-amber-600 focus:ring-amber-500" />
+                                                Azafata se paga en aeropuerto — Pago en check-in.
                                             </label>
                                             <label className="flex items-center gap-2 text-sm cursor-pointer hover:bg-slate-100 p-1 rounded">
                                                 <input type="checkbox" checked={flightDetails.svc_pet_travel} onChange={(e) => handleDetailChange('svc_pet_travel', e.target.checked)} className="rounded border-slate-300 text-chimipink focus:ring-chimipink" />
@@ -2595,7 +2610,7 @@ export default function FlightsPage() {
                                                                 className="h-9 px-3 gap-1 text-[10px] whitespace-nowrap border-chimipink/30 text-chimipink hover:bg-chimipink/5 bg-white"
                                                                 onClick={() => handleDownload(app.file_path!, app.file_storage || 'r2')}
                                                             >
-                                                                <FileText className="h-3 w-3" />
+                                                                <Eye className="h-3 w-3" />
                                                                 Ver Documento
                                                             </Button>
                                                         )}

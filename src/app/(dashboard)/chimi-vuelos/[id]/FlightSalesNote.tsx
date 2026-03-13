@@ -24,8 +24,10 @@ const DETAILS_LABELS: Record<string, string> = {
     baggage_backpack: "Artículo personal (Mochila)",
     insurance_tourism_active: "Seguro de Turismo / Schengen",
     insurance_migratory: "Seguro Migratorio / Requisito",
-    svc_stewardess_um: "Servicio Azafata UMNR",
-    svc_stewardess_um_unpaid: "Servicio Azafata UMNR (No pagado)",
+    svc_stewardess_agency: "Azafata UMNR (Agencia realiza solicitud)",
+    svc_stewardess_paid_client: "Azafata UMNR (Cliente hizo el pago)",
+    svc_stewardess_paid_airline: "Azafata UMNR (Solicitada y pagada a aerolínea)",
+    svc_stewardess_paid_airport: "Azafata UMNR (Se paga en aeropuerto)",
     svc_pet_travel: "Transporte de Mascota",
 }
 

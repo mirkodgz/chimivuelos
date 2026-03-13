@@ -1,6 +1,6 @@
 import { getFlightById } from '@/app/actions/client-portal'
 import { redirect } from 'next/navigation'
-import { Plane, Calendar, FileText, Banknote, NotebookPen } from 'lucide-react'
+import { Plane, Calendar, FileText, Banknote, NotebookPen, CalendarClock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -58,8 +58,10 @@ const DETAILS_LABELS: Record<string, string> = {
     baggage_backpack: "1 Mochila",
     insurance_tourism_active: "Seguro (Turista / Schengen)",
     insurance_migratory: "Seguro migratorio",
-    svc_stewardess_um: "Solicitud de azafata para menor de edad (UMNR) +225 EURO PAGO SÍ INCLUIDO EN EL PRECIO",
-    svc_stewardess_um_unpaid: "Solicitud de azafata para menor de edad (UMNR) +225 EURO PAGO NO INCLUIDO EN EL PRECIO",
+    svc_stewardess_agency: "La agencia realiza la solicitud de azafata.",
+    svc_stewardess_paid_client: "Azafata pagada — cliente hizo el pago del servicio.",
+    svc_stewardess_paid_airline: "Azafata solicitada y pagada a la aerolínea.",
+    svc_stewardess_paid_airport: "Azafata se paga en aeropuerto — Pago en check-in.",
     svc_pet_travel: "Viaja con mascota",
 }
 
@@ -71,7 +73,8 @@ export default async function FlightDetailPage({ params }: { params: { id: strin
         redirect('/portal/vuelos')
     }
 
-    let flightDetails: Record<string, string | boolean | number> = {}
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let flightDetails: Record<string, any> = {}
     try {
         if (typeof flight?.details === 'string') {
             flightDetails = JSON.parse(flight.details)
@@ -200,6 +203,56 @@ export default async function FlightDetailPage({ params }: { params: { id: strin
                                             </div>
                                         </div>
                                     )}
+
+                                    {/* Appointments Section */}
+                                    {flightDetails?.appointments && Array.isArray(flightDetails.appointments) && flightDetails.appointments.length > 0 && (
+                                        <div>
+                                            <h3 className="text-xs font-bold text-chimipink uppercase tracking-wider mb-2 flex items-center gap-2">
+                                                <CalendarClock size={14} /> Citas Progamadas
+                                            </h3>
+                                            <div className="space-y-3">
+                                                {flightDetails.appointments.map((apt: { date?: string; location?: string; note?: string; documents?: { title: string; name: string; path: string; storage: 'r2' | 'images' }[]; file_path?: string; file_storage?: string }, idx: number) => (
+                                                    <div key={idx} className="bg-white/40 p-4 rounded-lg border border-white/40 shadow-sm">
+                                                        <div className="flex items-center gap-2 mb-2 pb-2 border-b border-white/30">
+                                                            <Calendar className="h-4 w-4 text-chimipink" />
+                                                            <span className="font-bold text-sm text-slate-700">Cita {idx + 1}</span>
+                                                        </div>
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
+                                                            <div>
+                                                                <span className="text-[10px] font-bold uppercase text-slate-500 block">Fecha</span>
+                                                                <span className="text-sm font-medium text-slate-800">{apt.date ? new Date(apt.date).toLocaleDateString() : 'N/D'}</span>
+                                                            </div>
+                                                            <div>
+                                                                <span className="text-[10px] font-bold uppercase text-slate-500 block">Lugar</span>
+                                                                <span className="text-sm font-medium text-slate-800">{apt.location || 'N/D'}</span>
+                                                            </div>
+                                                        </div>
+                                                        {apt.note && (
+                                                            <div className="mt-2 text-sm text-slate-600 italic bg-white/30 p-2 rounded border border-white/20">
+                                                                <span className="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Notas</span>
+                                                                {apt.note}
+                                                            </div>
+                                                        )}
+                                                        {(apt.documents && apt.documents.length > 0) || apt.file_path ? (
+                                                            <div className="mt-3 pt-3 border-t border-white/30">
+                                                                <span className="text-[10px] font-bold uppercase text-slate-500 block mb-2">Documentos Adjuntos</span>
+                                                                <div className="grid grid-cols-1 gap-2">
+                                                                    {apt.documents && apt.documents.length > 0 ? (
+                                                                        apt.documents.map((doc: { title: string; name: string; path: string; storage: 'r2' | 'images' }, dIdx: number) => (
+                                                                            <FlightDocumentRow key={dIdx} doc={doc} />
+                                                                        ))
+                                                                    ) : (
+                                                                        <FlightDocumentRow doc={{ title: 'Documento Adjunto', path: apt.file_path!, name: 'documento', storage: (apt.file_storage as 'r2' | 'images') || 'r2' }} />
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        ) : null}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* Status History */}
                                     <div>
                                         <StatusHistory 

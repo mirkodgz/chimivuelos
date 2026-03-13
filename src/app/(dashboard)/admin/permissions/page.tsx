@@ -129,7 +129,10 @@ const DETAIL_MAP: Record<string, string> = {
     baggage_backpack: "Mochila",
     insurance_tourism_active: "Seguro Turista",
     insurance_migratory: "Seguro Migratorio",
-    svc_stewardess_um: "Serv. Azafata UM",
+    svc_stewardess_agency: "Azafata (Agencia)",
+    svc_stewardess_paid_client: "Azafata (Cliente)",
+    svc_stewardess_paid_airline: "Azafata (Aerolínea)",
+    svc_stewardess_paid_airport: "Azafata (Aeropuerto)",
     svc_pet_travel: "Mascota",
     hotel_custom_active: "Hotel Personalizado"
 };

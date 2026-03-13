@@ -155,7 +155,8 @@ export async function getAdminConversations() {
             profiles:client_id (
                 first_name,
                 last_name,
-                email
+                email,
+                phone
             )
         `)
         .order('last_message_at', { ascending: false })
