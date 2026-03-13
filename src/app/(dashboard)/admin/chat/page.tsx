@@ -395,10 +395,20 @@ export default function AdminChatPage() {
                     <div
                       className={`flex items-center justify-end gap-1 mt-1 text-[10px] ${msg.is_admin ? "text-pink-100" : "text-slate-400"}`}
                     >
-                      {new Date(msg.created_at).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      {(() => {
+                        const date = new Date(msg.created_at);
+                        const now = new Date();
+                        const isToday = date.toDateString() === now.toDateString();
+                        const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        
+                        if (isToday) return `Hoy, ${timeStr}`;
+                        
+                        const yesterday = new Date();
+                        yesterday.setDate(now.getDate() - 1);
+                        if (date.toDateString() === yesterday.toDateString()) return `Ayer, ${timeStr}`;
+                        
+                        return `${date.toLocaleDateString([], { day: '2-digit', month: 'short' })}, ${timeStr}`;
+                      })()}
                     </div>
                   </div>
                 </div>

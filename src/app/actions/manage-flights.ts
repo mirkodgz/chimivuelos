@@ -27,6 +27,34 @@ export interface DateHistoryEntry {
     changed_by: string
 }
 
+export interface Appointment {
+    date: string
+    location: string
+    note: string
+    file_path?: string
+    file_storage?: 'r2' | 'images'
+}
+
+export interface FlightDetails {
+    appointments?: Appointment[]
+    appointment_date?: string
+    appointment_location?: string
+    appointment_note?: string
+    appointment_file_path?: string
+    appointment_file_storage?: 'r2' | 'images'
+    doc_agency_managed?: boolean
+    doc_agency_managed_text?: string
+    special_note?: string
+    insurance_tourism_active?: boolean
+    insurance_tourism_date_from?: string
+    insurance_tourism_date_to?: string
+    hotel_2d_1n?: boolean
+    hotel_custom_active?: boolean
+    hotel_custom_days?: string
+    hotel_custom_nights?: string
+    [key: string]: unknown
+}
+
 /**
  * Creates a new flight record
  */
@@ -74,7 +102,7 @@ export interface Flight {
     payment_proof_path?: string
     documents?: FlightDocument[]
     is_advised?: boolean
-    details?: Record<string, boolean | string | number | null>
+    details?: FlightDetails
     exchange_rate?: number
     ticket_type?: string
     pax_adt?: number
@@ -137,7 +165,7 @@ export async function createFlight(formData: FormData) {
         const client_note = formData.get('client_note') as string || ''
         const internal_note = formData.get('internal_note') as string || ''
         
-        let details: Record<string, string | number | boolean | null> = {}
+        let details: FlightDetails = {}
         try {
             const detailsStr = formData.get('details') as string
             if (detailsStr) details = JSON.parse(detailsStr)
@@ -246,6 +274,18 @@ export async function createFlight(formData: FormData) {
 
         const ticket_type = formData.get('ticket_type') as string
         
+        // Handle Multiple Appointment Files
+        if (details.appointments && Array.isArray(details.appointments)) {
+            for (let i = 0; i < details.appointments.length; i++) {
+                const appFile = formData.get(`appointment_file_${i}`) as File
+                if (appFile && appFile.size > 0) {
+                    const uploadResult = await uploadClientFile(appFile, client_id)
+                    details.appointments[i].file_path = uploadResult.path
+                    details.appointments[i].file_storage = uploadResult.storage
+                }
+            }
+        }
+
         // Handle Appointment File if exists
         const appointmentFile = formData.get('appointment_file') as File
         if (appointmentFile && appointmentFile.size > 0) {
@@ -382,7 +422,7 @@ export async function updateFlight(formData: FormData, isDraft: boolean = false)
         const client_note = formData.get('client_note') as string || ''
         const internal_note = formData.get('internal_note') as string || ''
 
-        let details: Record<string, string | number | boolean | null> = {}
+        let details: FlightDetails = {}
         try {
             const detailsStr = formData.get('details') as string
             if (detailsStr) details = JSON.parse(detailsStr)
@@ -485,6 +525,18 @@ export async function updateFlight(formData: FormData, isDraft: boolean = false)
                 })
             }
             docIndex++
+        }
+
+        // Handle Multiple Appointment Files
+        if (details.appointments && Array.isArray(details.appointments)) {
+            for (let i = 0; i < details.appointments.length; i++) {
+                const appFile = formData.get(`appointment_file_${i}`) as File
+                if (appFile && appFile.size > 0) {
+                    const uploadResult = await uploadClientFile(appFile, client_id)
+                    details.appointments[i].file_path = uploadResult.path
+                    details.appointments[i].file_storage = uploadResult.storage
+                }
+            }
         }
 
         // Handle Appointment File if exists

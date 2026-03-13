@@ -107,6 +107,14 @@ interface ClientOption {
     document_number: string
 }
 
+interface Appointment {
+    date: string
+    location: string
+    note: string
+    file_path?: string | null
+    file_storage?: 'r2' | 'images' | null
+}
+
 interface FlightDetails {
     ticket_one_way: boolean
     ticket_round_trip: boolean
@@ -141,6 +149,7 @@ interface FlightDetails {
     appointment_note?: string
     appointment_file_path?: string | null
     appointment_file_storage?: 'r2' | 'images' | null
+    appointments?: Appointment[]
 }
 
 const DETAILS_LABELS: Record<string, string> = {
@@ -323,7 +332,8 @@ const INITIAL_FLIGHT_DETAILS: FlightDetails = {
     appointment_location: '',
     appointment_note: '',
     appointment_file_path: null,
-    appointment_file_storage: null
+    appointment_file_storage: null,
+    appointments: []
 }
 
 export default function FlightsPage() {
@@ -477,7 +487,7 @@ export default function FlightsPage() {
 
     const [showPaymentFields, setShowPaymentFields] = useState(false)
     const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null)
-    const [appointmentFile, setAppointmentFile] = useState<File | null>(null)
+    const [appointmentFiles, setAppointmentFiles] = useState<Record<number, File | null>>({})
     const [showAppointmentFields, setShowAppointmentFields] = useState(false)
 
     const [flightDetails, setFlightDetails] = useState(INITIAL_FLIGHT_DETAILS)
@@ -763,12 +773,46 @@ export default function FlightsPage() {
         setFlightDetails(INITIAL_FLIGHT_DETAILS)
         setShowPaymentFields(false)
         setPaymentProofFile(null)
-        setAppointmentFile(null)
+        setAppointmentFiles({})
         setShowAppointmentFields(false)
         setBaseOnAccount(0)
         setTempPayments([])
         setTempPaymentProofs([])
         setAirlineSearch('')
+    }
+
+    const handleAddAppointment = () => {
+        setFlightDetails(prev => ({
+            ...prev,
+            appointments: [
+                ...(prev.appointments || []),
+                { date: '', location: '', note: '' }
+            ]
+        }))
+    }
+
+    const handleRemoveAppointment = (index: number) => {
+        setFlightDetails(prev => ({
+            ...prev,
+            appointments: (prev.appointments || []).filter((_, i) => i !== index)
+        }))
+        setAppointmentFiles(prev => {
+            const updated: Record<number, File | null> = {}
+            Object.entries(prev).forEach(([key, file]) => {
+                const k = parseInt(key)
+                if (k < index) updated[k] = file
+                if (k > index) updated[k - 1] = file
+            })
+            return updated
+        })
+    }
+
+    const handleAppointmentChange = (index: number, field: keyof Appointment, value: string) => {
+        setFlightDetails(prev => {
+            const newAppointments = [...(prev.appointments || [])]
+            newAppointments[index] = { ...newAppointments[index], [field]: value } as Appointment
+            return { ...prev, appointments: newAppointments }
+        })
     }
 
     const handleAddPaymentToTemp = () => {
@@ -883,7 +927,21 @@ export default function FlightsPage() {
                 details = INITIAL_FLIGHT_DETAILS
             }
         }
-        setFlightDetails({ ...INITIAL_FLIGHT_DETAILS, ...(details || {}) })
+        
+        const finalDetails = { ...INITIAL_FLIGHT_DETAILS, ...(details || {}) }
+        
+        // Migrate legacy single appointment if array is empty
+        if ((finalDetails.appointment_date || finalDetails.appointment_location) && (!finalDetails.appointments || finalDetails.appointments.length === 0)) {
+            finalDetails.appointments = [{
+                date: finalDetails.appointment_date || '',
+                location: finalDetails.appointment_location || '',
+                note: finalDetails.appointment_note || '',
+                file_path: finalDetails.appointment_file_path,
+                file_storage: finalDetails.appointment_file_storage
+            }]
+        }
+
+        setFlightDetails(finalDetails)
         setIsDialogOpen(true)
     }
 
@@ -1141,9 +1199,14 @@ export default function FlightsPage() {
                 data.append('payment_proof_file', paymentProofFile)
             }
 
-            // Append Appointment File if exists
-            if (appointmentFile) {
-                data.append('appointment_file', appointmentFile)
+            // Append Appointment Files if they exist
+            if (flightDetails.appointments && flightDetails.appointments.length > 0) {
+                flightDetails.appointments.forEach((_, i) => {
+                    const file = appointmentFiles[i]
+                    if (file) {
+                        data.append(`appointment_file_${i}`, file)
+                    }
+                })
             }
 
              if (selectedFlightId) {
@@ -1394,44 +1457,86 @@ export default function FlightsPage() {
                                 )}
 
                                 {/* Appointment Info if available */}
-                                {(detailsViewerFlight?.details?.appointment_date || detailsViewerFlight?.details?.appointment_location) && (
-                                    <div className="mt-4 p-3 bg-indigo-50 border border-indigo-100 rounded-lg animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                        <h4 className="text-sm font-bold text-indigo-700 flex items-center gap-2 mb-2">
+                                {((detailsViewerFlight?.details?.appointments && detailsViewerFlight.details.appointments.length > 0) || 
+                                  detailsViewerFlight?.details?.appointment_date || detailsViewerFlight?.details?.appointment_location) && (
+                                    <div className="mt-4 space-y-3">
+                                        <h4 className="text-sm font-bold text-indigo-700 flex items-center gap-2 px-1">
                                             <Calendar className="h-4 w-4" />
-                                            Cita Programada:
+                                            Citas Programadas:
                                         </h4>
-                                        <div className="space-y-2 text-sm text-slate-700">
-                                            {detailsViewerFlight.details.appointment_date && (
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-semibold text-indigo-600">Fecha:</span>
-                                                    {new Date(detailsViewerFlight.details.appointment_date + 'T00:00:00').toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' })}
-                                                </div>
-                                            )}
-                                            {detailsViewerFlight.details.appointment_location && (
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-semibold text-indigo-600">Lugar:</span>
-                                                    {detailsViewerFlight.details.appointment_location}
-                                                </div>
-                                            )}
-                                            {detailsViewerFlight.details.appointment_note && (
-                                                <div className="flex flex-col gap-1 mt-1 p-2 bg-white/50 rounded border border-indigo-50 italic text-xs">
-                                                    <span className="font-semibold text-indigo-600 not-italic">Notas:</span>
-                                                    {detailsViewerFlight.details.appointment_note}
-                                                </div>
-                                            )}
-                                            {detailsViewerFlight.details.appointment_file_path && (
-                                                <Button
-                                                    type="button"
-                                                    variant="secondary"
-                                                    size="sm"
-                                                    className="w-full mt-2 gap-2 bg-indigo-600 text-white hover:bg-indigo-700 font-bold shadow-sm"
-                                                    onClick={() => handleDownload(detailsViewerFlight.details!.appointment_file_path!, detailsViewerFlight.details!.appointment_file_storage || 'r2')}
-                                                >
-                                                    <Download className="h-4 w-4" />
-                                                    Descargar Documento de Cita
-                                                </Button>
-                                            )}
-                                        </div>
+                                        
+                                        {/* Legacy Single Appointment if exists and no multi-appointments */}
+                                        {(!detailsViewerFlight.details.appointments || detailsViewerFlight.details.appointments.length === 0) && 
+                                         (detailsViewerFlight.details.appointment_date || detailsViewerFlight.details.appointment_location) && (
+                                            <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-lg space-y-2 text-sm text-slate-700">
+                                                {detailsViewerFlight.details.appointment_date && (
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-semibold text-indigo-600">Fecha:</span>
+                                                        {new Date(detailsViewerFlight.details.appointment_date + 'T00:00:00').toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' })}
+                                                    </div>
+                                                )}
+                                                {detailsViewerFlight.details.appointment_location && (
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-semibold text-indigo-600">Lugar:</span>
+                                                        {detailsViewerFlight.details.appointment_location}
+                                                    </div>
+                                                )}
+                                                {detailsViewerFlight.details.appointment_note && (
+                                                    <div className="flex flex-col gap-1 mt-1 p-2 bg-white/50 rounded border border-indigo-50 italic text-xs">
+                                                        <span className="font-semibold text-indigo-600 not-italic">Notas:</span>
+                                                        {detailsViewerFlight.details.appointment_note}
+                                                    </div>
+                                                )}
+                                                {detailsViewerFlight.details.appointment_file_path && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        className="w-full mt-2 gap-2 bg-indigo-600 text-white hover:bg-indigo-700 font-bold shadow-sm"
+                                                        onClick={() => handleDownload(detailsViewerFlight.details!.appointment_file_path!, detailsViewerFlight.details!.appointment_file_storage || 'r2')}
+                                                    >
+                                                        <Download className="h-4 w-4" />
+                                                        Descargar Documento de Cita
+                                                    </Button>
+                                                )}
+                                            </div>
+                                         )}
+
+                                        {/* Multi Appointments */}
+                                        {detailsViewerFlight.details.appointments?.map((app: Appointment, idx: number) => (
+                                            <div key={idx} className="p-3 bg-indigo-50 border border-indigo-100 rounded-lg space-y-2 text-sm text-slate-700 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                                {app.date && (
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-semibold text-indigo-600">Fecha:</span>
+                                                        {new Date(app.date + 'T00:00:00').toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' })}
+                                                    </div>
+                                                )}
+                                                {app.location && (
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-semibold text-indigo-600">Lugar:</span>
+                                                        {app.location}
+                                                    </div>
+                                                )}
+                                                {app.note && (
+                                                    <div className="flex flex-col gap-1 mt-1 p-2 bg-white/50 rounded border border-indigo-50 italic text-xs">
+                                                        <span className="font-semibold text-indigo-600 not-italic">Notas:</span>
+                                                        {app.note}
+                                                    </div>
+                                                )}
+                                                {app.file_path && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        className="w-full mt-2 gap-2 bg-indigo-600 text-white hover:bg-indigo-700 font-bold shadow-sm"
+                                                        onClick={() => handleDownload(app.file_path!, app.file_storage || 'r2')}
+                                                    >
+                                                        <Download className="h-4 w-4" />
+                                                        Descargar Documento
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        ))}
                                     </div>
                                 )}
                             </div>
@@ -2432,56 +2537,82 @@ export default function FlightsPage() {
                                 </button>
 
                                 {showAppointmentFields && (
-                                    <div className="p-4 border-t border-slate-100 bg-white grid grid-cols-1 sm:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                                        <div className="flex flex-col gap-1.5">
-                                            <Label className="text-xs font-semibold text-slate-600 uppercase tracking-tight">Fecha de Cita</Label>
-                                            <Input 
-                                                type="date"
-                                                value={flightDetails.appointment_date || ''}
-                                                onChange={(e) => handleDetailChange('appointment_date', e.target.value)}
-                                                className="h-9 text-sm focus:ring-chimipink"
-                                            />
-                                        </div>
-                                        <div className="flex flex-col gap-1.5">
-                                            <Label className="text-xs font-semibold text-slate-600 uppercase tracking-tight">Cita en</Label>
-                                            <Input 
-                                                placeholder="Ej: Consulado, Embajada..."
-                                                value={flightDetails.appointment_location || ''}
-                                                onChange={(e) => handleDetailChange('appointment_location', e.target.value)}
-                                                className="h-9 text-sm focus:ring-chimipink"
-                                            />
-                                        </div>
-                                        <div className="flex flex-col gap-1.5 sm:col-span-2">
-                                            <Label className="text-xs font-semibold text-slate-600 uppercase tracking-tight">Nota</Label>
-                                            <Textarea 
-                                                placeholder="Observaciones adicionales sobre la cita..."
-                                                value={flightDetails.appointment_note || ''}
-                                                onChange={(e) => handleDetailChange('appointment_note', e.target.value)}
-                                                className="min-h-[60px] text-sm focus:ring-chimipink"
-                                            />
-                                        </div>
-                                        <div className="flex flex-col gap-1.5 sm:col-span-2">
-                                            <Label className="text-xs font-semibold text-slate-600 uppercase tracking-tight">Adjuntar Archivo</Label>
-                                            <div className="flex items-center gap-2">
-                                                <Input 
-                                                    type="file"
-                                                    onChange={(e) => setAppointmentFile(e.target.files?.[0] || null)}
-                                                    className="h-9 text-xs focus:ring-chimipink file:mr-4 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-[10px] file:font-semibold file:bg-chimipink/10 file:text-chimipink hover:file:bg-chimipink/20"
-                                                />
-                                                {flightDetails.appointment_file_path && (
-                                                    <Button
-                                                        type="button"
-                                                        variant="outline"
-                                                        size="sm"
-                                                        className="h-9 px-3 gap-1 text-[10px] whitespace-nowrap border-chimipink/30 text-chimipink hover:bg-chimipink/5"
-                                                        onClick={() => handleDownload(flightDetails.appointment_file_path!, flightDetails.appointment_file_storage || 'r2')}
-                                                    >
-                                                        <FileText className="h-3 w-3" />
-                                                        Ver Actual
-                                                    </Button>
-                                                )}
+                                    <div className="p-4 border-t border-slate-100 bg-white space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                                        {(flightDetails.appointments || []).map((app, index) => (
+                                            <div key={index} className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl border border-slate-100 bg-slate-50/50 relative group/item">
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => handleRemoveAppointment(index)}
+                                                    className="absolute -top-2 -right-2 h-6 w-6 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-400 hover:text-red-500 hover:border-red-100 shadow-sm transition-all opacity-0 group-hover/item:opacity-100"
+                                                    title="Eliminar esta cita"
+                                                >
+                                                    <X className="h-3 w-3" />
+                                                </button>
+
+                                                <div className="flex flex-col gap-1.5">
+                                                    <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha de Cita {index + 1}</Label>
+                                                    <Input 
+                                                        type="date"
+                                                        value={app.date}
+                                                        onChange={(e) => handleAppointmentChange(index, 'date', e.target.value)}
+                                                        className="h-9 text-sm focus:ring-chimipink bg-white"
+                                                    />
+                                                </div>
+                                                <div className="flex flex-col gap-1.5">
+                                                    <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Lugar / Tipo</Label>
+                                                    <Input 
+                                                        placeholder="Ej: Consulado, Embajada..."
+                                                        value={app.location}
+                                                        onChange={(e) => handleAppointmentChange(index, 'location', e.target.value)}
+                                                        className="h-9 text-sm focus:ring-chimipink bg-white"
+                                                    />
+                                                </div>
+                                                <div className="flex flex-col gap-1.5 sm:col-span-2">
+                                                    <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Notas</Label>
+                                                    <Textarea 
+                                                        placeholder="Observaciones adicionales..."
+                                                        value={app.note}
+                                                        onChange={(e) => handleAppointmentChange(index, 'note', e.target.value)}
+                                                        className="min-h-[60px] text-sm focus:ring-chimipink bg-white"
+                                                    />
+                                                </div>
+                                                <div className="flex flex-col gap-1.5 sm:col-span-2">
+                                                    <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Adjuntar Archivo</Label>
+                                                    <div className="flex items-center gap-2">
+                                                        <Input 
+                                                            type="file"
+                                                            onChange={(e) => {
+                                                                const file = e.target.files?.[0] || null
+                                                                setAppointmentFiles(prev => ({ ...prev, [index]: file }))
+                                                            }}
+                                                            className="h-9 text-xs focus:ring-chimipink file:mr-4 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-[10px] file:font-semibold file:bg-chimipink/10 file:text-chimipink hover:file:bg-chimipink/20 bg-white"
+                                                        />
+                                                        {app.file_path && (
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                size="sm"
+                                                                className="h-9 px-3 gap-1 text-[10px] whitespace-nowrap border-chimipink/30 text-chimipink hover:bg-chimipink/5 bg-white"
+                                                                onClick={() => handleDownload(app.file_path!, app.file_storage || 'r2')}
+                                                            >
+                                                                <FileText className="h-3 w-3" />
+                                                                Ver Documento
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
+                                        ))}
+
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={handleAddAppointment}
+                                            className="w-full border-dashed border-slate-300 text-slate-500 hover:text-chimipink hover:border-chimipink hover:bg-chimipink/5 h-12 rounded-xl transition-all"
+                                        >
+                                            <Plus className="h-4 w-4 mr-2" />
+                                            Añadir otra cita
+                                        </Button>
                                     </div>
                                 )}
                             </div>

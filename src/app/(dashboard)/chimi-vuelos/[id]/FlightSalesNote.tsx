@@ -341,7 +341,7 @@ export function FlightSalesNote({ flight, onClose }: { flight: Flight, onClose: 
                                                 <td colSpan={5} className="py-4 text-center text-slate-300 italic text-[8px]">No se registran transacciones detalladas</td>
                                             </tr>
                                         )}
-                                        <tr className="bg-emerald-50 text-emerald-900 border-t border-emerald-100">
+                                    <tr className="bg-emerald-50 text-emerald-900 border-t border-emerald-100">
                                             <td colSpan={4} className="py-1.5 px-4 text-right font-black uppercase tracking-widest text-[7px]">Total Abonos Recibidos</td>
                                             <td className="py-1.5 px-4 text-right font-black">€ {flight.on_account.toFixed(2)}</td>
                                         </tr>
@@ -349,6 +349,50 @@ export function FlightSalesNote({ flight, onClose }: { flight: Flight, onClose: 
                                 </table>
                             </div>
                         </div>
+                        
+                        {/* Section V: Appointments */}
+                        {((flight.details?.appointments && flight.details.appointments.length > 0) || 
+                          flight.details?.appointment_date || flight.details?.appointment_location) && (
+                            <div className="mb-6">
+                                <div className="flex items-center gap-2 border-b-2 border-slate-900 pb-1 mb-2">
+                                    <h3 className="text-[9px] font-black uppercase tracking-widest text-slate-900">V. Citas y Trámites Programados</h3>
+                                </div>
+                                <div className="grid grid-cols-1 gap-2">
+                                    {/* Legacy Single Appointment */}
+                                    {(!flight.details?.appointments || flight.details.appointments.length === 0) && 
+                                     (flight.details?.appointment_date || flight.details?.appointment_location) && (
+                                        <div className="bg-slate-50 p-2 rounded border border-slate-100 flex justify-between items-center text-[9px]">
+                                            <div>
+                                                <p className="font-black text-slate-900 uppercase leading-none">Cita de Gestión</p>
+                                                <p className="text-slate-500 mt-1">
+                                                    {flight.details?.appointment_date ? new Date(flight.details.appointment_date + 'T00:00:00').toLocaleDateString('es-PE', { day: '2-digit', month: 'long' }) : ''}
+                                                    {flight.details?.appointment_location ? ` — ${flight.details.appointment_location}` : ''}
+                                                </p>
+                                                {flight.details?.appointment_note && <p className="text-slate-400 italic mt-0.5">{flight.details.appointment_note}</p>}
+                                            </div>
+                                            <div className="text-right">
+                                                <span className="bg-indigo-100 text-indigo-700 text-[7px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter">Programado</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {/* Multiple Appointments */}
+                                    {flight.details?.appointments?.map((app, i) => (
+                                        <div key={i} className="bg-slate-50 p-2 rounded border border-slate-100 flex justify-between items-center text-[9px]">
+                                            <div>
+                                                <p className="font-black text-slate-900 uppercase leading-none">Cita {i + 1}: {app.location || 'Gestión de Viaje'}</p>
+                                                <p className="text-slate-500 mt-1">
+                                                    {app.date ? new Date(app.date + 'T00:00:00').toLocaleDateString('es-PE', { day: '2-digit', month: 'long' }) : 'Fecha por confirmar'}
+                                                </p>
+                                                {app.note && <p className="text-slate-400 italic mt-0.5">{app.note}</p>}
+                                            </div>
+                                            <div className="text-right">
+                                                <span className="bg-indigo-100 text-indigo-700 text-[7px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter">Programado</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
                         {/* Section: Payments & Totals */}
                          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-6">
@@ -450,12 +494,10 @@ export function FlightSalesNote({ flight, onClose }: { flight: Flight, onClose: 
                                 </div>
                             </div>
 
-                    </div>
-
-
-                    </div>
-                </div>
-            </div>
+                        </div> { /* closes p-4 md:p-8 */ }
+                    </div> { /* closes sales-note */ }
+                </div> { /* closes sales-note-wrapper */ }
+            </div> { /* closes fixed inset-0 */ }
         </div>
     )
 
