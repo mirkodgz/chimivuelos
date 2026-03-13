@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Plus, Search, Trash2, Edit, FileText, Download, FileSpreadsheet, ChevronLeft, ChevronRight, ChevronDown, ListChecks, Wallet, Check, X, Calendar, Building2, User, Copy, Pencil, RefreshCw, AlertTriangle, NotebookPen, ClipboardList, ArrowUpDown, ChevronUp } from 'lucide-react'
+import { Plus, Search, Trash2, Edit, FileText, Download, FileSpreadsheet, ChevronLeft, ChevronRight, ChevronDown, ListChecks, Wallet, Check, X, Calendar, Building2, User, Copy, Pencil, RefreshCw, AlertTriangle, NotebookPen, ClipboardList, ArrowUpDown, ChevronUp, Phone, CheckCircle2, Receipt } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import * as XLSX from 'xlsx'
@@ -93,6 +93,8 @@ interface Flight {
     required_documents?: Record<string, { required: boolean, status: string, extra?: string }>
     client_note?: string
     internal_note?: string
+    airlines?: string
+    is_advised?: boolean
     flight_date_history?: DateHistoryEntry[]
 }
 
@@ -329,12 +331,14 @@ export default function FlightsPage() {
     const [totalFlights, setTotalFlights] = useState(0)
     const [clients, setClients] = useState<ClientOption[]>([])
     const [itineraries, setItineraries] = useState<string[]>([])
+    const [airlinesList, setAirlinesList] = useState<string[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [selectedFlightId, setSelectedFlightId] = useState<string | null>(null)
     const [searchTerm, setSearchTerm] = useState('')
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
     const [showDeudaOnly, setShowDeudaOnly] = useState(false)
+    const [showUpcomingOnly, setShowUpcomingOnly] = useState(false)
 
     // Filters State
     const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -418,6 +422,7 @@ export default function FlightsPage() {
             const initialData = await getInitialChimiVuelosData()
             setClients(initialData.clients as ClientOption[])
             setItineraries(initialData.itineraries)
+            setAirlinesList(initialData.airlines || [])
             setPaymentMethodsIT(initialData.paymentMethodsIT)
             setPaymentMethodsPE(initialData.paymentMethodsPE)
         }
@@ -459,6 +464,8 @@ export default function FlightsPage() {
         minor_travel_with: '',
         client_note: '',
         internal_note: '',
+        airlines: '',
+        is_advised: false,
         required_documents: { ...INITIAL_REQUIRED_DOCUMENTS },
         flight_date_history: [] as DateHistoryEntry[],
         payment_proof_path: null as string | null
@@ -492,6 +499,8 @@ export default function FlightsPage() {
     const [clientSearch, setClientSearch] = useState('')
     const [showClientList, setShowClientList] = useState(false)
     const [showItineraryList, setShowItineraryList] = useState(false)
+    const [showAirlineList, setShowAirlineList] = useState(false)
+    const [airlineSearch, setAirlineSearch] = useState('')
     const [showSedeITList, setShowSedeITList] = useState(false)
     const [showMetodoITList, setShowMetodoITList] = useState(false)
     const [showMetodoPEList, setShowMetodoPEList] = useState(false)
@@ -503,17 +512,8 @@ export default function FlightsPage() {
     const [tempPayments, setTempPayments] = useState<PaymentDetail[]>([])
     const [tempPaymentProofs, setTempPaymentProofs] = useState<(File | null)[]>([])
     const [pendingRequests, setPendingRequests] = useState<Record<string, string>>({})
-    const [showUpcomingDialog, setShowUpcomingDialog] = useState(false)
-    const [upcomingFlights, setUpcomingFlights] = useState<Flight[]>([])
-    const [isUpcomingLoading, setIsUpcomingLoading] = useState(false)
-    const [upcomingDateFrom, setUpcomingDateFrom] = useState('')
-    const [upcomingDateTo, setUpcomingDateTo] = useState('')
-    const [upcomingSortOrder, setUpcomingSortOrder] = useState<'asc' | 'desc'>('asc')
 
-    // Set default dates for upcoming departures
-    useEffect(() => {
-        setUpcomingDateFrom(getYesterdayDate())
-    }, [])
+
     
     // Default dates for Upcoming Departures: from yesterday to far future
     const getYesterdayDate = () => {
@@ -533,11 +533,12 @@ export default function FlightsPage() {
                     pageSize: itemsPerPage,
                     searchTerm: debouncedSearchTerm,
                     statusFilter: statusFilter,
-                    dateFrom: dateFrom,
-                    dateTo: dateTo,
+                    dateFrom: showUpcomingOnly ? getYesterdayDate() : dateFrom,
+                    dateTo: showUpcomingOnly ? '' : dateTo,
                     showDeudaOnly: showDeudaOnly,
-                    sortField: sortField,
-                    sortOrder: sortOrder
+                    sortField: showUpcomingOnly ? 'travel_date' : sortField,
+                    sortOrder: showUpcomingOnly ? 'asc' : sortOrder,
+                    filterByTravelDate: showUpcomingOnly
                 }),
                 getPendingResourceDetails('flights')
             ])
@@ -550,34 +551,7 @@ export default function FlightsPage() {
         } finally {
             setIsLoading(false)
         }
-    }, [currentPage, itemsPerPage, debouncedSearchTerm, statusFilter, dateFrom, dateTo, showDeudaOnly, sortField, sortOrder])
-
-    const fetchUpcomingFlights = useCallback(async () => {
-        setIsUpcomingLoading(true)
-        try {
-            const result = await getFlights({
-                page: 1,
-                pageSize: 1000,
-                dateFrom: upcomingDateFrom,
-                dateTo: upcomingDateTo,
-                filterByTravelDate: true,
-                sortField: 'travel_date',
-                sortOrder: upcomingSortOrder
-            })
-            setUpcomingFlights(result.flights as unknown as Flight[])
-        } catch (error) {
-            console.error('Error fetching upcoming flights:', error)
-            toast.error('Error al cargar salidas próximas')
-        } finally {
-            setIsUpcomingLoading(false)
-        }
-    }, [upcomingDateFrom, upcomingDateTo, upcomingSortOrder])
-
-    useEffect(() => {
-        if (showUpcomingDialog) {
-            fetchUpcomingFlights()
-        }
-    }, [showUpcomingDialog, fetchUpcomingFlights])
+    }, [currentPage, itemsPerPage, debouncedSearchTerm, statusFilter, dateFrom, dateTo, showDeudaOnly, showUpcomingOnly, sortField, sortOrder])
 
     useEffect(() => {
         loadData()
@@ -770,6 +744,8 @@ export default function FlightsPage() {
             pax_total: '0',
             iata_gds: 'sabre suema',
             minor_travel_with: '',
+            airlines: '',
+            is_advised: false,
             client_note: '',
             internal_note: '',
             required_documents: { ...INITIAL_REQUIRED_DOCUMENTS },
@@ -792,6 +768,7 @@ export default function FlightsPage() {
         setBaseOnAccount(0)
         setTempPayments([])
         setTempPaymentProofs([])
+        setAirlineSearch('')
     }
 
     const handleAddPaymentToTemp = () => {
@@ -875,6 +852,8 @@ export default function FlightsPage() {
             pax_total: (flight.pax_total || 0).toString(),
             iata_gds: flight.iata_gds || 'sabre suema',
             minor_travel_with: flight.minor_travel_with || '',
+            airlines: flight.airlines || '',
+            is_advised: flight.is_advised || false,
             client_note: flight.client_note || '',
             internal_note: flight.internal_note || '',
             required_documents: flight.required_documents || { ...INITIAL_REQUIRED_DOCUMENTS },
@@ -1345,6 +1324,18 @@ export default function FlightsPage() {
                                         </div>
                                     </div>
                                 </div>
+                                {detailsViewerFlight.airlines && (
+                                    <div className="pt-3 border-t border-slate-200">
+                                        <span className="text-[10px] text-slate-400 uppercase font-black tracking-widest block mb-1">Aerolíneas</span>
+                                        <div className="flex flex-wrap gap-1">
+                                            {detailsViewerFlight.airlines.split(', ').map((a, i) => (
+                                                <span key={i} className="bg-white border border-slate-200 text-slate-600 px-2 py-0.5 rounded text-[10px] font-bold">
+                                                    {a}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -1571,159 +1562,6 @@ export default function FlightsPage() {
 
 
 
-            {/* Upcoming Departures Dialog */}
-            <Dialog open={showUpcomingDialog} onOpenChange={setShowUpcomingDialog}>
-                <DialogContent className="sm:max-w-7xl max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:hidden" onOpenAutoFocus={(e) => e.preventDefault()}>
-                    <DialogHeader>
-                        <DialogTitle className="text-slate-900 font-black uppercase tracking-tighter">
-                            Salidas Próximas
-                        </DialogTitle>
-                        <DialogDescription className="text-[10px] font-bold uppercase text-slate-400">
-                            Vuelos con fecha de viaje desde ayer en adelante.
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    {/* Filters in Dialog */}
-                    <div className="flex flex-wrap items-center gap-4 py-4 bg-slate-50/50 p-4 rounded-xl border border-slate-100 mb-4">
-                        <div className="grid gap-1.5 focus-within:scale-[1.02] transition-transform">
-                            <Label className="text-[9px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-1.5">
-                                <Calendar className="h-3 w-3 text-slate-400" />
-                                Fecha Desde (Viaje)
-                            </Label>
-                            <Input 
-                                type="date" 
-                                value={upcomingDateFrom} 
-                                onChange={(e) => setUpcomingDateFrom(e.target.value)}
-                                className="h-9 text-xs w-40 bg-white border-slate-200 font-bold focus:ring-chimipink"
-                            />
-                        </div>
-                        <div className="grid gap-1.5 focus-within:scale-[1.02] transition-transform">
-                            <Label className="text-[9px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-1.5">
-                                <Calendar className="h-3 w-3 text-slate-400" />
-                                Fecha Hasta (Viaje)
-                            </Label>
-                            <Input 
-                                type="date" 
-                                value={upcomingDateTo} 
-                                onChange={(e) => setUpcomingDateTo(e.target.value)}
-                                className="h-9 text-xs w-40 bg-white border-slate-200 font-bold focus:ring-chimipink"
-                            />
-                        </div>
-                        {isUpcomingLoading && (
-                            <div className="flex items-center gap-2 px-3 py-1 bg-pink-50 rounded-full border border-pink-100 animate-in fade-in slide-in-from-left-2 mt-5">
-                                <RefreshCw className="h-3 w-3 text-chimipink animate-spin" />
-                                <span className="text-[9px] font-black text-pink-700 uppercase tracking-widest">Actualizando...</span>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-x-auto bg-white">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="bg-slate-50 border-b border-slate-200">
-                                    <th 
-                                        className="p-4 text-[9px] font-black uppercase text-slate-500 tracking-widest whitespace-nowrap cursor-pointer hover:bg-slate-100 transition-colors group/sort"
-                                        onClick={() => setUpcomingSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-                                    >
-                                        <div className="flex items-center gap-1">
-                                            {upcomingSortOrder === 'asc' ? <ChevronUp className="h-3 w-3 text-chimipink" /> : <ChevronDown className="h-3 w-3 text-chimipink" />}
-                                            Fecha Viaje
-                                            <ArrowUpDown className="h-2.5 w-2.5 ml-1 opacity-20 group-hover/sort:opacity-100 transition-opacity" />
-                                        </div>
-                                    </th>
-                                    <th className="p-4 text-[9px] font-black uppercase text-slate-500 tracking-widest whitespace-nowrap">PNR</th>
-                                    <th className="p-4 text-[9px] font-black uppercase text-slate-500 tracking-widest whitespace-nowrap text-center">Estado</th>
-                                    <th className="p-4 text-[9px] font-black uppercase text-slate-500 tracking-widest whitespace-nowrap">Cliente</th>
-                                    <th className="p-4 text-[9px] font-black uppercase text-slate-500 tracking-widest whitespace-nowrap">Agente</th>
-                                    <th className="p-4 text-[9px] font-black uppercase text-slate-500 tracking-widest whitespace-nowrap">Itinerario</th>
-                                    <th className="p-4 text-[9px] font-black uppercase text-slate-500 tracking-widest whitespace-nowrap">Tipo Pasaje</th>
-                                    <th className="p-4 text-[9px] font-black uppercase text-chimipink tracking-widest whitespace-nowrap">Invito</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 italic-last-row">
-                                {isUpcomingLoading ? (
-                                    <tr>
-                                        <td colSpan={8} className="p-16 text-center">
-                                            <div className="flex flex-col items-center gap-3">
-                                                <div className="relative h-12 w-12">
-                                                    <div className="absolute inset-0 border-4 border-chimipink/10 rounded-full" />
-                                                    <div className="absolute inset-0 border-4 border-chimipink border-t-transparent rounded-full animate-spin" />
-                                                </div>
-                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest animate-pulse">Consultando base de datos...</span>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ) : upcomingFlights.length > 0 ? (
-                                    upcomingFlights.map((flight) => (
-                                        <tr key={flight.id} className="hover:bg-slate-50 transition-colors group">
-                                            <td className="p-4 font-mono">
-                                                <span className="text-[11px] font-bold text-slate-700">
-                                                    {flight.travel_date ? new Date(flight.travel_date).toLocaleDateString('es-PE', { timeZone: 'UTC' }) : '-'}
-                                                </span>
-                                            </td>
-                                            <td className="p-4">
-                                                <span className="text-[11px] font-black text-slate-900 tracking-tighter bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200/50 shadow-sm group-hover:bg-white transition-colors">
-                                                    {flight.pnr || '---'}
-                                                </span>
-                                            </td>
-                                            <td className="p-4 text-center">
-                                                <span className={cn("px-3 py-1 rounded-full text-[8.5px] font-black uppercase shadow-[0_2px_10px_rgba(0,0,0,0.05)]", getStatusColorClass(flight.status))}>
-                                                    {STATUS_UI_MAP[flight.status] || flight.status}
-                                                </span>
-                                            </td>
-                                            <td className="p-4">
-                                                <div className="flex flex-col">
-                                                    <span className="text-[11px] font-black text-slate-800 uppercase leading-none mb-1 transition-colors tracking-tighter">
-                                                        {flight.profiles?.first_name} {flight.profiles?.last_name}
-                                                    </span>
-                                                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">{flight.profiles?.email}</span>
-                                                </div>
-                                            </td>
-                                            <td className="p-4">
-                                                <span className="text-[10px] font-black text-slate-600 uppercase tracking-tighter">
-                                                    {flight.agent ? `${flight.agent.first_name} ${flight.agent.last_name}` : '-'}
-                                                </span>
-                                            </td>
-                                            <td className="p-4">
-                                                <p className="text-[10px] font-bold text-slate-500 line-clamp-1 max-w-[180px] hover:line-clamp-none transition-all cursor-default" title={flight.itinerary}>
-                                                    {flight.itinerary}
-                                                </p>
-                                            </td>
-                                            <td className="p-4">
-                                                <span className="text-[9px] font-black text-slate-400 border border-slate-200 px-1.5 py-0.5 rounded uppercase tracking-widest bg-slate-50">
-                                                    {flight.ticket_type || '-'}
-                                                </span>
-                                            </td>
-                                            <td className="p-4">
-                                                {flight.details?.doc_agency_managed && flight.details?.doc_agency_managed_text ? (
-                                                    <div className="flex items-center gap-2 bg-pink-50 p-2.5 rounded-xl border border-pink-100 group-hover:bg-pink-100/50 transition-colors shadow-sm">
-                                                        <div className="w-2 h-2 rounded-full bg-chimipink animate-pulse shadow-[0_0_8px_rgba(219,39,119,0.3)]" />
-                                                        <span className="text-[9px] font-black text-pink-800 leading-tight uppercase tracking-tighter">
-                                                            {flight.details.doc_agency_managed_text as string}
-                                                        </span>
-                                                    </div>
-                                                ) : (
-                                                    <div className="h-1 w-8 bg-slate-100 rounded-full mx-auto" />
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan={8} className="p-20 text-center">
-                                            <div className="flex flex-col items-center gap-2 opacity-40">
-                                                <Search className="h-10 w-10 text-slate-300 mb-2" />
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Sin resultados de salida</p>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </DialogContent>
-            </Dialog>
-
             <div className="flex flex-wrap items-center justify-center gap-4 mb-6">
                 <Dialog open={isDialogOpen} onOpenChange={(open) => {
                     setIsDialogOpen(open)
@@ -1766,6 +1604,21 @@ export default function FlightsPage() {
                                                 <ChevronDown size={14} strokeWidth={3} />
                                             </div>
                                         </div>
+                                    </div>
+                                    <div className="flex-1 flex items-center pt-6">
+                                        <label className="flex items-center gap-2 text-[10px] font-black text-slate-700 uppercase tracking-tighter cursor-pointer hover:bg-slate-50 p-2 rounded-xl border border-slate-100 transition-all shadow-sm group">
+                                            <input 
+                                                type="checkbox" 
+                                                name="is_advised"
+                                                checked={formData.is_advised}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, is_advised: e.target.checked }))}
+                                                className="w-4 h-4 rounded-lg border-2 border-slate-300 text-chimipink focus:ring-chimipink transition-all cursor-pointer"
+                                            />
+                                            <div className="flex flex-col">
+                                                <span>Vuelo asesorado</span>
+                                                <span className="text-[8px] text-slate-400 normal-case font-medium">Marque si el cliente recibió asesoría</span>
+                                            </div>
+                                        </label>
                                     </div>
                                     {selectedFlightId && (userRole === 'admin' || userRole === 'supervisor') && (
                                         <Button 
@@ -2232,6 +2085,71 @@ export default function FlightsPage() {
                                                 </div>
                                             ))}
                                             {ITINERARY_OPTIONS.filter(opt => opt.toLowerCase().includes(formData.itinerary.toLowerCase())).length === 0 && (
+                                                <div className="p-2 text-xs text-slate-400 italic">No se encontraron coincidencias</div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="grid gap-2 relative">
+                                    <Label>Aerolíneas</Label>
+                                    <div className="relative">
+                                        <Input 
+                                            placeholder="Buscar aerolíneas..."
+                                            value={airlineSearch || formData.airlines}
+                                            onChange={(e) => {
+                                                setAirlineSearch(e.target.value)
+                                                setShowAirlineList(true)
+                                            }}
+                                            onFocus={() => setShowAirlineList(true)}
+                                            onBlur={() => setTimeout(() => setShowAirlineList(false), 200)}
+                                            autoComplete="off"
+                                            className="pr-8"
+                                        />
+                                        {formData.airlines ? (
+                                            <button 
+                                                type="button"
+                                                onClick={() => {
+                                                    setFormData(prev => ({ ...prev, airlines: '' }))
+                                                    setAirlineSearch('')
+                                                }}
+                                                className="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 rounded-full p-0.5 transition-colors"
+                                            >
+                                                <X size={14} strokeWidth={3} />
+                                            </button>
+                                        ) : (
+                                            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                        )}
+                                    </div>
+                                    {showAirlineList && (
+                                        <div className="absolute top-full z-50 w-full bg-white border border-slate-200 shadow-lg rounded-md mt-1 max-h-40 overflow-y-auto [&::-webkit-scrollbar]:hidden">
+                                            {airlinesList.filter(opt => opt.toLowerCase().includes(airlineSearch.toLowerCase())).map((opt, idx) => {
+                                                const selectedAirlines = formData.airlines ? formData.airlines.split(', ') : []
+                                                const isSelected = selectedAirlines.includes(opt)
+                                                
+                                                return (
+                                                    <div 
+                                                        key={idx}
+                                                        className={cn(
+                                                            "p-2 hover:bg-slate-50 cursor-pointer text-sm flex items-center justify-between",
+                                                            isSelected && "bg-slate-50 font-bold text-chimipink"
+                                                        )}
+                                                        onClick={() => {
+                                                            let newAirlines = []
+                                                            if (isSelected) {
+                                                                newAirlines = selectedAirlines.filter(a => a !== opt)
+                                                            } else {
+                                                                newAirlines = [...selectedAirlines, opt]
+                                                            }
+                                                            setFormData(prev => ({ ...prev, airlines: newAirlines.join(', ') }))
+                                                            setAirlineSearch('')
+                                                        }}
+                                                    >
+                                                        {opt}
+                                                        {isSelected && <Check size={14} />}
+                                                    </div>
+                                                )
+                                            })}
+                                            {airlinesList.filter(opt => opt.toLowerCase().includes(airlineSearch.toLowerCase())).length === 0 && (
                                                 <div className="p-2 text-xs text-slate-400 italic">No se encontraron coincidencias</div>
                                             )}
                                         </div>
@@ -3395,10 +3313,11 @@ export default function FlightsPage() {
                  </Dialog>
 
                 <Button 
-                    variant={showDeudaOnly ? "primary" : "outline"}
+                    variant={showDeudaOnly ? "danger" : "outline"}
                     onClick={() => {
                         const nextVal = !showDeudaOnly
                         setShowDeudaOnly(nextVal)
+                        if (nextVal) setShowUpcomingOnly(false)
                         setCurrentPage(1)
                     }}
                     className={cn(
@@ -3413,14 +3332,22 @@ export default function FlightsPage() {
                 </Button>
                 
                 <Button 
-                    variant="outline"
+                    variant={showUpcomingOnly ? "danger" : "outline"} 
                     onClick={() => {
-                        setShowUpcomingDialog(true)
+                        const nextVal = !showUpcomingOnly
+                        setShowUpcomingOnly(nextVal)
+                        if (nextVal) setShowDeudaOnly(false)
+                        setCurrentPage(1)
                     }}
-                    className="font-bold border-slate-200 text-slate-600 hover:bg-slate-50 h-10 shadow-md"
+                    className={cn(
+                        "font-bold h-10 shadow-md",
+                        showUpcomingOnly 
+                            ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-700" 
+                            : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                    )}
                 >
-                    <ClipboardList className="mr-2 h-4 w-4 text-blue-600" /> 
-                    Salidas Próximas
+                    <ClipboardList className={cn("mr-2 h-4 w-4", showUpcomingOnly ? "text-white" : "text-blue-600")} /> 
+                    {showUpcomingOnly ? "Ver Todos los Vuelos" : "Salidas Próximas"}
                 </Button>
             </div>
 
@@ -3534,52 +3461,71 @@ export default function FlightsPage() {
                         <table className="w-full text-sm text-left">
                             <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-100">
                                 <tr className="whitespace-nowrap">
-                                    <th 
-                                        className="px-6 py-4 font-medium text-left bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors group/sort"
-                                        onClick={() => handleSort('created_at')}
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            FR
-                                            {sortField === 'created_at' ? (
-                                                sortOrder === 'asc' ? <ChevronUp className="h-4 w-4 text-chimipink" /> : <ChevronDown className="h-4 w-4 text-chimipink" />
-                                            ) : (
-                                                <ArrowUpDown className="h-3 w-3 text-slate-300 group-hover/sort:text-slate-400" />
-                                            )}
-                                        </div>
-                                    </th>
-                                    <th 
-                                        className="px-6 py-4 font-medium text-left bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors group/sort"
-                                        onClick={() => handleSort('travel_date')}
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            Fecha Viaje
-                                            {sortField === 'travel_date' ? (
-                                                sortOrder === 'asc' ? <ChevronUp className="h-4 w-4 text-chimipink" /> : <ChevronDown className="h-4 w-4 text-chimipink" />
-                                            ) : (
-                                                <ArrowUpDown className="h-3 w-3 text-slate-300 group-hover/sort:text-slate-400" />
-                                            )}
-                                        </div>
-                                    </th>
-                                    <th className="px-2 py-4 font-medium text-left bg-slate-50 min-w-[100px]">Estado</th>
-                                    <th className="px-6 py-4 font-medium text-left bg-slate-50">PNR</th>
-                                    <th className="px-6 py-4 font-medium text-left bg-slate-50">Cliente</th>
-                                    {showDeudaOnly && <th className="px-6 py-4 font-medium text-left bg-slate-50">Teléfono</th>}
-                                    <th className="px-6 py-4 font-medium text-left bg-slate-50">Agente</th>
-                                    {!showDeudaOnly && (
+                                    {showUpcomingOnly ? (
                                         <>
-                                            <th className="px-6 py-4 font-medium text-left bg-slate-50">Itinerario</th>
-                                            <th className="px-6 py-4 font-medium text-left bg-slate-50">Tipo Pasaje</th>
-                                            <th className="px-6 py-4 font-medium text-left bg-slate-50">IATA / GDS</th>
-                                            <th className="px-6 py-4 font-medium text-center bg-slate-50">PAX</th>
-                                            <th className="px-6 py-4 font-medium text-left bg-slate-50">Incluye</th>
+                                            <th className="px-6 py-4 font-black uppercase text-slate-500 tracking-widest whitespace-nowrap cursor-pointer group/sort" onClick={() => handleSort('travel_date')}>
+                                                <div className="flex items-center gap-1">
+                                                    F. Viaje
+                                                    <ArrowUpDown className="h-2.5 w-2.5 ml-1 opacity-20 group-hover/sort:opacity-100 transition-opacity" />
+                                                </div>
+                                            </th>
+                                            <th className="px-6 py-4 font-black uppercase text-slate-500 tracking-widest whitespace-nowrap">PNR</th>
+                                            <th className="px-6 py-4 text-center font-black uppercase text-slate-500 tracking-widest whitespace-nowrap">Estado</th>
+                                            <th className="px-6 py-4 font-black uppercase text-slate-500 tracking-widest whitespace-nowrap">Itinerario</th>
+                                            <th className="px-6 py-4 font-black uppercase text-slate-500 tracking-widest whitespace-nowrap">Tipo Pasaje</th>
+                                            <th className="px-6 py-4 font-black uppercase text-chimipink tracking-widest whitespace-nowrap">Invito</th>
+                                            <th className="px-6 py-4 text-center font-black uppercase text-slate-500 tracking-widest whitespace-nowrap">Datos</th>
                                         </>
-                                    )}
-                                    <th className="px-6 py-4 font-medium text-left bg-slate-50">Finanzas</th>
-                                    {!showDeudaOnly && (
+                                    ) : (
                                         <>
-                                            <th className="px-6 py-4 font-medium text-left bg-slate-50">Pago</th>
-                                            <th className="px-6 py-4 font-medium text-center bg-slate-50">Docs</th>
-                                            <th className="px-1 sm:px-2 py-4 font-medium text-right sticky right-0 bg-pink-100/90 backdrop-blur-sm z-20 border-l border-pink-200 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.15)] text-pink-700">Acción</th>
+                                            <th 
+                                                className="px-6 py-4 font-medium text-left bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors group/sort"
+                                                onClick={() => handleSort('created_at')}
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    FR
+                                                    {sortField === 'created_at' ? (
+                                                        sortOrder === 'asc' ? <ChevronUp className="h-4 w-4 text-chimipink" /> : <ChevronDown className="h-4 w-4 text-chimipink" />
+                                                    ) : (
+                                                        <ArrowUpDown className="h-3 w-3 text-slate-300 group-hover/sort:text-slate-400" />
+                                                    )}
+                                                </div>
+                                            </th>
+                                            <th 
+                                                className="px-6 py-4 font-medium text-left bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors group/sort"
+                                                onClick={() => handleSort('travel_date')}
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    F. Viaje
+                                                    {sortField === 'travel_date' ? (
+                                                        sortOrder === 'asc' ? <ChevronUp className="h-4 w-4 text-chimipink" /> : <ChevronDown className="h-4 w-4 text-chimipink" />
+                                                    ) : (
+                                                        <ArrowUpDown className="h-3 w-3 text-slate-300 group-hover/sort:text-slate-400" />
+                                                    )}
+                                                </div>
+                                            </th>
+                                            <th className="px-2 py-4 font-medium text-left bg-slate-50 min-w-[100px]">Estado</th>
+                                            <th className="px-6 py-4 font-medium text-left bg-slate-50">PNR</th>
+                                            <th className="px-6 py-4 font-medium text-left bg-slate-50">Cliente</th>
+                                            {showDeudaOnly && <th className="px-6 py-4 font-medium text-left bg-slate-50">Teléfono</th>}
+                                            <th className="px-6 py-4 font-medium text-left bg-slate-50">Agente</th>
+                                            {!showDeudaOnly && (
+                                                <>
+                                                    <th className="px-6 py-4 font-medium text-left bg-slate-50">Itinerario</th>
+                                                    <th className="px-6 py-4 font-medium text-left bg-slate-50">Tipo Pasaje</th>
+                                                    <th className="px-6 py-4 font-medium text-left bg-slate-50">IATA / GDS</th>
+                                                    <th className="px-6 py-4 font-medium text-center bg-slate-50">PAX</th>
+                                                    <th className="px-6 py-4 font-medium text-left bg-slate-50">Incluye</th>
+                                                </>
+                                            )}
+                                            <th className="px-6 py-4 font-medium text-left bg-slate-50">Finanzas</th>
+                                            {!showDeudaOnly && (
+                                                <>
+                                                    <th className="px-6 py-4 font-medium text-left bg-slate-50">Pago</th>
+                                                    <th className="px-6 py-4 font-medium text-center bg-slate-50">Docs</th>
+                                                    <th className="px-1 sm:px-2 py-4 font-medium text-right sticky right-0 bg-pink-100/90 backdrop-blur-sm z-20 border-l border-pink-200 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.15)] text-pink-700">Acción</th>
+                                                </>
+                                            )}
                                         </>
                                     )}
                                 </tr>
@@ -3587,11 +3533,143 @@ export default function FlightsPage() {
                             <tbody className="divide-y divide-slate-100">
                                 {flights.length === 0 && !isLoading ? (
                                     <tr>
-                                        <td colSpan={19} className="px-6 py-8 text-center text-slate-500">No se encontraron vuelos.</td>
+                                        <td colSpan={showUpcomingOnly ? 7 : (showDeudaOnly ? 8 : 16)} className="px-6 py-8 text-center text-slate-500">No se encontraron vuelos.</td>
                                     </tr>
                                 ) : (
-                                    flights.map((flight) => (
-                                        <tr key={flight.id} className="bg-white hover:bg-slate-50/50 group">
+                                    showUpcomingOnly ? (
+                                        flights.map((flight) => (
+                                            <tr key={flight.id} className="bg-white hover:bg-slate-50/80 transition-colors group border-b border-slate-50">
+                                                <td className="px-6 py-4">
+                                                    <span className="text-[12px] font-bold text-slate-800 tracking-tighter">
+                                                        {new Date(flight.travel_date).toLocaleDateString('es-PE', { timeZone: 'UTC' })}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <TooltipProvider delayDuration={0}>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <button className="text-[11px] font-black text-slate-900 tracking-tighter bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200/50 shadow-sm hover:bg-white hover:border-chimipink transition-all cursor-pointer">
+                                                                    {flight.pnr || '---'}
+                                                                </button>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent side="top" className="p-4 bg-white border border-slate-200 shadow-xl rounded-xl min-w-[200px] space-y-3">
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cliente</span>
+                                                                    <span className="text-[12px] font-black text-slate-800 uppercase tracking-tighter">
+                                                                        {flight.profiles?.first_name} {flight.profiles?.last_name}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Agente</span>
+                                                                    <span className="text-[11px] font-bold text-slate-600 uppercase tracking-tighter">
+                                                                        {flight.agent ? `${flight.agent.first_name} ${flight.agent.last_name}` : 'No asignado'}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-4">
+                                                                    <div className="flex flex-col">
+                                                                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Celular</span>
+                                                                        <div className="flex items-center gap-1.5">
+                                                                            <Phone className="h-3 w-3 text-slate-400" />
+                                                                            <span className="text-[12px] font-black text-slate-700">{flight.profiles?.phone || '---'}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                    {flight.profiles?.phone && (
+                                                                        <Button 
+                                                                            size="sm" 
+                                                                            variant="outline" 
+                                                                            className={cn(
+                                                                                "h-8 px-2 text-[10px] font-bold border-slate-200 transition-all gap-1",
+                                                                                copiedPhoneId === flight.id ? "text-emerald-600 border-emerald-200 bg-emerald-50" : "text-slate-600 hover:text-chimipink hover:border-chimipink"
+                                                                            )}
+                                                                            onClick={() => handleCopyPhone(flight.id, flight.profiles?.phone || '')}
+                                                                        >
+                                                                            {copiedPhoneId === flight.id ? <CheckCircle2 className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                                                                            {copiedPhoneId === flight.id ? "Copiado" : "Copiar"}
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <span className={cn("px-3 py-1 rounded-full text-[8.5px] font-black uppercase shadow-[0_2px_10px_rgba(0,0,0,0.05)]", getStatusColorClass(flight.status))}>
+                                                        {STATUS_UI_MAP[flight.status] || flight.status}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <p className="text-[10px] font-bold text-slate-500 line-clamp-1 max-w-[180px] hover:line-clamp-none transition-all cursor-default" title={flight.itinerary}>
+                                                        {flight.itinerary}
+                                                    </p>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className="text-[9px] font-black text-slate-400 border border-slate-200 px-1.5 py-0.5 rounded uppercase tracking-widest bg-slate-50">
+                                                        {flight.ticket_type || '-'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    {flight.details?.doc_agency_managed && flight.details?.doc_agency_managed_text ? (
+                                                        <div className="flex items-center gap-2 bg-pink-50 p-2.5 rounded-xl border border-pink-100 group-hover:bg-pink-100/50 transition-colors shadow-sm">
+                                                            <div className="w-2 h-2 rounded-full bg-chimipink animate-pulse shadow-[0_0_8px_rgba(219,39,119,0.3)]" />
+                                                            <span className="text-[9px] font-black text-pink-800 leading-tight uppercase tracking-tighter">
+                                                                {flight.details.doc_agency_managed_text as string}
+                                                            </span>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="h-1 w-8 bg-slate-100 rounded-full mx-auto" />
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center justify-center gap-1.5">
+                                                        <Button 
+                                                            size="sm" 
+                                                            variant="ghost" 
+                                                            className={cn(
+                                                                "h-8 w-8 p-0 transition-all",
+                                                                flight.balance > 0 
+                                                                    ? "text-red-500 hover:text-red-700 hover:bg-red-50" 
+                                                                    : "text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50"
+                                                            )}
+                                                            onClick={() => setFinanzasViewerFlight(flight)}
+                                                            title="Finanzas"
+                                                        >
+                                                            <Wallet className="h-4 w-4" />
+                                                        </Button>
+
+                                                        {flight.payment_details && flight.payment_details.length > 0 ? (
+                                                            <Button 
+                                                                size="sm" 
+                                                                variant="ghost" 
+                                                                className="h-8 w-8 p-0 text-emerald-600 hover:bg-emerald-50 transition-all"
+                                                                onClick={() => setPaymentHistoryFlight(flight)}
+                                                                title="Historial de Pagos"
+                                                            >
+                                                                <Receipt className="h-4 w-4" />
+                                                            </Button>
+                                                        ) : (
+                                                            <span className="w-8 text-center text-slate-200">-</span>
+                                                        )}
+
+                                                        {flight.documents && flight.documents.length > 0 ? (
+                                                            <Button 
+                                                                size="sm" 
+                                                                variant="ghost" 
+                                                                className="h-8 w-8 p-0 text-chimiteal hover:bg-teal-50 transition-all"
+                                                                onClick={() => setDocsViewerFlight(flight)}
+                                                                title="Documentos"
+                                                            >
+                                                                <FileText className="h-4 w-4" />
+                                                            </Button>
+                                                        ) : (
+                                                            <span className="w-8 text-center text-slate-200">-</span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        flights.map((flight) => (
+                                            <tr key={flight.id} className="bg-white hover:bg-slate-50/50 group">
                                             <td className="px-6 py-4 text-xs text-slate-500">
                                                 {new Date(flight.created_at).toLocaleDateString('es-PE', { timeZone: 'UTC' })}
                                             </td>
@@ -3732,8 +3810,8 @@ export default function FlightsPage() {
                                                             className="group relative flex flex-col items-center gap-1 hover:bg-emerald-50 transition-all duration-300 rounded-xl py-2 px-3"
                                                             onClick={() => setPaymentHistoryFlight(flight)}
                                                         >
-                                                            <div className="bg-emerald-100 text-emerald-700 p-1.5 rounded-lg group-hover:bg-emerald-600 group-hover:text-white transition-colors shadow-sm">
-                                                                <Wallet className="h-4 w-4" />
+                                                             <div className="bg-emerald-100 text-emerald-700 p-1.5 rounded-lg group-hover:bg-emerald-600 group-hover:text-white transition-colors shadow-sm">
+                                                                <Receipt className="h-4 w-4" />
                                                             </div>
                                                             <span className="text-[9px] font-bold text-slate-400 group-hover:text-emerald-600 uppercase tracking-tighter">
                                                                 {flight.payment_details?.length || 0} pagos
@@ -3767,7 +3845,8 @@ export default function FlightsPage() {
                                             )}
                                         </tr>
                                     ))
-                                )}
+                                )
+                            )}
                             </tbody>
                         </table>
                     </div>
