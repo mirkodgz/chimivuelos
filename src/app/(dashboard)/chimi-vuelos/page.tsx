@@ -372,16 +372,19 @@ export default function FlightsPage() {
     }
     
     // Initialize dates to current month (Local Time Safe)
-    const [dateFrom, setDateFrom] = useState(() => {
+    const getFirstDayOfMonth = () => {
         const now = new Date()
         const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
         return `${firstDay.getFullYear()}-${String(firstDay.getMonth() + 1).padStart(2, '0')}-${String(firstDay.getDate()).padStart(2, '0')}`
-    })
-    const [dateTo, setDateTo] = useState(() => {
+    }
+    const getLastDayOfMonth = () => {
         const now = new Date()
         const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
         return `${lastDay.getFullYear()}-${String(lastDay.getMonth() + 1).padStart(2, '0')}-${String(lastDay.getDate()).padStart(2, '0')}`
-    })
+    }
+
+    const [dateFrom, setDateFrom] = useState(getFirstDayOfMonth)
+    const [dateTo, setDateTo] = useState(getLastDayOfMonth)
 
     // Docs Viewer State
     const [docsViewerFlight, setDocsViewerFlight] = useState<Flight | null>(null)
@@ -529,11 +532,10 @@ export default function FlightsPage() {
 
 
     
-    // Default dates for Upcoming Departures: from yesterday to far future
-    const getYesterdayDate = () => {
+    // Default dates for Upcoming Departures: from today
+    const getTodayDate = () => {
         const d = new Date()
-        d.setDate(d.getDate() - 1)
-        return d.toISOString().split('T')[0]
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
     }
 
     // Load Data (Parallelized for maximum speed)
@@ -547,8 +549,8 @@ export default function FlightsPage() {
                     pageSize: itemsPerPage,
                     searchTerm: debouncedSearchTerm,
                     statusFilter: statusFilter,
-                    dateFrom: showUpcomingOnly ? getYesterdayDate() : dateFrom,
-                    dateTo: showUpcomingOnly ? '' : dateTo,
+                    dateFrom: dateFrom,
+                    dateTo: dateTo,
                     showDeudaOnly: showDeudaOnly,
                     sortField: showUpcomingOnly ? 'travel_date' : sortField,
                     sortOrder: showUpcomingOnly ? 'asc' : sortOrder,
@@ -3507,7 +3509,14 @@ export default function FlightsPage() {
                     onClick={() => {
                         const nextVal = !showUpcomingOnly
                         setShowUpcomingOnly(nextVal)
-                        if (nextVal) setShowDeudaOnly(false)
+                        if (nextVal) {
+                            setShowDeudaOnly(false)
+                            setDateFrom(getTodayDate())
+                            setDateTo('')
+                        } else {
+                            setDateFrom(getFirstDayOfMonth())
+                            setDateTo(getLastDayOfMonth())
+                        }
                         setCurrentPage(1)
                     }}
                     className={cn(
