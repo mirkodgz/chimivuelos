@@ -504,9 +504,7 @@ export default function FlightsPage() {
     }
 
     // Dynamic Documents State
-    const [documentInputs, setDocumentInputs] = useState<{ title: string, file: File | null }[]>(
-        DOCUMENT_TYPES.map(type => ({ title: type, file: null }))
-    )
+    const [documentInputs, setDocumentInputs] = useState<{ title: string, file: File | null }[]>([])
     
     // Existing Docs (Load separate from form data)
     const [existingDocs, setExistingDocs] = useState<FlightDocument[]>([])
@@ -768,11 +766,7 @@ export default function FlightsPage() {
             flight_date_history: [] as DateHistoryEntry[],
             payment_proof_path: null
         })
-        const initialDocs = DOCUMENT_TYPES.map(type => ({ 
-            title: type, 
-            file: null 
-        }))
-        setDocumentInputs(initialDocs)
+        setDocumentInputs([])
         setExistingDocs([])
         setClientSearch('')
         setSelectedFlightId(null)
@@ -917,12 +911,8 @@ export default function FlightsPage() {
         setShowPaymentFields(false) 
         setSelectedFlightId(flight.id)
         
-        // Initialize with fixed list
-        const initialDocs = DOCUMENT_TYPES.map(type => ({ 
-            title: type, 
-            file: null 
-        }))
-        setDocumentInputs(initialDocs)
+        // Initialize empty for new documents added dynamically
+        setDocumentInputs([])
         
         let details = flight.details
         if (typeof details === 'string') {
@@ -3410,22 +3400,33 @@ export default function FlightsPage() {
                                      </div>
                                 )}
 
-                                {documentInputs.map((input, idx) => {
-                                    // Check if this document type is already uploaded
-                                    const isAlreadyUploaded = existingDocs.some(doc => (doc.title || doc.name) === input.title)
-                                    // If uploaded and not "Otros", hide the input
-                                    if (isAlreadyUploaded && input.title !== "Otros") return null
-
-                                    return (
-                                    <div key={idx} className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-2 p-3 bg-slate-50 rounded border border-slate-200 items-center">
-                                        <div>
-                                            <Label className="text-xs font-semibold text-slate-700 block mb-1">
-                                                {idx === documentInputs.length - 1 ? "Otros (Especificar Título)" : input.title}
+                                {documentInputs.map((input, idx) => (
+                                    <div key={idx} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 mb-2 p-3 bg-slate-50 rounded border border-slate-200 items-start relative group">
+                                        <div className="flex flex-col gap-1.5">
+                                            <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                                                TIPO DE DOCUMENTO
                                             </Label>
+                                            <select
+                                                value={DOCUMENT_TYPES.includes(input.title) ? input.title : "Otros"}
+                                                onChange={(e) => {
+                                                    const val = e.target.value
+                                                    setDocumentInputs(prev => {
+                                                        const copy = [...prev]
+                                                        copy[idx].title = val
+                                                        return copy
+                                                    })
+                                                }}
+                                                className="h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-chimipink"
+                                            >
+                                                {DOCUMENT_TYPES.map(t => (
+                                                    <option key={t} value={t}>{t}</option>
+                                                ))}
+                                            </select>
                                             
-                                            {idx === documentInputs.length - 1 && (
+                                            {(!DOCUMENT_TYPES.includes(input.title) || input.title === "Otros") && (
                                                 <Input 
                                                     placeholder="Especifique el título..."
+                                                    value={input.title === "Otros" ? "" : input.title}
                                                     onChange={(e) => {
                                                         const newVal = e.target.value
                                                         setDocumentInputs(prev => {
@@ -3434,19 +3435,43 @@ export default function FlightsPage() {
                                                             return copy
                                                         })
                                                     }}
-                                                    className="h-8 text-xs mb-1"
+                                                    className="h-9 text-sm mt-1 focus:ring-chimipink bg-white"
+                                                    autoFocus
                                                 />
                                             )}
                                         </div>
-                                        <div>
+                                        <div className="flex flex-col gap-1.5">
+                                            <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                                                ARCHIVO ADJUNTO
+                                            </Label>
                                             <Input 
                                                 type="file" 
-                                                className="text-xs"
+                                                className="h-9 text-xs focus:ring-chimipink file:mr-4 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-[10px] file:font-semibold file:bg-chimipink/10 file:text-chimipink hover:file:bg-chimipink/20 bg-white"
                                                 onChange={(e) => handleDocInputChange(idx, e.target.files?.[0] || null)}
                                             />
                                         </div>
+                                        <div className="flex items-end h-full pb-[2px] sm:pb-0 sm:pt-6">
+                                            <button 
+                                                type="button"
+                                                onClick={() => setDocumentInputs(prev => prev.filter((_, i) => i !== idx))}
+                                                className="h-9 w-9 bg-white border border-slate-200 rounded-md flex items-center justify-center text-slate-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 shadow-sm transition-all"
+                                                title="Eliminar documento"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </button>
+                                        </div>
                                     </div>
-                                )})}
+                                ))}
+
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setDocumentInputs(prev => [...prev, { title: DOCUMENT_TYPES[0], file: null }])}
+                                    className="w-full border-dashed border-slate-300 text-slate-500 hover:text-chimipink hover:border-chimipink hover:bg-chimipink/5 h-12 rounded-xl transition-all mb-2"
+                                >
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Añadir documento
+                                </Button>
                             </div>
 
                             <DialogFooter>
